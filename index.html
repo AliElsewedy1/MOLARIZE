@@ -3,63 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إدارة عيادة الأسنان - Clinic Management</title>
-    <link rel="stylesheet" href="style.css">
+    <title>تسجيل الدخول - MOLARIZE</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+            margin: 0;
+        }
+        .login-box {
+            background: #ffffff;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        .login-box h2 {
+            text-align: center;
+            color: #0077b6;
+            margin-bottom: 1.5rem;
+        }
+        .input-group {
+            margin-bottom: 1rem;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #2b2d42;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        .btn-login {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #0077b6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            margin-top: 1rem;
+        }
+        .btn-login:hover {
+            background-color: #023e8a;
+        }
+    </style>
 </head>
 <body>
 
-    <!-- القائمة الجانبية -->
-    <aside class="sidebar">
-        <h2 data-ar="عيادة الأسنان" data-en="Dental Clinic">عيادة الأسنان</h2>
-        
-        <a href="#" class="active" data-ar="لوحة التحكم" data-en="Dashboard">لوحة التحكم</a>
-        <a href="#" data-ar="إدارة المرضى" data-en="Patient Management">إدارة المرضى</a>
-        <a href="#" data-ar="الجدول الأسبوعي" data-en="Weekly Schedule">الجدول الأسبوعي</a>
-        <a href="#" data-ar="جدول كانبان" data-en="Kanban Schedule">جدول كانبان</a>
-        <a href="#" data-ar="المدفوعات" data-en="Payments Chart">المدفوعات</a>
-        <a href="#" data-ar="الإعدادات" data-en="Settings">الإعدادات</a>
-
-        <div class="controls">
-            <button id="themeToggle">🌙 Dark Mode</button>
-            <button id="langToggle">English / عربي</button>
-        </div>
-    </aside>
-
-    <!-- المحتوى الرئيسي -->
-    <main class="content-area">
-        <h1 data-ar="إدارة المرضى" data-en="Patient Management">إدارة المرضى</h1>
-        <p data-ar="هنا يمكنك عرض وتعديل بيانات المرضى المسجلين بالعيادة." data-en="Here you can view and edit registered patients' data.">هنا يمكنك عرض وتعديل بيانات المرضى المسجلين بالعيادة.</p>
-
-        <!-- قسم الجدول -->
-        <div class="table-container">
-            <div class="table-header">
-                <h3 data-ar="قائمة المرضى" data-en="Patients List">قائمة المرضى</h3>
-                <button class="btn-primary" data-ar="+ إضافة مريض جديد" data-en="+ Add New Patient">+ إضافة مريض جديد</button>
+    <div class="login-box">
+        <h2>MOLARIZE</h2>
+        <h3 style="text-align: center; color: #555; margin-bottom: 1.5rem;">تسجيل الدخول</h3>
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="username">البريد الإلكتروني:</label>
+                <input type="email" id="username" required>
             </div>
+            <div class="input-group">
+                <label for="password">كلمة المرور:</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit" class="btn-login">دخول</button>
+        </form>
+    </div>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th data-ar="رقم الملف" data-en="ID">رقم الملف</th>
-                        <th data-ar="اسم المريض" data-en="Patient Name">اسم المريض</th>
-                        <th data-ar="رقم الهاتف" data-en="Phone Number">رقم الهاتف</th>
-                        <th data-ar="آخر زيارة" data-en="Last Visit">آخر زيارة</th>
-                        <th data-ar="الإجراءات" data-en="Actions">الإجراءات</th>
-                    </tr>
-                </thead>
-                <!-- ضفنا id هنا والجدول فاضي جاهز للداتا -->
-                <tbody id="patients-table-body">
-                </tbody>
-            </table>
-        </div>
-    </main>
-
-    <script src="script.js"></script>
-
-    <!-- كود فايربيس للتحقق من تسجيل الدخول -->
+    <!-- كود فايربيس -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDD3ouvrsyqwxorPWlQdKPgZACjUO5TiWs",
@@ -75,12 +96,23 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        // التحقق من حالة تسجيل الدخول
-        onAuthStateChanged(auth, (user) => {
-            if (!user) {
-                // توجيه إلى صفحة تسجيل الدخول إذا لم يكن هناك مستخدم
-                window.location.href = 'login.html';
-            }
+        // برمجة زر تسجيل الدخول
+        document.getElementById('loginForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const email = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            signInWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    // نجاح الدخول - توجيه للوحة التحكم
+                    window.location.href = 'dashboard.html';
+                })
+                .catch((error) => {
+                    // فشل الدخول - رسالة خطأ
+                    alert('البريد الإلكتروني أو كلمة المرور غير صحيحة!');
+                    console.error(error.message);
+                });
         });
     </script>
 </body>
