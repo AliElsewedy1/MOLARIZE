@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MOLARIZE - إدارة العيادة</title>
+    <title>MOLARIZE - Clinic Management</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,38 +12,38 @@
     <aside class="sidebar">
         <h2 data-ar="MOLARIZE" data-en="MOLARIZE">MOLARIZE</h2>
 
-        <a href="#" class="active" data-ar="لوحة التحكم" data-en="Dashboard">لوحة التحكم</a>
-        <a href="#" data-ar="إدارة المرضى" data-en="Patient Management">إدارة المرضى</a>
-        <a href="#" data-ar="الجدول الأسبوعي" data-en="Weekly Schedule">الجدول الأسبوعي</a>
-        <a href="#" data-ar="المدفوعات" data-en="Payments Chart">المدفوعات</a>
-        <a href="#" data-ar="الإعدادات" data-en="Settings">الإعدادات</a>
+        <a href="#" class="active" data-ar="لوحة التحكم" data-en="Dashboard">Dashboard</a>
+        <a href="#" data-ar="إدارة المرضى" data-en="Patient Management">Patient Management</a>
+        <a href="#" data-ar="الجدول الأسبوعي" data-en="Weekly Schedule">Weekly Schedule</a>
+        <a href="#" data-ar="المدفوعات" data-en="Payments Chart">Payments Chart</a>
+        <a href="#" data-ar="الإعدادات" data-en="Settings">Settings</a>
 
         <div class="controls">
-            <button id="themeToggle">🌙 Dark Mode</button>
+            <button id="themeToggle">☀️ Light Mode</button>
             <button id="langToggle">English / عربي</button>
         </div>
     </aside>
 
     <!-- المحتوى الرئيسي -->
     <main class="content-area">
-        <h1 data-ar="إدارة المرضى" data-en="Patient Management">إدارة المرضى</h1>
-        <p data-ar="هنا يمكنك عرض وتعديل بيانات المرضى المسجلين بالعيادة." data-en="Here you can view and edit registered patients' data.">هنا يمكنك عرض وتعديل بيانات المرضى المسجلين بالعيادة.</p>
+        <h1 data-ar="إدارة المرضى" data-en="Patient Management">Patient Management</h1>
+        <p data-ar="هنا يمكنك عرض وتعديل بيانات المرضى المسجلين بالعيادة." data-en="Here you can view and edit registered patients' data.">Here you can view and edit registered patients' data.</p>
 
         <!-- قسم الجدول -->
         <div class="table-container">
             <div class="table-header">
-                <h3 data-ar="قائمة المرضى" data-en="Patients List">قائمة المرضى</h3>
-                <button class="btn-primary" data-ar="+ إضافة مريض جديد" data-en="+ Add New Patient">+ إضافة مريض جديد</button>
+                <h3 data-ar="قائمة المرضى" data-en="Patients List">Patients List</h3>
+                <button class="btn-primary" id="openModalBtn" data-ar="+ إضافة مريض جديد" data-en="+ Add New Patient">+ Add New Patient</button>
             </div>
 
             <table>
                 <thead>
                     <tr>
-                        <th data-ar="رقم الملف" data-en="ID">رقم الملف</th>
-                        <th data-ar="اسم المريض" data-en="Patient Name">اسم المريض</th>
-                        <th data-ar="رقم الهاتف" data-en="Phone Number">رقم الهاتف</th>
-                        <th data-ar="آخر زيارة" data-en="Last Visit">آخر زيارة</th>
-                        <th data-ar="الإجراءات" data-en="Actions">الإجراءات</th>
+                        <th data-ar="رقم الملف" data-en="ID">ID</th>
+                        <th data-ar="اسم المريض" data-en="Patient Name">Patient Name</th>
+                        <th data-ar="رقم الهاتف" data-en="Phone Number">Phone Number</th>
+                        <th data-ar="آخر زيارة" data-en="Last Visit">Last Visit</th>
+                        <th data-ar="الإجراءات" data-en="Actions">Actions</th>
                     </tr>
                 </thead>
                 <!-- ضفنا id هنا والجدول فاضي جاهز للداتا -->
@@ -52,6 +52,32 @@
             </table>
         </div>
     </main>
+
+    <!-- Modal لإضافة مريض جديد -->
+    <div id="patientModal" class="modal">
+        <div class="modal-content">
+            <h3 data-ar="إضافة مريض جديد" data-en="Add New Patient">Add New Patient</h3>
+            <form id="patientForm">
+                <input type="hidden" id="patientId">
+                <div class="input-group">
+                    <label for="patientName" data-ar="اسم المريض:" data-en="Patient Name:">Patient Name:</label>
+                    <input type="text" id="patientName" required>
+                </div>
+                <div class="input-group">
+                    <label for="patientPhone" data-ar="رقم الهاتف:" data-en="Phone Number:">Phone Number:</label>
+                    <input type="tel" id="patientPhone" required>
+                </div>
+                <div class="input-group">
+                    <label for="lastVisit" data-ar="آخر زيارة:" data-en="Last Visit:">Last Visit:</label>
+                    <input type="date" id="lastVisit" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelBtn" data-ar="إلغاء" data-en="Cancel">Cancel</button>
+                    <button type="submit" class="btn-primary" data-ar="حفظ" data-en="Save">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
