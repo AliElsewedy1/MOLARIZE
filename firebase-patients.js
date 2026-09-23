@@ -44,21 +44,28 @@ async function loadPatients() {
         querySnapshot.forEach((d) => {
             currentPatients.push({ id: d.id, ...d.data() });
         });
-        renderPatients();
+
+        // Initialize displayId if not present for searching
+        currentPatients = currentPatients.map(p => ({
+            ...p,
+            displayId: p.displayId || 'P' + p.id.substring(0, 5).toUpperCase()
+        }));
+
+        renderPatients(currentPatients);
     } catch (e) {
         console.error("Error loading patients: ", e);
     }
 }
 
 // Render patients table
-function renderPatients() {
+function renderPatients(patientsToRender = currentPatients) {
     if (!patientsTableBody) return;
 
     patientsTableBody.innerHTML = '';
 
-    currentPatients.forEach(patient => {
+    patientsToRender.forEach(patient => {
         const row = document.createElement('tr');
-        const displayId = patient.displayId || 'P' + patient.id.substring(0, 5).toUpperCase();
+        const displayId = patient.displayId;
         const cleanPhone = (patient.phone || '').replace(/\D/g, '');
         const waPhone = cleanPhone.startsWith('0') ? '2' + cleanPhone : '20' + cleanPhone;
 
@@ -77,6 +84,23 @@ function renderPatients() {
             </td>
         `;
         patientsTableBody.appendChild(row);
+    });
+}
+
+// Search Logic
+const patientSearchInput = document.getElementById('patientSearchInput');
+if (patientSearchInput) {
+    patientSearchInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+
+        const filtered = currentPatients.filter(p => {
+            const nameMatch = (p.name || '').toLowerCase().includes(searchTerm);
+            const phoneMatch = (p.phone || '').toLowerCase().includes(searchTerm);
+            const idMatch = (p.displayId || '').toLowerCase().includes(searchTerm);
+            return nameMatch || phoneMatch || idMatch;
+        });
+
+        renderPatients(filtered);
     });
 }
 

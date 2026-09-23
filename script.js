@@ -92,6 +92,19 @@ if (sidebarLinks.length > 0) {
     });
 }
 
+// Ensure in-page nav-links (like 'View all') switch sections via the same mechanism
+const navLinks = document.querySelectorAll('.nav-link[data-target-section]');
+navLinks.forEach(link => {
+    link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const targetId = this.getAttribute('data-target-section');
+        const correspondingSidebarLink = document.querySelector(`.sidebar-link[data-target="${targetId}"]`);
+        if (correspondingSidebarLink) {
+            correspondingSidebarLink.click();
+        }
+    });
+});
+
 // Logout logic has been moved to firebase-app-data.js
 // to take advantage of the centralized module imports.
 

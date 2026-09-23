@@ -315,6 +315,22 @@ body {
 .list-item-sub { font-size: 0.85rem; color: var(--text-muted); }
 .list-item-right { font-weight: bold; color: var(--text-primary); }
 
+/* Search Bar */
+.search-input {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
+}
+.search-input:focus {
+    outline: none;
+    border-color: var(--brand-primary);
+}
+
 /* Timeline Schedule */
 .timeline-container {
     position: relative;
