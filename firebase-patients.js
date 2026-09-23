@@ -59,11 +59,16 @@ function renderPatients() {
     currentPatients.forEach(patient => {
         const row = document.createElement('tr');
         const displayId = patient.displayId || 'P' + patient.id.substring(0, 5).toUpperCase();
+        const cleanPhone = (patient.phone || '').replace(/\D/g, '');
 
         row.innerHTML = `
             <td>${displayId}</td>
             <td>${patient.name}</td>
-            <td>${patient.phone}</td>
+            <td>
+                ${patient.phone}
+                <a href="tel:${cleanPhone}" style="color:var(--brand-primary); text-decoration:none; margin-left:0.5rem;" title="Call">📞</a>
+                <a href="https://wa.me/${cleanPhone}" target="_blank" style="color:#25D366; text-decoration:none; margin-left:0.5rem;" title="WhatsApp">💬</a>
+            </td>
             <td>${patient.lastVisit}</td>
             <td>
                 <button class="btn-action btn-edit" onclick="window.editPatient('${patient.id}')">Edit</button>
