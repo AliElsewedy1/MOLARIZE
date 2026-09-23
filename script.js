@@ -67,3 +67,24 @@ if (sidebarLinks.length > 0) {
         });
     });
 }
+
+// Logout button logic
+const logoutBtn = document.getElementById('logoutBtn');
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+        if (window.auth && window.signOut) {
+            window.signOut(window.auth).then(() => {
+                window.location.href = 'index.html';
+            });
+        }
+    });
+}
+
+// Re-render chart on tab switch (fixes canvas size issue)
+document.querySelector('[data-target="payments-section"]')?.addEventListener('click', () => {
+    if (typeof revenueChartInstance !== 'undefined' && revenueChartInstance) {
+        setTimeout(() => {
+            revenueChartInstance.resize();
+        }, 50);
+    }
+});

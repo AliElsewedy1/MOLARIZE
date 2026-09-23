@@ -8,6 +8,7 @@ const patientForm = document.getElementById('patientForm');
 const patientsTableBody = document.getElementById('patients-table-body');
 
 let currentPatients = [];
+let currentUserUid = null;
 
 // Open modal
 if (openModalBtn) {
@@ -36,8 +37,10 @@ if (patientModal) {
 
 // Load patients from Firestore
 async function loadPatients() {
+    if (!currentUserUid) return;
     try {
-        const querySnapshot = await window.getDocs(window.collection(window.db, "patients"));
+        const patientsRef = window.collection(window.db, "users", currentUserUid, "patients");
+        const querySnapshot = await window.getDocs(patientsRef);
         currentPatients = [];
         querySnapshot.forEach((doc) => {
             currentPatients.push({ id: doc.id, ...doc.data() });
@@ -90,9 +93,13 @@ if (patientForm) {
         submitBtn.disabled = true;
 
         try {
+            if (!currentUserUid) {
+                alert("User not authenticated.");
+                return;
+            }
             if (idField) {
                 // Edit existing in Firestore
-                const patientRef = window.doc(window.db, "patients", idField);
+                const patientRef = window.doc(window.db, "users", currentUserUid, "patients", idField);
                 await window.updateDoc(patientRef, {
                     name: name,
                     phone: phone,
@@ -100,7 +107,8 @@ if (patientForm) {
                 });
             } else {
                 // Add new to Firestore
-                await window.addDoc(window.collection(window.db, "patients"), {
+                const patientsRef = window.collection(window.db, "users", currentUserUid, "patients");
+                await window.addDoc(patientsRef, {
                     name: name,
                     phone: phone,
                     lastVisit: lastVisit,
@@ -136,9 +144,10 @@ window.editPatient = function(id) {
 
 // Delete Patient Function (Global scope for onclick)
 window.deletePatient = async function(id) {
+    if (!currentUserUid) return;
     if (confirm('Are you sure you want to delete this patient?')) {
         try {
-            await window.deleteDoc(window.doc(window.db, "patients", id));
+            await window.deleteDoc(window.doc(window.db, "users", currentUserUid, "patients", id));
             await loadPatients();
         } catch (e) {
             console.error("Error deleting patient: ", e);
@@ -147,10 +156,18 @@ window.deletePatient = async function(id) {
     }
 }
 
-// Initial load
+// Initial load & Auth Listener
 document.addEventListener('DOMContentLoaded', () => {
-    // We can call loadPatients immediately since this script is module and runs after DOM is parsed.
-    // However, window.db is populated by the preceding inline script which is also module.
-    // So we just call it.
-    setTimeout(loadPatients, 500); // Wait a bit for firebase to init just in case
+    setTimeout(() => {
+        if (window.auth && window.onAuthStateChanged) {
+            window.onAuthStateChanged(window.auth, (user) => {
+                if (user) {
+                    currentUserUid = user.uid;
+                    loadPatients();
+                } else {
+                    window.location.href = 'index.html';
+                }
+            });
+        }
+    }, 500); // Wait for firebase to init
 });
