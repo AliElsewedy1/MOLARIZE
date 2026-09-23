@@ -109,7 +109,7 @@
             </div>
 
             <!-- Recent Patients -->
-            <div class="home-card full-width">
+            <div class="home-card full-width" style="cursor: pointer;" onclick="document.querySelector('.sidebar-link[data-target=\'patients-section\']').click();">
                 <div class="card-header-flex">
                     <div class="header-title">
                         <span>👥</span>
@@ -176,14 +176,21 @@
 
         <!-- Patient Management Section -->
         <section id="patients-section" class="app-section" style="display: none;">
-            <h1 data-ar="إدارة المرضى" data-en="Patient Management">Patient Management</h1>
+            <div class="table-header" style="margin-top:0;">
+                <h1 data-ar="إدارة المرضى" data-en="Patient Management">Patient Management</h1>
+                <button class="btn-primary" id="openModalBtn" data-ar="+ إضافة مريض جديد" data-en="+ Add New Patient">+ Add New Patient</button>
+            </div>
             <p data-ar="هنا يمكنك عرض وتعديل بيانات المرضى المسجلين بالعيادة." data-en="Here you can view and edit registered patients' data.">Here you can view and edit registered patients' data.</p>
 
+            <!-- Search Bar -->
+            <div class="search-container" style="margin-top: 1.5rem;">
+                <input type="text" id="patientSearchInput" class="search-input" data-ar="بحث بالاسم، رقم الهاتف، أو رقم الملف..." data-en="Search by name, phone, or ID..." placeholder="Search by name, phone, or ID...">
+            </div>
+
             <!-- قسم الجدول -->
-            <div class="table-container">
+            <div class="table-container" style="margin-top: 1rem;">
                 <div class="table-header">
                     <h3 data-ar="قائمة المرضى" data-en="Patients List">Patients List</h3>
-                    <button class="btn-primary" id="openModalBtn" data-ar="+ إضافة مريض جديد" data-en="+ Add New Patient">+ Add New Patient</button>
                 </div>
 
                 <table>
