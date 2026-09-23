@@ -339,13 +339,16 @@ async function updateDashboardStats() {
         }
     } catch(e) { console.error(e); }
 
-    // Local Timezone Helper
+    // Today's Appointments Count
     const localOffset = new Date().getTimezoneOffset() * 60000;
     const localToday = new Date(Date.now() - localOffset).toISOString().split('T')[0];
-
-    // Today's Appointments Count
     const todayAppts = currentAppointments.filter(a => a.date === localToday);
-    if(homeAppointmentsToday) homeAppointmentsToday.innerText = todayAppts.length;
+
+    if(homeAppointmentsToday) {
+        const isAr = document.documentElement.lang === 'ar';
+        homeAppointmentsToday.innerText = `${todayAppts.length} ${isAr ? 'مواعيد' : 'Appointments'}`;
+    }
+
     if(weeklyAppointmentsCount) weeklyAppointmentsCount.innerText = currentAppointments.length; // Demo: total as weekly
 
     // Revenue
@@ -413,15 +416,13 @@ function renderTimelineEvents(eventsContainer, dateString) {
 }
 
 function renderTodayAppointments() {
-    // Make sure we compare dates based on Local Timezone
-    const localOffset = new Date().getTimezoneOffset() * 60000;
-    const localToday = new Date(Date.now() - localOffset).toISOString().split('T')[0];
-    renderTimelineEvents(homeTimelineEvents, localToday);
+    const today = new Date().toISOString().split('T')[0];
+    renderTimelineEvents(homeTimelineEvents, today);
 
     const tmrw = new Date();
     tmrw.setDate(tmrw.getDate() + 1);
-    const localTomorrow = new Date(tmrw.getTime() - localOffset).toISOString().split('T')[0];
-    renderTimelineEvents(tomorrowTimelineEvents, localTomorrow);
+    const tomorrow = tmrw.toISOString().split('T')[0];
+    renderTimelineEvents(tomorrowTimelineEvents, tomorrow);
 }
 
 function initCalendar() {
