@@ -1,5 +1,4 @@
-// This file handles patient management using Firebase Firestore.
-// It relies on window.db and Firestore methods exposed in dashboard.html.
+import { db, auth, onAuthStateChanged, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "./firebase-config.js";
 
 const patientModal = document.getElementById('patientModal');
 const openModalBtn = document.getElementById('openModalBtn');
@@ -39,11 +38,11 @@ if (patientModal) {
 async function loadPatients() {
     if (!currentUserUid) return;
     try {
-        const patientsRef = window.collection(window.db, "users", currentUserUid, "patients");
-        const querySnapshot = await window.getDocs(patientsRef);
+        const patientsRef = collection(db, "users", currentUserUid, "patients");
+        const querySnapshot = await getDocs(patientsRef);
         currentPatients = [];
-        querySnapshot.forEach((doc) => {
-            currentPatients.push({ id: doc.id, ...doc.data() });
+        querySnapshot.forEach((d) => {
+            currentPatients.push({ id: d.id, ...d.data() });
         });
         renderPatients();
     } catch (e) {
@@ -59,7 +58,6 @@ function renderPatients() {
 
     currentPatients.forEach(patient => {
         const row = document.createElement('tr');
-        // If they don't have a specific readable ID, just use a slice of the document ID
         const displayId = patient.displayId || 'P' + patient.id.substring(0, 5).toUpperCase();
 
         row.innerHTML = `
@@ -86,7 +84,6 @@ if (patientForm) {
         const phone = document.getElementById('patientPhone').value;
         const lastVisit = document.getElementById('lastVisit').value;
 
-        // Show loading state on button (optional but good for UX)
         const submitBtn = patientForm.querySelector('button[type="submit"]');
         const originalText = submitBtn.innerText;
         submitBtn.innerText = '...';
@@ -99,16 +96,16 @@ if (patientForm) {
             }
             if (idField) {
                 // Edit existing in Firestore
-                const patientRef = window.doc(window.db, "users", currentUserUid, "patients", idField);
-                await window.updateDoc(patientRef, {
+                const patientRef = doc(db, "users", currentUserUid, "patients", idField);
+                await updateDoc(patientRef, {
                     name: name,
                     phone: phone,
                     lastVisit: lastVisit
                 });
             } else {
                 // Add new to Firestore
-                const patientsRef = window.collection(window.db, "users", currentUserUid, "patients");
-                await window.addDoc(patientsRef, {
+                const patientsRef = collection(db, "users", currentUserUid, "patients");
+                await addDoc(patientsRef, {
                     name: name,
                     phone: phone,
                     lastVisit: lastVisit,
@@ -119,9 +116,9 @@ if (patientForm) {
             // Reload and render
             await loadPatients();
 
-            // Also update home dashboard stats if function exists (cross-file interaction)
-            if (typeof updateDashboardStats === 'function') {
-                updateDashboardStats();
+            // Also update home dashboard stats if function exists
+            if (typeof window.updateDashboardStats === 'function') {
+                window.updateDashboardStats();
             }
 
             patientModal.classList.remove('show');
@@ -135,7 +132,7 @@ if (patientForm) {
     });
 }
 
-// Edit Patient Function (Global scope for onclick)
+// Edit Patient Function
 window.editPatient = function(id) {
     const patient = currentPatients.find(p => p.id === id);
 
@@ -148,16 +145,16 @@ window.editPatient = function(id) {
     }
 }
 
-// Delete Patient Function (Global scope for onclick)
+// Delete Patient Function
 window.deletePatient = async function(id) {
     if (!currentUserUid) return;
     if (confirm('Are you sure you want to delete this patient?')) {
         try {
-            await window.deleteDoc(window.doc(window.db, "users", currentUserUid, "patients", id));
+            await deleteDoc(doc(db, "users", currentUserUid, "patients", id));
             await loadPatients();
 
-            if (typeof updateDashboardStats === 'function') {
-                updateDashboardStats();
+            if (typeof window.updateDashboardStats === 'function') {
+                window.updateDashboardStats();
             }
         } catch (e) {
             console.error("Error deleting patient: ", e);
@@ -166,18 +163,12 @@ window.deletePatient = async function(id) {
     }
 }
 
-// Initial load & Auth Listener
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        if (window.auth && window.onAuthStateChanged) {
-            window.onAuthStateChanged(window.auth, (user) => {
-                if (user) {
-                    currentUserUid = user.uid;
-                    loadPatients();
-                } else {
-                    window.location.href = 'index.html';
-                }
-            });
-        }
-    }, 500); // Wait for firebase to init
+// Auth Listener
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        currentUserUid = user.uid;
+        loadPatients();
+    } else {
+        window.location.replace('index.html');
+    }
 });

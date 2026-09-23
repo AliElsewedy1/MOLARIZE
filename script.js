@@ -92,17 +92,8 @@ if (sidebarLinks.length > 0) {
     });
 }
 
-// Logout button logic
-const logoutBtn = document.getElementById('logoutBtn');
-if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
-        if (window.auth && window.signOut) {
-            window.signOut(window.auth).then(() => {
-                window.location.href = 'index.html';
-            });
-        }
-    });
-}
+// Logout logic has been moved to firebase-app-data.js
+// to take advantage of the centralized module imports.
 
 // Re-render chart on tab switch (fixes canvas size issue)
 document.querySelector('[data-target="payments-section"]')?.addEventListener('click', () => {
