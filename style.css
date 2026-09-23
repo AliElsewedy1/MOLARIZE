@@ -1,21 +1,29 @@
 :root {
-    --bg-main: #f8f9fa;
-    --bg-sidebar: #0077b6;
-    --sidebar-hover: #023e8a;
-    --text-main: #2b2d42;
-    --text-sidebar: #ffffff;
-    --card-bg: #ffffff;
-    --border-color: #edf2f4;
+    --bg-primary: #F8FAFC;
+    --bg-surface: #FFFFFF;
+    --text-primary: #0F172A;
+    --text-muted: #64748B;
+    --brand-primary: #0284C7;
+    --accent-cta: #F97316;
+    --border-color: #E2E8F0;
+
+    --status-success: #10B981;
+    --status-error: #EF4444;
+    --status-pending: #F59E0B;
 }
 
 [data-theme="dark"] {
-    --bg-main: #121212;
-    --bg-sidebar: #1e1e1e;
-    --sidebar-hover: #333333;
-    --text-main: #e0e0e0;
-    --text-sidebar: #e0e0e0;
-    --card-bg: #1f1f1f;
-    --border-color: #333333;
+    --bg-primary: #0F172A;
+    --bg-surface: #1E293B;
+    --text-primary: #F8FAFC;
+    --text-muted: #94A3B8;
+    --brand-primary: #38BDF8;
+    --accent-cta: #FB923C;
+    --border-color: #334155;
+
+    --status-success: #34D399;
+    --status-error: #F87171;
+    --status-pending: #FBBF24;
 }
 
 * {
@@ -28,15 +36,15 @@
 body {
     display: flex;
     min-height: 100vh;
-    background-color: var(--bg-main);
-    color: var(--text-main);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
     font-family: Arial, sans-serif;
 }
 
 .sidebar {
     width: 260px;
-    background-color: var(--bg-sidebar);
-    color: var(--text-sidebar);
+    background-color: var(--bg-surface);
+    color: var(--text-primary);
     padding: 2rem 1rem;
     display: flex;
     flex-direction: column;
@@ -50,7 +58,7 @@ body {
 }
 
 .sidebar a {
-    color: var(--text-sidebar);
+    color: var(--text-primary);
     text-decoration: none;
     padding: 1rem;
     border-radius: 8px;
@@ -59,7 +67,8 @@ body {
 }
 
 .sidebar a:hover, .sidebar a.active {
-    background-color: var(--sidebar-hover);
+    background-color: var(--brand-primary);
+    color: #FFFFFF;
 }
 
 .controls {
@@ -71,16 +80,16 @@ body {
 
 .controls button {
     padding: 0.8rem;
-    border: none;
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     cursor: pointer;
-    background-color: rgba(255, 255, 255, 0.1);
-    color: var(--text-sidebar);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
     font-weight: bold;
 }
 
 .controls button:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: var(--border-color);
 }
 
 .content-area {
@@ -90,7 +99,7 @@ body {
 }
 
 .table-container {
-    background-color: var(--card-bg);
+    background-color: var(--bg-surface);
     border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 1.5rem;
@@ -107,7 +116,7 @@ body {
 }
 
 .btn-primary {
-    background-color: #0077b6;
+    background-color: var(--accent-cta);
     color: white;
     border: none;
     padding: 0.6rem 1.2rem;
@@ -117,7 +126,7 @@ body {
 }
 
 .btn-primary:hover {
-    background-color: #023e8a;
+    opacity: 0.9;
 }
 
 table {
@@ -136,13 +145,13 @@ th, td {
 }
 
 th {
-    background-color: rgba(0, 119, 182, 0.05);
-    color: var(--text-main);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
     font-weight: bold;
 }
 
 td {
-    color: var(--text-main);
+    color: var(--text-muted);
 }
 
 .btn-action {
