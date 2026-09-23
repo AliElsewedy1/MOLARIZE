@@ -118,6 +118,12 @@ if (patientForm) {
 
             // Reload and render
             await loadPatients();
+
+            // Also update home dashboard stats if function exists (cross-file interaction)
+            if (typeof updateDashboardStats === 'function') {
+                updateDashboardStats();
+            }
+
             patientModal.classList.remove('show');
         } catch (e) {
             console.error("Error saving patient: ", e);
@@ -149,6 +155,10 @@ window.deletePatient = async function(id) {
         try {
             await window.deleteDoc(window.doc(window.db, "users", currentUserUid, "patients", id));
             await loadPatients();
+
+            if (typeof updateDashboardStats === 'function') {
+                updateDashboardStats();
+            }
         } catch (e) {
             console.error("Error deleting patient: ", e);
             alert("Error deleting patient.");

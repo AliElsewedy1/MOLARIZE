@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Set Greeting & Date
     updateGreetingAndDate();
+    window.updateDashboardStats = updateDashboardStats; // Make globally accessible early
 
     setTimeout(() => {
         if (window.auth && window.onAuthStateChanged) {
@@ -168,6 +169,7 @@ if (treatmentForm) {
             }
             await loadTreatments();
             treatmentModal.classList.remove('show');
+            updateDashboardStats(); // Update dashboard stats (revenue/overdue)
             initChart(); // Update chart
         } catch (e) {
             console.error("Error saving treatment: ", e);
@@ -195,6 +197,7 @@ window.deleteTreatment = async function(id) {
         try {
             await window.deleteDoc(window.doc(window.db, "users", currentUserUid, "treatments", id));
             await loadTreatments();
+            updateDashboardStats(); // Update dashboard stats (revenue/overdue)
             initChart();
         } catch (e) {
             console.error("Error deleting treatment: ", e);
@@ -269,6 +272,7 @@ if (appointmentForm) {
                 await window.addDoc(apptsRef, { patientName, date, time, status: 'Scheduled' });
             }
             await loadAppointments();
+            updateDashboardStats(); // Update stats
             appointmentModal.classList.remove('show');
         } catch (e) {
             console.error("Error saving appointment: ", e);
@@ -284,6 +288,7 @@ window.deleteAppointmentFromCalendar = async function(id) {
         try {
             await window.deleteDoc(window.doc(window.db, "users", currentUserUid, "appointments", id));
             await loadAppointments();
+            updateDashboardStats(); // Update stats
         } catch (e) {
             console.error("Error deleting appointment: ", e);
         }
