@@ -12,11 +12,11 @@
     <aside class="sidebar">
         <h2 data-ar="MOLARIZE" data-en="MOLARIZE">MOLARIZE</h2>
 
-        <a href="#" class="active" data-ar="لوحة التحكم" data-en="Dashboard">Dashboard</a>
-        <a href="#" data-ar="إدارة المرضى" data-en="Patient Management">Patient Management</a>
-        <a href="#" data-ar="الجدول الأسبوعي" data-en="Weekly Schedule">Weekly Schedule</a>
-        <a href="#" data-ar="المدفوعات" data-en="Payments Chart">Payments Chart</a>
-        <a href="#" data-ar="الإعدادات" data-en="Settings">Settings</a>
+        <a href="#" class="sidebar-link active" data-target="dashboard-section" data-ar="لوحة التحكم" data-en="Dashboard">Dashboard</a>
+        <a href="#" class="sidebar-link" data-target="patients-section" data-ar="إدارة المرضى" data-en="Patient Management">Patient Management</a>
+        <a href="#" class="sidebar-link" data-target="schedule-section" data-ar="الجدول الأسبوعي" data-en="Weekly Schedule">Weekly Schedule</a>
+        <a href="#" class="sidebar-link" data-target="payments-section" data-ar="المدفوعات" data-en="Payments Chart">Payments Chart</a>
+        <a href="#" class="sidebar-link" data-target="settings-section" data-ar="الإعدادات" data-en="Settings">Settings</a>
 
         <div class="controls">
             <button id="themeToggle">☀️ Light Mode</button>
@@ -26,31 +26,60 @@
 
     <!-- المحتوى الرئيسي -->
     <main class="content-area">
-        <h1 data-ar="إدارة المرضى" data-en="Patient Management">Patient Management</h1>
-        <p data-ar="هنا يمكنك عرض وتعديل بيانات المرضى المسجلين بالعيادة." data-en="Here you can view and edit registered patients' data.">Here you can view and edit registered patients' data.</p>
 
-        <!-- قسم الجدول -->
-        <div class="table-container">
-            <div class="table-header">
-                <h3 data-ar="قائمة المرضى" data-en="Patients List">Patients List</h3>
-                <button class="btn-primary" id="openModalBtn" data-ar="+ إضافة مريض جديد" data-en="+ Add New Patient">+ Add New Patient</button>
+        <!-- Dashboard Section -->
+        <section id="dashboard-section" class="app-section" style="display: block;">
+            <h1 data-ar="لوحة التحكم" data-en="Dashboard">Dashboard</h1>
+            <p data-ar="مرحباً بك في نظام إدارة عيادة MOLARIZE" data-en="Welcome to MOLARIZE clinic management system.">Welcome to MOLARIZE clinic management system.</p>
+        </section>
+
+        <!-- Patient Management Section -->
+        <section id="patients-section" class="app-section" style="display: none;">
+            <h1 data-ar="إدارة المرضى" data-en="Patient Management">Patient Management</h1>
+            <p data-ar="هنا يمكنك عرض وتعديل بيانات المرضى المسجلين بالعيادة." data-en="Here you can view and edit registered patients' data.">Here you can view and edit registered patients' data.</p>
+
+            <!-- قسم الجدول -->
+            <div class="table-container">
+                <div class="table-header">
+                    <h3 data-ar="قائمة المرضى" data-en="Patients List">Patients List</h3>
+                    <button class="btn-primary" id="openModalBtn" data-ar="+ إضافة مريض جديد" data-en="+ Add New Patient">+ Add New Patient</button>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-ar="رقم الملف" data-en="ID">ID</th>
+                            <th data-ar="اسم المريض" data-en="Patient Name">Patient Name</th>
+                            <th data-ar="رقم الهاتف" data-en="Phone Number">Phone Number</th>
+                            <th data-ar="آخر زيارة" data-en="Last Visit">Last Visit</th>
+                            <th data-ar="الإجراءات" data-en="Actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <!-- ضفنا id هنا والجدول فاضي جاهز للداتا -->
+                    <tbody id="patients-table-body">
+                    </tbody>
+                </table>
             </div>
+        </section>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th data-ar="رقم الملف" data-en="ID">ID</th>
-                        <th data-ar="اسم المريض" data-en="Patient Name">Patient Name</th>
-                        <th data-ar="رقم الهاتف" data-en="Phone Number">Phone Number</th>
-                        <th data-ar="آخر زيارة" data-en="Last Visit">Last Visit</th>
-                        <th data-ar="الإجراءات" data-en="Actions">Actions</th>
-                    </tr>
-                </thead>
-                <!-- ضفنا id هنا والجدول فاضي جاهز للداتا -->
-                <tbody id="patients-table-body">
-                </tbody>
-            </table>
-        </div>
+        <!-- Weekly Schedule Section -->
+        <section id="schedule-section" class="app-section" style="display: none;">
+            <h1 data-ar="الجدول الأسبوعي" data-en="Weekly Schedule">Weekly Schedule</h1>
+            <p data-ar="قريباً..." data-en="Coming soon...">Coming soon...</p>
+        </section>
+
+        <!-- Payments Chart Section -->
+        <section id="payments-section" class="app-section" style="display: none;">
+            <h1 data-ar="المدفوعات" data-en="Payments Chart">Payments Chart</h1>
+            <p data-ar="قريباً..." data-en="Coming soon...">Coming soon...</p>
+        </section>
+
+        <!-- Settings Section -->
+        <section id="settings-section" class="app-section" style="display: none;">
+            <h1 data-ar="الإعدادات" data-en="Settings">Settings</h1>
+            <p data-ar="قريباً..." data-en="Coming soon...">Coming soon...</p>
+        </section>
+
     </main>
 
     <!-- Modal لإضافة مريض جديد -->
@@ -81,15 +110,14 @@
 
     <script src="script.js"></script>
 
-    <!-- Firebase Realtime Database Logic for Patient Management -->
+    <!-- Firebase Firestore Logic for Patient Management -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-        import { getDatabase, ref, push, set, get, update, remove, child } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDD3ouvrsyqwxorPWlQdKPgZACjUO5TiWs",
             authDomain: "ali-elsewedy-media.firebaseapp.com",
-            databaseURL: "https://ali-elsewedy-media-default-rtdb.firebaseio.com",
             projectId: "ali-elsewedy-media",
             storageBucket: "ali-elsewedy-media.firebasestorage.app",
             messagingSenderId: "721258793080",
@@ -98,17 +126,15 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+        const db = getFirestore(app);
 
-        // Make Realtime DB functions globally available for the module
         window.db = db;
-        window.ref = ref;
-        window.push = push;
-        window.set = set;
-        window.get = get;
-        window.update = update;
-        window.remove = remove;
-        window.child = child;
+        window.collection = collection;
+        window.addDoc = addDoc;
+        window.getDocs = getDocs;
+        window.doc = doc;
+        window.updateDoc = updateDoc;
+        window.deleteDoc = deleteDoc;
     </script>
     <script src="firebase-patients.js" type="module"></script>
 </body>

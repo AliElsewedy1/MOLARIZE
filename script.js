@@ -36,3 +36,34 @@ langToggle.addEventListener('click', () => {
 
 // Patient Management Logic has been moved to firebase-patients.js
 // to use Firebase Firestore instead of Local Storage.
+
+// --- Sidebar Navigation (SPA style) ---
+const sidebarLinks = document.querySelectorAll('.sidebar-link');
+const appSections = document.querySelectorAll('.app-section');
+
+if (sidebarLinks.length > 0) {
+    sidebarLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            // Remove active class from all links
+            sidebarLinks.forEach(l => l.classList.remove('active'));
+            // Add active class to clicked link
+            this.classList.add('active');
+
+            // Hide all sections
+            appSections.forEach(section => {
+                section.style.display = 'none';
+            });
+
+            // Show the target section
+            const targetId = this.getAttribute('data-target');
+            if (targetId) {
+                const targetSection = document.getElementById(targetId);
+                if (targetSection) {
+                    targetSection.style.display = 'block';
+                }
+            }
+        });
+    });
+}

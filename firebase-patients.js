@@ -1,5 +1,5 @@
-// This file handles patient management using Firebase Realtime Database.
-// It relies on window.db and RTDB methods exposed in dashboard.html.
+// This file handles patient management using Firebase Firestore.
+// It relies on window.db and Firestore methods exposed in dashboard.html.
 
 const patientModal = document.getElementById('patientModal');
 const openModalBtn = document.getElementById('openModalBtn');
@@ -34,18 +34,14 @@ if (patientModal) {
     });
 }
 
-// Load patients from Realtime Database
+// Load patients from Firestore
 async function loadPatients() {
     try {
-        const patientsRef = window.ref(window.db, "patients");
-        const snapshot = await window.get(patientsRef);
+        const querySnapshot = await window.getDocs(window.collection(window.db, "patients"));
         currentPatients = [];
-
-        if (snapshot.exists()) {
-            snapshot.forEach((childSnapshot) => {
-                currentPatients.push({ id: childSnapshot.key, ...childSnapshot.val() });
-            });
-        }
+        querySnapshot.forEach((doc) => {
+            currentPatients.push({ id: doc.id, ...doc.data() });
+        });
         renderPatients();
     } catch (e) {
         console.error("Error loading patients: ", e);
@@ -95,18 +91,16 @@ if (patientForm) {
 
         try {
             if (idField) {
-                // Edit existing in Realtime Database
-                const patientRef = window.ref(window.db, "patients/" + idField);
-                await window.update(patientRef, {
+                // Edit existing in Firestore
+                const patientRef = window.doc(window.db, "patients", idField);
+                await window.updateDoc(patientRef, {
                     name: name,
                     phone: phone,
                     lastVisit: lastVisit
                 });
             } else {
-                // Add new to Realtime Database
-                const patientsListRef = window.ref(window.db, "patients");
-                const newPatientRef = window.push(patientsListRef);
-                await window.set(newPatientRef, {
+                // Add new to Firestore
+                await window.addDoc(window.collection(window.db, "patients"), {
                     name: name,
                     phone: phone,
                     lastVisit: lastVisit,
@@ -144,8 +138,7 @@ window.editPatient = function(id) {
 window.deletePatient = async function(id) {
     if (confirm('Are you sure you want to delete this patient?')) {
         try {
-            const patientRef = window.ref(window.db, "patients/" + id);
-            await window.remove(patientRef);
+            await window.deleteDoc(window.doc(window.db, "patients", id));
             await loadPatients();
         } catch (e) {
             console.error("Error deleting patient: ", e);
