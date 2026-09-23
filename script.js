@@ -37,6 +37,27 @@ langToggle.addEventListener('click', () => {
 // Patient Management Logic has been moved to firebase-patients.js
 // to use Firebase Firestore instead of Local Storage.
 
+// --- Mobile Menu Toggle ---
+const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+const sidebar = document.querySelector('.sidebar');
+const mobileOverlay = document.getElementById('mobileOverlay');
+
+function closeMobileMenu() {
+    if (sidebar && sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+        mobileOverlay.classList.remove('active');
+    }
+}
+
+if (mobileMenuBtn && sidebar && mobileOverlay) {
+    mobileMenuBtn.addEventListener('click', () => {
+        sidebar.classList.add('open');
+        mobileOverlay.classList.add('active');
+    });
+
+    mobileOverlay.addEventListener('click', closeMobileMenu);
+}
+
 // --- Sidebar Navigation (SPA style) ---
 const sidebarLinks = document.querySelectorAll('.sidebar-link');
 const appSections = document.querySelectorAll('.app-section');
@@ -45,6 +66,9 @@ if (sidebarLinks.length > 0) {
     sidebarLinks.forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
+
+            // Close mobile menu on link click
+            closeMobileMenu();
 
             // Remove active class from all links
             sidebarLinks.forEach(l => l.classList.remove('active'));
