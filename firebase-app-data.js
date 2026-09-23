@@ -7,12 +7,20 @@ let revenueChartInstance = null;
 let currentAppointments = [];
 let currentTreatments = [];
 
-// DOM Elements
-const todayAppointmentsTableBody = document.getElementById('today-appointments-table-body');
-const totalPatientsCount = document.getElementById('total-patients-count');
-const todayAppointmentsCount = document.getElementById('today-appointments-count');
-const monthlyRevenueCount = document.getElementById('monthly-revenue-count');
+// DOM Elements (Home Stats)
+const homeAppointmentsToday = document.getElementById('home-appointments-today');
+const homeOverdueCount = document.getElementById('home-overdue-count');
+const homeOverdueAmount = document.getElementById('home-overdue-amount');
+const weeklyAppointmentsCount = document.getElementById('weekly-appointments-count');
+const weeklyNewPatients = document.getElementById('weekly-new-patients');
+const weeklyRevenue = document.getElementById('weekly-revenue');
+const homeOverdueList = document.getElementById('home-overdue-list');
+const homeRecentPatients = document.getElementById('home-recent-patients');
+const homeTimelineEvents = document.getElementById('home-timeline-events');
+const greetingMessage = document.getElementById('greetingMessage');
+const currentDateDisplay = document.getElementById('currentDateDisplay');
 
+// DOM Elements (Modals)
 const treatmentsTableBody = document.getElementById('treatments-table-body');
 const treatmentModal = document.getElementById('treatmentModal');
 const openTreatmentModalBtn = document.getElementById('openTreatmentModalBtn');
@@ -26,6 +34,26 @@ const appointmentForm = document.getElementById('appointmentForm');
 
 // Initialize modules on Auth
 document.addEventListener('DOMContentLoaded', () => {
+
+    // Quick Actions
+    const quickNewPatientBtn = document.getElementById('quickNewPatientBtn');
+    const quickNewAppointmentBtn = document.getElementById('quickNewAppointmentBtn');
+
+    if (quickNewPatientBtn) {
+        quickNewPatientBtn.addEventListener('click', () => {
+            const btn = document.getElementById('openModalBtn');
+            if(btn) btn.click();
+        });
+    }
+    if (quickNewAppointmentBtn) {
+        quickNewAppointmentBtn.addEventListener('click', () => {
+            if(openAppointmentModalBtn) openAppointmentModalBtn.click();
+        });
+    }
+
+    // Set Greeting & Date
+    updateGreetingAndDate();
+
     setTimeout(() => {
         if (window.auth && window.onAuthStateChanged) {
             window.onAuthStateChanged(window.auth, (user) => {
@@ -266,50 +294,133 @@ window.deleteAppointmentFromCalendar = async function(id) {
 // Dashboard Integrations
 // ---------------------------------------------------------
 
+function updateGreetingAndDate() {
+    if(!greetingMessage || !currentDateDisplay) return;
+    const hour = new Date().getHours();
+    const isAr = document.documentElement.lang === 'ar';
+
+    let enGreet = 'Good evening';
+    let arGreet = 'مساء الخير';
+    if (hour < 12) { enGreet = 'Good morning'; arGreet = 'صباح الخير'; }
+    else if (hour < 18) { enGreet = 'Good afternoon'; arGreet = 'طاب مساؤك'; }
+
+    greetingMessage.setAttribute('data-en', `${enGreet}, Admin`);
+    greetingMessage.setAttribute('data-ar', `${arGreet}، المشرف`);
+    greetingMessage.innerText = isAr ? `${arGreet}، المشرف` : `${enGreet}, Admin`;
+
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    currentDateDisplay.innerText = new Date().toLocaleDateString(isAr ? 'ar-EG' : 'en-US', options);
+}
+
 async function updateDashboardStats() {
     if (!currentUserUid) return;
 
-    // Total Patients
+    let allPatients = [];
     try {
         const patientsRef = window.collection(window.db, "users", currentUserUid, "patients");
         const querySnapshot = await window.getDocs(patientsRef);
-        if(totalPatientsCount) totalPatientsCount.innerText = querySnapshot.size;
+        querySnapshot.forEach((doc) => {
+            allPatients.push({ id: doc.id, ...doc.data() });
+        });
+        if(weeklyNewPatients) {
+            // Simplify: just show total as "this week" for demo, or calc based on timestamp if exists
+            weeklyNewPatients.innerText = allPatients.length;
+        }
     } catch(e) { console.error(e); }
 
     // Today's Appointments Count
     const today = new Date().toISOString().split('T')[0];
     const todayAppts = currentAppointments.filter(a => a.date === today);
-    if(todayAppointmentsCount) todayAppointmentsCount.innerText = todayAppts.length;
+    if(homeAppointmentsToday) homeAppointmentsToday.innerText = todayAppts.length;
+    if(weeklyAppointmentsCount) weeklyAppointmentsCount.innerText = currentAppointments.length; // Demo: total as weekly
 
-    // Monthly Revenue (sum of completed treatments)
+    // Revenue
     const totalRev = currentTreatments
         .filter(t => t.status === 'Completed')
         .reduce((sum, t) => sum + (t.cost || 0), 0);
-    if(monthlyRevenueCount) monthlyRevenueCount.innerText = `$${totalRev}`;
+    if(weeklyRevenue) weeklyRevenue.innerText = `$${totalRev}`;
+
+    // Overdue Logic (Simulated by 'Pending' status)
+    const pendingTreatments = currentTreatments.filter(t => t.status === 'Pending');
+    if(homeOverdueCount) homeOverdueCount.innerText = pendingTreatments.length;
+
+    const overdueAmount = pendingTreatments.reduce((sum, t) => sum + (t.cost || 0), 0);
+    if(homeOverdueAmount) homeOverdueAmount.innerText = `$${overdueAmount.toFixed(2)}`;
+
+    // Render Overdue List
+    if(homeOverdueList) {
+        homeOverdueList.innerHTML = '';
+        if(pendingTreatments.length === 0) {
+            homeOverdueList.innerHTML = `<div class="list-item"><div class="list-item-title" data-ar="لا يوجد" data-en="None">None</div></div>`;
+        } else {
+            pendingTreatments.slice(0, 3).forEach(t => {
+                homeOverdueList.innerHTML += `
+                <div class="list-item">
+                    <div class="list-item-left">
+                        <span class="list-item-title">${t.patientName}</span>
+                        <span class="list-item-sub text-error">${t.type}</span>
+                    </div>
+                    <div class="list-item-right text-error">$${t.cost}</div>
+                </div>`;
+            });
+        }
+    }
+
+    // Render Recent Patients List
+    if(homeRecentPatients) {
+        homeRecentPatients.innerHTML = '';
+        if(allPatients.length === 0) {
+            homeRecentPatients.innerHTML = `<div class="list-item"><div class="list-item-title" data-ar="لا يوجد مرضى" data-en="No patients">No patients</div></div>`;
+        } else {
+            // sort desc by displayId roughly gives newest
+            allPatients.sort((a,b) => (b.displayId || '').localeCompare(a.displayId || '')).slice(0, 5).forEach(p => {
+                homeRecentPatients.innerHTML += `
+                <div class="list-item">
+                    <div class="list-item-left">
+                        <span class="list-item-title">${p.name}</span>
+                        <span class="list-item-sub">${p.phone}</span>
+                    </div>
+                    <div class="list-item-right" style="color:var(--brand-primary); font-size:1.2rem;">📞</div>
+                </div>`;
+            });
+        }
+    }
 }
 
 function renderTodayAppointments() {
-    if (!todayAppointmentsTableBody) return;
+    if (!homeTimelineEvents) return;
     const today = new Date().toISOString().split('T')[0];
     const todayAppts = currentAppointments.filter(a => a.date === today);
 
-    todayAppointmentsTableBody.innerHTML = '';
-
-    if (todayAppts.length === 0) {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td colspan="3" style="text-align:center;" data-ar="لا يوجد مواعيد اليوم" data-en="No appointments today">No appointments today</td>`;
-        todayAppointmentsTableBody.appendChild(row);
-        return;
-    }
+    homeTimelineEvents.innerHTML = '';
 
     todayAppts.forEach(appt => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${appt.patientName}</td>
-            <td>${appt.time}</td>
-            <td><span class="status-badge status-inprogress">Scheduled</span></td>
-        `;
-        todayAppointmentsTableBody.appendChild(row);
+        // Appt time is like "14:30"
+        if(!appt.time) return;
+        const parts = appt.time.split(':');
+        const hour = parseInt(parts[0]);
+        const min = parseInt(parts[1]);
+
+        // Timeline goes from 8 to 21 (13 hours span = 100%)
+        // 8:00 = 0%, 21:00 = 100%
+        // Each hour is 100 / 13 = 7.69%
+        if(hour >= 8 && hour <= 21) {
+            const minutesFrom8 = ((hour - 8) * 60) + min;
+            const totalTimelineMinutes = 13 * 60;
+            const leftPercent = (minutesFrom8 / totalTimelineMinutes) * 100;
+
+            // Fixed width for block (approx 1 hour)
+            const widthPercent = (60 / totalTimelineMinutes) * 100;
+
+            const block = document.createElement('div');
+            block.className = 'timeline-block';
+            block.style.left = `${leftPercent}%`;
+            block.style.width = `${widthPercent}%`;
+            block.innerHTML = `✓ ${appt.time}`;
+            block.title = `${appt.patientName} at ${appt.time}`;
+
+            homeTimelineEvents.appendChild(block);
+        }
     });
 }
 
