@@ -27,13 +27,12 @@
 
     <!-- القائمة الجانبية -->
     <aside class="sidebar">
-        <h2 data-ar="MOLARIZE" data-en="MOLARIZE">MOLARIZE</h2>
+        <h2 data-ar="MOLARIZE" data-en="MOLARIZE" style="cursor: pointer;" onclick="document.querySelector('.sidebar-link[data-target=\'dashboard-section\']').click();">MOLARIZE</h2>
 
         <a href="#" class="sidebar-link active" data-target="dashboard-section" data-ar="الرئيسية" data-en="Home">Home</a>
         <a href="#" class="sidebar-link" data-target="patients-section" data-ar="إدارة المرضى" data-en="Patient Management">Patient Management</a>
-        <a href="#" class="sidebar-link" data-target="treatments-section" data-ar="خطط العلاج" data-en="Treatment Plans">Treatment Plans</a>
-        <a href="#" class="sidebar-link" data-target="schedule-section" data-ar="الجدول الأسبوعي" data-en="Weekly Schedule">Weekly Schedule</a>
-        <a href="#" class="sidebar-link" data-target="payments-section" data-ar="المدفوعات" data-en="Payments Chart">Payments Chart</a>
+        <a href="#" class="sidebar-link" data-target="schedule-section" data-ar="المواعيد" data-en="Appointments">Appointments</a>
+        <a href="#" class="sidebar-link" data-target="payments-section" data-ar="المدفوعات" data-en="Payments">Payments</a>
         <a href="#" class="sidebar-link" data-target="settings-section" data-ar="الإعدادات" data-en="Settings">Settings</a>
 
         <div class="controls">
@@ -75,23 +74,6 @@
                     <div class="stat-value" id="home-appointments-today">0</div>
                 </div>
 
-                <div class="home-card stat-card">
-                    <div class="stat-header">
-                        <span data-ar="في العيادة الآن" data-en="In clinic now">In clinic now</span>
-                        <span>📈</span>
-                    </div>
-                    <div class="stat-value">0</div>
-                    <div class="stat-subtext" data-ar="لا أحد في العيادة" data-en="No one in clinic">No one in clinic</div>
-                </div>
-
-                <div class="home-card stat-card alert-card">
-                    <div class="stat-header">
-                        <span data-ar="المدفوعات المتأخرة" data-en="Overdue payments">Overdue payments</span>
-                        <span>⚠️</span>
-                    </div>
-                    <div class="stat-value text-error" id="home-overdue-count">0</div>
-                    <div class="stat-subtext text-error" id="home-overdue-amount">$0.00</div>
-                </div>
             </div>
 
             <!-- Today's Schedule -->
@@ -101,65 +83,47 @@
                         <span>🕒</span>
                         <h3 data-ar="اليوم" data-en="Today">Today</h3>
                     </div>
-                    <a href="#" class="nav-link" data-target-section="schedule-section" data-ar="فتح الجدول →" data-en="Open schedule →">Open schedule →</a>
+                    <a href="#" class="nav-link" data-target-section="schedule-section" data-ar="عرض كل المواعيد →" data-en="View all appointments →">View all appointments →</a>
                 </div>
                 <div class="timeline-container">
-                    <!-- Timeline background hours -->
                     <div class="timeline-hours">
                         <span>8</span><span>09</span><span>10</span><span>11</span><span>12</span>
                         <span>13</span><span>14</span><span>15</span><span>16</span><span>17</span>
                         <span>18</span><span>19</span><span>20</span><span>21</span>
                     </div>
-                    <!-- Timeline events injected via JS -->
-                    <div class="timeline-events" id="home-timeline-events">
-                        <!-- Example event block: <div class="timeline-block" style="left: 40%; width: 10%;">✓ 14:00</div> -->
-                    </div>
+                    <div class="timeline-events" id="home-timeline-events"></div>
                 </div>
             </div>
 
-            <!-- Weekly Overview (Custom 3 Columns) -->
+            <!-- Tomorrow's Schedule -->
             <div class="home-card full-width">
                 <div class="card-header-flex">
-                    <h3 data-ar="نبذة عن الأسبوع" data-en="Weekly Overview">Weekly Overview</h3>
+                    <div class="header-title">
+                        <span>📅</span>
+                        <h3 data-ar="غداً" data-en="Tomorrow">Tomorrow</h3>
+                    </div>
+                    <a href="#" class="nav-link" data-target-section="schedule-section" data-ar="عرض كل المواعيد →" data-en="View all appointments →">View all appointments →</a>
                 </div>
-                <div class="home-grid three-cols">
-                    <div class="col-item center-text">
-                        <div class="stat-value" id="weekly-appointments-count">0</div>
-                        <div class="stat-label" data-ar="المواعيد هذا الأسبوع" data-en="Appointments This Week">Appointments This Week</div>
+                <div class="timeline-container">
+                    <div class="timeline-hours">
+                        <span>8</span><span>09</span><span>10</span><span>11</span><span>12</span>
+                        <span>13</span><span>14</span><span>15</span><span>16</span><span>17</span>
+                        <span>18</span><span>19</span><span>20</span><span>21</span>
                     </div>
-                    <div class="col-item center-text">
-                        <div class="stat-value" id="weekly-new-patients">0</div>
-                        <div class="stat-label" data-ar="المرضى الجدد" data-en="New Patients">New Patients</div>
-                    </div>
-                    <div class="col-item center-text">
-                        <div class="stat-value" id="weekly-revenue">$0</div>
-                        <div class="stat-label" data-ar="إيرادات الأسبوع" data-en="Weekly Revenue">Weekly Revenue</div>
-                    </div>
+                    <div class="timeline-events" id="tomorrow-timeline-events"></div>
                 </div>
             </div>
 
-            <!-- Unconfirmed for tomorrow -->
-            <div class="home-card full-width center-content min-h-200">
-                <div class="card-header-left">
-                    <span>📅</span>
-                    <h3 data-ar="غير مؤكد للغد" data-en="Unconfirmed for tomorrow">Unconfirmed for tomorrow</h3>
-                </div>
-                <div class="state-empty">
-                    <div class="icon-large">✔️</div>
-                    <h4 data-ar="جميع مواعيد الغد مؤكدة" data-en="All tomorrow's appointments confirmed">All tomorrow's appointments confirmed</h4>
-                </div>
-            </div>
-
-            <!-- Overdue payments List -->
+            <!-- Recent Patients -->
             <div class="home-card full-width">
                 <div class="card-header-flex">
-                    <div class="header-title text-error">
-                        <span>⚠️</span>
-                        <h3 data-ar="المدفوعات المتأخرة" data-en="Overdue payments">Overdue payments</h3>
+                    <div class="header-title">
+                        <span>👥</span>
+                        <h3 data-ar="المرضى الأخيرين" data-en="Recent patients">Recent patients</h3>
                     </div>
-                    <a href="#" class="nav-link" data-target-section="payments-section" data-ar="عرض الكل →" data-en="View all →">View all →</a>
+                    <a href="#" class="nav-link" data-target-section="patients-section">→</a>
                 </div>
-                <div class="list-container" id="home-overdue-list">
+                <div class="list-container" id="home-recent-patients">
                     <!-- Populated by JS -->
                 </div>
             </div>
@@ -193,17 +157,24 @@
                 </div>
             </div>
 
-            <!-- Recent Patients -->
+            <!-- Weekly Overview (Custom 3 Columns) -->
             <div class="home-card full-width">
                 <div class="card-header-flex">
-                    <div class="header-title">
-                        <span>👥</span>
-                        <h3 data-ar="المرضى الأخيرين" data-en="Recent patients">Recent patients</h3>
-                    </div>
-                    <a href="#" class="nav-link" data-target-section="patients-section">→</a>
+                    <h3 data-ar="نبذة عن الأسبوع" data-en="Weekly Overview">Weekly Overview</h3>
                 </div>
-                <div class="list-container" id="home-recent-patients">
-                    <!-- Populated by JS -->
+                <div class="home-grid three-cols">
+                    <div class="col-item center-text">
+                        <div class="stat-value" id="weekly-appointments-count">0</div>
+                        <div class="stat-label" data-ar="المواعيد هذا الأسبوع" data-en="Appointments This Week">Appointments This Week</div>
+                    </div>
+                    <div class="col-item center-text">
+                        <div class="stat-value" id="weekly-new-patients">0</div>
+                        <div class="stat-label" data-ar="المرضى الجدد" data-en="New Patients">New Patients</div>
+                    </div>
+                    <div class="col-item center-text">
+                        <div class="stat-value" id="weekly-revenue">$0</div>
+                        <div class="stat-label" data-ar="إيرادات الأسبوع" data-en="Weekly Revenue">Weekly Revenue</div>
+                    </div>
                 </div>
             </div>
 
@@ -238,36 +209,10 @@
             </div>
         </section>
 
-        <!-- Treatment Plans Section -->
-        <section id="treatments-section" class="app-section" style="display: none;">
-            <h1 data-ar="خطط العلاج" data-en="Treatment Plans">Treatment Plans</h1>
-            <p data-ar="إدارة خطط العلاج للمرضى ومتابعة حالاتها." data-en="Manage patient treatment plans and track their statuses.">Manage patient treatment plans and track their statuses.</p>
-
-            <div class="table-container">
-                <div class="table-header">
-                    <h3 data-ar="قائمة الخطط" data-en="Plans List">Plans List</h3>
-                    <button class="btn-primary" id="openTreatmentModalBtn" data-ar="+ إضافة خطة علاج" data-en="+ Add Treatment Plan">+ Add Treatment Plan</button>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th data-ar="اسم المريض" data-en="Patient Name">Patient Name</th>
-                            <th data-ar="العلاج" data-en="Treatment">Treatment</th>
-                            <th data-ar="التكلفة" data-en="Cost">Cost</th>
-                            <th data-ar="الحالة" data-en="Status">Status</th>
-                            <th data-ar="الإجراءات" data-en="Actions">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="treatments-table-body">
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
         <!-- Weekly Schedule Section -->
         <section id="schedule-section" class="app-section" style="display: none;">
             <div class="table-header" style="margin-top:0;">
-                <h1 data-ar="الجدول الأسبوعي" data-en="Weekly Schedule">Weekly Schedule</h1>
+                <h1 data-ar="المواعيد" data-en="Appointments">Appointments</h1>
                 <button class="btn-primary" id="openAppointmentModalBtn" data-ar="+ إضافة موعد" data-en="+ Add Appointment">+ Add Appointment</button>
             </div>
 
@@ -278,7 +223,7 @@
 
         <!-- Payments Chart Section -->
         <section id="payments-section" class="app-section" style="display: none;">
-            <h1 data-ar="المدفوعات" data-en="Payments Chart">Payments Chart</h1>
+            <h1 data-ar="المدفوعات" data-en="Payments">Payments</h1>
 
             <div class="chart-container" style="background-color: var(--bg-surface); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color); margin-top: 1.5rem;">
                 <canvas id="revenueChart"></canvas>

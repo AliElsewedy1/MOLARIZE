@@ -60,6 +60,7 @@ function renderPatients() {
         const row = document.createElement('tr');
         const displayId = patient.displayId || 'P' + patient.id.substring(0, 5).toUpperCase();
         const cleanPhone = (patient.phone || '').replace(/\D/g, '');
+        const waPhone = cleanPhone.startsWith('0') ? '2' + cleanPhone : '20' + cleanPhone;
 
         row.innerHTML = `
             <td>${displayId}</td>
@@ -67,7 +68,7 @@ function renderPatients() {
             <td>
                 ${patient.phone}
                 <a href="tel:${cleanPhone}" style="color:var(--brand-primary); text-decoration:none; margin-left:0.5rem;" title="Call">📞</a>
-                <a href="https://wa.me/${cleanPhone}" target="_blank" style="color:#25D366; text-decoration:none; margin-left:0.5rem;" title="WhatsApp">💬</a>
+                <a href="https://wa.me/${waPhone}" target="_blank" style="color:#25D366; text-decoration:none; margin-left:0.5rem;" title="WhatsApp">💬</a>
             </td>
             <td>${patient.lastVisit}</td>
             <td>

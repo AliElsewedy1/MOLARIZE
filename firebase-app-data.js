@@ -9,14 +9,12 @@ let currentTreatments = [];
 
 // DOM Elements (Home Stats)
 const homeAppointmentsToday = document.getElementById('home-appointments-today');
-const homeOverdueCount = document.getElementById('home-overdue-count');
-const homeOverdueAmount = document.getElementById('home-overdue-amount');
 const weeklyAppointmentsCount = document.getElementById('weekly-appointments-count');
 const weeklyNewPatients = document.getElementById('weekly-new-patients');
 const weeklyRevenue = document.getElementById('weekly-revenue');
-const homeOverdueList = document.getElementById('home-overdue-list');
 const homeRecentPatients = document.getElementById('home-recent-patients');
 const homeTimelineEvents = document.getElementById('home-timeline-events');
+const tomorrowTimelineEvents = document.getElementById('tomorrow-timeline-events');
 const greetingMessage = document.getElementById('greetingMessage');
 const currentDateDisplay = document.getElementById('currentDateDisplay');
 
@@ -353,32 +351,6 @@ async function updateDashboardStats() {
         .reduce((sum, t) => sum + (t.cost || 0), 0);
     if(weeklyRevenue) weeklyRevenue.innerText = `$${totalRev}`;
 
-    // Overdue Logic (Simulated by 'Pending' status)
-    const pendingTreatments = currentTreatments.filter(t => t.status === 'Pending');
-    if(homeOverdueCount) homeOverdueCount.innerText = pendingTreatments.length;
-
-    const overdueAmount = pendingTreatments.reduce((sum, t) => sum + (t.cost || 0), 0);
-    if(homeOverdueAmount) homeOverdueAmount.innerText = `$${overdueAmount.toFixed(2)}`;
-
-    // Render Overdue List
-    if(homeOverdueList) {
-        homeOverdueList.innerHTML = '';
-        if(pendingTreatments.length === 0) {
-            homeOverdueList.innerHTML = `<div class="list-item"><div class="list-item-title" data-ar="لا يوجد" data-en="None">None</div></div>`;
-        } else {
-            pendingTreatments.slice(0, 3).forEach(t => {
-                homeOverdueList.innerHTML += `
-                <div class="list-item">
-                    <div class="list-item-left">
-                        <span class="list-item-title">${t.patientName}</span>
-                        <span class="list-item-sub text-error">${t.type}</span>
-                    </div>
-                    <div class="list-item-right text-error">$${t.cost}</div>
-                </div>`;
-            });
-        }
-    }
-
     // Render Recent Patients List
     if(homeRecentPatients) {
         homeRecentPatients.innerHTML = '';
@@ -388,6 +360,7 @@ async function updateDashboardStats() {
             // sort desc by displayId roughly gives newest
             allPatients.sort((a,b) => (b.displayId || '').localeCompare(a.displayId || '')).slice(0, 5).forEach(p => {
                 const cleanPhone = (p.phone || '').replace(/\D/g, '');
+                const waPhone = cleanPhone.startsWith('0') ? '2' + cleanPhone : '20' + cleanPhone;
                 homeRecentPatients.innerHTML += `
                 <div class="list-item">
                     <div class="list-item-left">
@@ -396,7 +369,7 @@ async function updateDashboardStats() {
                     </div>
                     <div class="list-item-right" style="display: flex; gap: 0.5rem; font-size:1.2rem;">
                         <a href="tel:${cleanPhone}" style="color:var(--brand-primary); text-decoration:none;" title="Call">📞</a>
-                        <a href="https://wa.me/${cleanPhone}" target="_blank" style="color:#25D366; text-decoration:none;" title="WhatsApp">💬</a>
+                        <a href="https://wa.me/${waPhone}" target="_blank" style="color:#25D366; text-decoration:none;" title="WhatsApp">💬</a>
                     </div>
                 </div>`;
             });
@@ -404,29 +377,21 @@ async function updateDashboardStats() {
     }
 }
 
-function renderTodayAppointments() {
-    if (!homeTimelineEvents) return;
-    const today = new Date().toISOString().split('T')[0];
-    const todayAppts = currentAppointments.filter(a => a.date === today);
+function renderTimelineEvents(eventsContainer, dateString) {
+    if (!eventsContainer) return;
+    const dayAppts = currentAppointments.filter(a => a.date === dateString);
+    eventsContainer.innerHTML = '';
 
-    homeTimelineEvents.innerHTML = '';
-
-    todayAppts.forEach(appt => {
-        // Appt time is like "14:30"
+    dayAppts.forEach(appt => {
         if(!appt.time) return;
         const parts = appt.time.split(':');
         const hour = parseInt(parts[0]);
         const min = parseInt(parts[1]);
 
-        // Timeline goes from 8 to 21 (13 hours span = 100%)
-        // 8:00 = 0%, 21:00 = 100%
-        // Each hour is 100 / 13 = 7.69%
         if(hour >= 8 && hour <= 21) {
             const minutesFrom8 = ((hour - 8) * 60) + min;
             const totalTimelineMinutes = 13 * 60;
             const leftPercent = (minutesFrom8 / totalTimelineMinutes) * 100;
-
-            // Fixed width for block (approx 1 hour)
             const widthPercent = (60 / totalTimelineMinutes) * 100;
 
             const block = document.createElement('div');
@@ -436,9 +401,19 @@ function renderTodayAppointments() {
             block.innerHTML = `✓ ${appt.time}`;
             block.title = `${appt.patientName} at ${appt.time}`;
 
-            homeTimelineEvents.appendChild(block);
+            eventsContainer.appendChild(block);
         }
     });
+}
+
+function renderTodayAppointments() {
+    const today = new Date().toISOString().split('T')[0];
+    renderTimelineEvents(homeTimelineEvents, today);
+
+    const tmrw = new Date();
+    tmrw.setDate(tmrw.getDate() + 1);
+    const tomorrow = tmrw.toISOString().split('T')[0];
+    renderTimelineEvents(tomorrowTimelineEvents, tomorrow);
 }
 
 function initCalendar() {
