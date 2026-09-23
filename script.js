@@ -32,6 +32,11 @@ langToggle.addEventListener('click', () => {
             el.innerText = el.getAttribute('data-ar');
         });
     }
+
+    // Refresh dashboard stats to update JS-rendered translations
+    if (typeof updateDashboardStats === 'function') {
+        updateDashboardStats();
+    }
 });
 
 // Patient Management Logic has been moved to firebase-patients.js

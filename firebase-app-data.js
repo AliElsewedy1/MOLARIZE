@@ -1,5 +1,5 @@
 // This file handles Appointments, Treatment Plans, and Dashboard Stats using Firebase Firestore.
-import { db, auth, onAuthStateChanged, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "./firebase-config.js";
+import { db, auth, onAuthStateChanged, signOut, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "./firebase-config.js";
 
 let currentUserUid = null;
 let calendarInstance = null;
@@ -416,12 +416,13 @@ function renderTimelineEvents(eventsContainer, dateString) {
 }
 
 function renderTodayAppointments() {
-    const today = new Date().toISOString().split('T')[0];
+    const localOffset = new Date().getTimezoneOffset() * 60000;
+    const today = new Date(Date.now() - localOffset).toISOString().split('T')[0];
     renderTimelineEvents(homeTimelineEvents, today);
 
     const tmrw = new Date();
     tmrw.setDate(tmrw.getDate() + 1);
-    const tomorrow = tmrw.toISOString().split('T')[0];
+    const tomorrow = new Date(tmrw.getTime() - localOffset).toISOString().split('T')[0];
     renderTimelineEvents(tomorrowTimelineEvents, tomorrow);
 }
 
