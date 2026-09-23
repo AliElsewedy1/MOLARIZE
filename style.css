@@ -98,6 +98,78 @@ body {
     overflow-y: auto;
 }
 
+/* Dashboard Cards */
+.dashboard-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    text-align: center;
+    transition: transform 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card h3 {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.card p {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--brand-primary);
+}
+
+/* Calendar Container */
+.calendar-container {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    margin-top: 1.5rem;
+    color: var(--text-primary);
+}
+
+/* FullCalendar Variables overrides for themes */
+.fc {
+    --fc-page-bg-color: var(--bg-surface);
+    --fc-neutral-bg-color: var(--bg-primary);
+    --fc-neutral-text-color: var(--text-primary);
+    --fc-border-color: var(--border-color);
+    --fc-button-text-color: #fff;
+    --fc-button-bg-color: var(--brand-primary);
+    --fc-button-border-color: var(--brand-primary);
+    --fc-button-hover-bg-color: var(--accent-cta);
+    --fc-button-hover-border-color: var(--accent-cta);
+    --fc-button-active-bg-color: var(--accent-cta);
+    --fc-button-active-border-color: var(--accent-cta);
+    --fc-event-bg-color: var(--brand-primary);
+    --fc-event-border-color: var(--brand-primary);
+    --fc-event-text-color: #fff;
+    --fc-today-bg-color: rgba(2, 132, 199, 0.1);
+}
+
+[data-theme="dark"] .fc {
+    --fc-today-bg-color: rgba(56, 189, 248, 0.1);
+}
+
+.fc-theme-standard td, .fc-theme-standard th {
+    border: 1px solid var(--border-color);
+}
+
 .table-container {
     background-color: var(--bg-surface);
     border: 1px solid var(--border-color);
@@ -164,6 +236,17 @@ td {
 
 .btn-edit { background-color: #fca311; color: white; }
 .btn-delete { background-color: #d62828; color: white; }
+
+.status-badge {
+    padding: 0.3rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: white;
+}
+.status-pending { background-color: var(--status-pending); color: #000; }
+.status-inprogress { background-color: var(--brand-primary); }
+.status-completed { background-color: var(--status-success); }
 
 /* Modal Styles */
 .modal {
