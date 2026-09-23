@@ -81,14 +81,15 @@
 
     <script src="script.js"></script>
 
-    <!-- Firebase Firestore Logic for Patient Management -->
+    <!-- Firebase Realtime Database Logic for Patient Management -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+        import { getDatabase, ref, push, set, get, update, remove, child } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDD3ouvrsyqwxorPWlQdKPgZACjUO5TiWs",
             authDomain: "ali-elsewedy-media.firebaseapp.com",
+            databaseURL: "https://ali-elsewedy-media-default-rtdb.firebaseio.com",
             projectId: "ali-elsewedy-media",
             storageBucket: "ali-elsewedy-media.firebasestorage.app",
             messagingSenderId: "721258793080",
@@ -97,18 +98,17 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        const db = getDatabase(app);
 
-        // Make db globally available for script.js to use if needed,
-        // but since we want to move logic, we will rewrite the patient logic here to use Firestore.
-        // To avoid conflicts, we'll disable the local storage logic from script.js and implement it here.
+        // Make Realtime DB functions globally available for the module
         window.db = db;
-        window.collection = collection;
-        window.addDoc = addDoc;
-        window.getDocs = getDocs;
-        window.doc = doc;
-        window.updateDoc = updateDoc;
-        window.deleteDoc = deleteDoc;
+        window.ref = ref;
+        window.push = push;
+        window.set = set;
+        window.get = get;
+        window.update = update;
+        window.remove = remove;
+        window.child = child;
     </script>
     <script src="firebase-patients.js" type="module"></script>
 </body>

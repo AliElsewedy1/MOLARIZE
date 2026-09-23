@@ -1,5 +1,5 @@
-// This file handles patient management using Firebase Firestore.
-// It relies on window.db and Firestore methods exposed in dashboard.html.
+// This file handles patient management using Firebase Realtime Database.
+// It relies on window.db and RTDB methods exposed in dashboard.html.
 
 const patientModal = document.getElementById('patientModal');
 const openModalBtn = document.getElementById('openModalBtn');
@@ -34,14 +34,18 @@ if (patientModal) {
     });
 }
 
-// Load patients from Firestore
+// Load patients from Realtime Database
 async function loadPatients() {
     try {
-        const querySnapshot = await window.getDocs(window.collection(window.db, "patients"));
+        const patientsRef = window.ref(window.db, "patients");
+        const snapshot = await window.get(patientsRef);
         currentPatients = [];
-        querySnapshot.forEach((doc) => {
-            currentPatients.push({ id: doc.id, ...doc.data() });
-        });
+
+        if (snapshot.exists()) {
+            snapshot.forEach((childSnapshot) => {
+                currentPatients.push({ id: childSnapshot.key, ...childSnapshot.val() });
+            });
+        }
         renderPatients();
     } catch (e) {
         console.error("Error loading patients: ", e);
@@ -91,16 +95,18 @@ if (patientForm) {
 
         try {
             if (idField) {
-                // Edit existing in Firestore
-                const patientRef = window.doc(window.db, "patients", idField);
-                await window.updateDoc(patientRef, {
+                // Edit existing in Realtime Database
+                const patientRef = window.ref(window.db, "patients/" + idField);
+                await window.update(patientRef, {
                     name: name,
                     phone: phone,
                     lastVisit: lastVisit
                 });
             } else {
-                // Add new to Firestore
-                await window.addDoc(window.collection(window.db, "patients"), {
+                // Add new to Realtime Database
+                const patientsListRef = window.ref(window.db, "patients");
+                const newPatientRef = window.push(patientsListRef);
+                await window.set(newPatientRef, {
                     name: name,
                     phone: phone,
                     lastVisit: lastVisit,
@@ -138,7 +144,8 @@ window.editPatient = function(id) {
 window.deletePatient = async function(id) {
     if (confirm('Are you sure you want to delete this patient?')) {
         try {
-            await window.deleteDoc(window.doc(window.db, "patients", id));
+            const patientRef = window.ref(window.db, "patients/" + id);
+            await window.remove(patientRef);
             await loadPatients();
         } catch (e) {
             console.error("Error deleting patient: ", e);
