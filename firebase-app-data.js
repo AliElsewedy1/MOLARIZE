@@ -375,6 +375,9 @@ async function updateDashboardStats() {
             });
         }
     }
+
+    // Refresh today & tomorrow visual timeline natively on stat refresh
+    renderTodayAppointments();
 }
 
 function renderTimelineEvents(eventsContainer, dateString) {
@@ -431,8 +434,20 @@ function initCalendar() {
         eventClick: function(info) {
             // Ask to delete on click for simplicity
             window.deleteAppointmentFromCalendar(info.event.id);
+        },
+        windowResize: function(arg) {
+            if (window.innerWidth < 768) {
+                calendarInstance.changeView('timeGridDay');
+            } else {
+                calendarInstance.changeView('timeGridWeek');
+            }
         }
     });
+
+    // Auto-switch view if initializing on mobile
+    if (window.innerWidth < 768) {
+        calendarInstance.changeView('timeGridDay');
+    }
 
     // Re-render when tab becomes visible
     document.querySelector('[data-target="schedule-section"]').addEventListener('click', () => {
