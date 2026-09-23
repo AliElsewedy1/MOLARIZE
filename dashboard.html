@@ -46,42 +46,167 @@
     <!-- المحتوى الرئيسي -->
     <main class="content-area">
 
-        <!-- Dashboard Section -->
-        <section id="dashboard-section" class="app-section" style="display: block;">
-            <h1 data-ar="الرئيسية" data-en="Home">Home</h1>
+        <!-- Home Section -->
+        <section id="dashboard-section" class="app-section home-section" style="display: block;">
 
-            <div class="dashboard-cards">
-                <div class="card">
-                    <h3 data-ar="إجمالي المرضى" data-en="Total Patients">Total Patients</h3>
-                    <p id="total-patients-count">0</p>
+            <!-- Header (Welcome & Quick Actions) -->
+            <div class="home-header">
+                <div class="welcome-text">
+                    <h1 id="greetingMessage" data-ar="مرحباً، المشرف" data-en="Good evening, Admin">Good evening, Admin</h1>
+                    <p id="currentDateDisplay" class="text-muted">Wednesday, September 23, 2026</p>
                 </div>
-                <div class="card">
-                    <h3 data-ar="مواعيد اليوم" data-en="Today's Appointments">Today's Appointments</h3>
-                    <p id="today-appointments-count">0</p>
-                </div>
-                <div class="card">
-                    <h3 data-ar="إيرادات الشهر" data-en="Monthly Revenue">Monthly Revenue</h3>
-                    <p id="monthly-revenue-count">$0</p>
+                <div class="quick-actions">
+                    <button class="btn-outline" id="quickNewPatientBtn" data-ar="مريض جديد" data-en="New patient">
+                        👤 New patient
+                    </button>
+                    <button class="btn-primary" id="quickNewAppointmentBtn" data-ar="موعد جديد" data-en="New appointment">
+                        📅 New appointment
+                    </button>
                 </div>
             </div>
 
-            <div class="table-container" style="margin-top: 2rem;">
-                <div class="table-header">
-                    <h3 data-ar="مواعيد اليوم" data-en="Today's Appointments List">Today's Appointments List</h3>
+            <!-- Quick Stats Cards -->
+            <div class="home-grid stats-grid">
+                <div class="home-card stat-card">
+                    <div class="stat-header">
+                        <span data-ar="مواعيد اليوم" data-en="Appointments today">Appointments today</span>
+                        <span>📅</span>
+                    </div>
+                    <div class="stat-value" id="home-appointments-today">0</div>
                 </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th data-ar="اسم المريض" data-en="Patient Name">Patient Name</th>
-                            <th data-ar="الوقت" data-en="Time">Time</th>
-                            <th data-ar="الحالة" data-en="Status">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="today-appointments-table-body">
-                        <!-- Populated by JS -->
-                    </tbody>
-                </table>
+
+                <div class="home-card stat-card">
+                    <div class="stat-header">
+                        <span data-ar="في العيادة الآن" data-en="In clinic now">In clinic now</span>
+                        <span>📈</span>
+                    </div>
+                    <div class="stat-value">0</div>
+                    <div class="stat-subtext" data-ar="لا أحد في العيادة" data-en="No one in clinic">No one in clinic</div>
+                </div>
+
+                <div class="home-card stat-card alert-card">
+                    <div class="stat-header">
+                        <span data-ar="المدفوعات المتأخرة" data-en="Overdue payments">Overdue payments</span>
+                        <span>⚠️</span>
+                    </div>
+                    <div class="stat-value text-error" id="home-overdue-count">0</div>
+                    <div class="stat-subtext text-error" id="home-overdue-amount">$0.00</div>
+                </div>
             </div>
+
+            <!-- Today's Schedule -->
+            <div class="home-card full-width">
+                <div class="card-header-flex">
+                    <div class="header-title">
+                        <span>🕒</span>
+                        <h3 data-ar="اليوم" data-en="Today">Today</h3>
+                    </div>
+                    <a href="#" class="nav-link" data-target-section="schedule-section" data-ar="فتح الجدول →" data-en="Open schedule →">Open schedule →</a>
+                </div>
+                <div class="timeline-container">
+                    <!-- Timeline background hours -->
+                    <div class="timeline-hours">
+                        <span>8</span><span>09</span><span>10</span><span>11</span><span>12</span>
+                        <span>13</span><span>14</span><span>15</span><span>16</span><span>17</span>
+                        <span>18</span><span>19</span><span>20</span><span>21</span>
+                    </div>
+                    <!-- Timeline events injected via JS -->
+                    <div class="timeline-events" id="home-timeline-events">
+                        <!-- Example event block: <div class="timeline-block" style="left: 40%; width: 10%;">✓ 14:00</div> -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weekly Overview (Custom 3 Columns) -->
+            <div class="home-card full-width">
+                <div class="card-header-flex">
+                    <h3 data-ar="نبذة عن الأسبوع" data-en="Weekly Overview">Weekly Overview</h3>
+                </div>
+                <div class="home-grid three-cols">
+                    <div class="col-item center-text">
+                        <div class="stat-value" id="weekly-appointments-count">0</div>
+                        <div class="stat-label" data-ar="المواعيد هذا الأسبوع" data-en="Appointments This Week">Appointments This Week</div>
+                    </div>
+                    <div class="col-item center-text">
+                        <div class="stat-value" id="weekly-new-patients">0</div>
+                        <div class="stat-label" data-ar="المرضى الجدد" data-en="New Patients">New Patients</div>
+                    </div>
+                    <div class="col-item center-text">
+                        <div class="stat-value" id="weekly-revenue">$0</div>
+                        <div class="stat-label" data-ar="إيرادات الأسبوع" data-en="Weekly Revenue">Weekly Revenue</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Unconfirmed for tomorrow -->
+            <div class="home-card full-width center-content min-h-200">
+                <div class="card-header-left">
+                    <span>📅</span>
+                    <h3 data-ar="غير مؤكد للغد" data-en="Unconfirmed for tomorrow">Unconfirmed for tomorrow</h3>
+                </div>
+                <div class="state-empty">
+                    <div class="icon-large">✔️</div>
+                    <h4 data-ar="جميع مواعيد الغد مؤكدة" data-en="All tomorrow's appointments confirmed">All tomorrow's appointments confirmed</h4>
+                </div>
+            </div>
+
+            <!-- Overdue payments List -->
+            <div class="home-card full-width">
+                <div class="card-header-flex">
+                    <div class="header-title text-error">
+                        <span>⚠️</span>
+                        <h3 data-ar="المدفوعات المتأخرة" data-en="Overdue payments">Overdue payments</h3>
+                    </div>
+                    <a href="#" class="nav-link" data-target-section="payments-section" data-ar="عرض الكل →" data-en="View all →">View all →</a>
+                </div>
+                <div class="list-container" id="home-overdue-list">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Recalls -->
+            <div class="home-card full-width">
+                <div class="card-header-flex">
+                    <div class="header-title">
+                        <span>🔔</span>
+                        <h3 data-ar="المتابعات" data-en="Recalls">Recalls</h3>
+                    </div>
+                    <a href="#" class="nav-link" data-ar="قائمة الاتصال →" data-en="Call list →">Call list →</a>
+                </div>
+                <div class="home-grid four-cols">
+                    <div class="col-item center-text">
+                        <div class="stat-value">0</div>
+                        <div class="stat-label" data-ar="مستحقة هذا الأسبوع" data-en="Due this week">Due this week</div>
+                    </div>
+                    <div class="col-item center-text">
+                        <div class="stat-value">0</div>
+                        <div class="stat-label" data-ar="متأخرة" data-en="Overdue">Overdue</div>
+                    </div>
+                    <div class="col-item center-text">
+                        <div class="stat-value">0</div>
+                        <div class="stat-label" data-ar="مجدولة هذا الشهر" data-en="Scheduled this month">Scheduled this month</div>
+                    </div>
+                    <div class="col-item center-text">
+                        <div class="stat-value">0%</div>
+                        <div class="stat-label" data-ar="معدل التحويل" data-en="Conversion">Conversion</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Patients -->
+            <div class="home-card full-width">
+                <div class="card-header-flex">
+                    <div class="header-title">
+                        <span>👥</span>
+                        <h3 data-ar="المرضى الأخيرين" data-en="Recent patients">Recent patients</h3>
+                    </div>
+                    <a href="#" class="nav-link" data-target-section="patients-section">→</a>
+                </div>
+                <div class="list-container" id="home-recent-patients">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
         </section>
 
         <!-- Patient Management Section -->
