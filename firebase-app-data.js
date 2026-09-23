@@ -387,13 +387,17 @@ async function updateDashboardStats() {
         } else {
             // sort desc by displayId roughly gives newest
             allPatients.sort((a,b) => (b.displayId || '').localeCompare(a.displayId || '')).slice(0, 5).forEach(p => {
+                const cleanPhone = (p.phone || '').replace(/\D/g, '');
                 homeRecentPatients.innerHTML += `
                 <div class="list-item">
                     <div class="list-item-left">
                         <span class="list-item-title">${p.name}</span>
                         <span class="list-item-sub">${p.phone}</span>
                     </div>
-                    <div class="list-item-right" style="color:var(--brand-primary); font-size:1.2rem;">📞</div>
+                    <div class="list-item-right" style="display: flex; gap: 0.5rem; font-size:1.2rem;">
+                        <a href="tel:${cleanPhone}" style="color:var(--brand-primary); text-decoration:none;" title="Call">📞</a>
+                        <a href="https://wa.me/${cleanPhone}" target="_blank" style="color:#25D366; text-decoration:none;" title="WhatsApp">💬</a>
+                    </div>
                 </div>`;
             });
         }
