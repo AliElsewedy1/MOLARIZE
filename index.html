@@ -55,5 +55,33 @@
     </main>
 
     <script src="script.js"></script>
+
+    <!-- كود فايربيس للتحقق من تسجيل الدخول -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDD3ouvrsyqwxorPWlQdKPgZACjUO5TiWs",
+            authDomain: "ali-elsewedy-media.firebaseapp.com",
+            projectId: "ali-elsewedy-media",
+            storageBucket: "ali-elsewedy-media.firebasestorage.app",
+            messagingSenderId: "721258793080",
+            appId: "1:721258793080:web:968f77abee49198fa3c58d",
+            measurementId: "G-1CNDBSB0P4"
+        };
+
+        // تهيئة فايربيس
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // التحقق من حالة تسجيل الدخول
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                // توجيه إلى صفحة تسجيل الدخول إذا لم يكن هناك مستخدم
+                window.location.href = 'login.html';
+            }
+        });
+    </script>
 </body>
 </html>
