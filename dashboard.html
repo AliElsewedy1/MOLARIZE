@@ -80,5 +80,36 @@
     </div>
 
     <script src="script.js"></script>
+
+    <!-- Firebase Firestore Logic for Patient Management -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDD3ouvrsyqwxorPWlQdKPgZACjUO5TiWs",
+            authDomain: "ali-elsewedy-media.firebaseapp.com",
+            projectId: "ali-elsewedy-media",
+            storageBucket: "ali-elsewedy-media.firebasestorage.app",
+            messagingSenderId: "721258793080",
+            appId: "1:721258793080:web:968f77abee49198fa3c58d",
+            measurementId: "G-1CNDBSB0P4"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Make db globally available for script.js to use if needed,
+        // but since we want to move logic, we will rewrite the patient logic here to use Firestore.
+        // To avoid conflicts, we'll disable the local storage logic from script.js and implement it here.
+        window.db = db;
+        window.collection = collection;
+        window.addDoc = addDoc;
+        window.getDocs = getDocs;
+        window.doc = doc;
+        window.updateDoc = updateDoc;
+        window.deleteDoc = deleteDoc;
+    </script>
+    <script src="firebase-patients.js" type="module"></script>
 </body>
 </html>
