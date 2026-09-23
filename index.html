@@ -115,41 +115,30 @@
 
     <script src="script.js"></script>
 
-    <!-- كود فايربيس -->
+    <!-- كود فايربيس الجديد -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+        import { auth, signInWithEmailAndPassword } from "./firebase-config.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDD3ouvrsyqwxorPWlQdKPgZACjUO5TiWs",
-            authDomain: "ali-elsewedy-media.firebaseapp.com",
-            projectId: "ali-elsewedy-media",
-            storageBucket: "ali-elsewedy-media.firebasestorage.app",
-            messagingSenderId: "721258793080",
-            appId: "1:721258793080:web:968f77abee49198fa3c58d",
-            measurementId: "G-1CNDBSB0P4"
-        };
-
-        // تهيئة فايربيس
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-
-        // برمجة زر تسجيل الدخول
         document.getElementById('loginForm').addEventListener('submit', function(event) {
             event.preventDefault();
 
             const email = document.getElementById('username').value;
             const password = document.getElementById('password').value;
+            const btn = document.querySelector('.btn-login');
+            const originalText = btn.innerText;
+
+            btn.innerText = '...';
+            btn.disabled = true;
 
             signInWithEmailAndPassword(auth, email, password)
                 .then((userCredential) => {
-                    // نجاح الدخول - توجيه للوحة التحكم
-                    window.location.href = 'dashboard.html';
+                    window.location.replace('dashboard.html');
                 })
                 .catch((error) => {
-                    // فشل الدخول - رسالة خطأ
                     alert('البريد الإلكتروني أو كلمة المرور غير صحيحة!');
                     console.error(error.message);
+                    btn.innerText = originalText;
+                    btn.disabled = false;
                 });
         });
     </script>

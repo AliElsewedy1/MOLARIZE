@@ -1,5 +1,5 @@
 // This file handles Appointments, Treatment Plans, and Dashboard Stats using Firebase Firestore.
-// It relies on window.db, window.auth, and Firestore methods exposed in dashboard.html.
+import { db, auth, onAuthStateChanged, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "./firebase-config.js";
 
 let currentUserUid = null;
 let calendarInstance = null;
@@ -51,20 +51,28 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Logout
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            signOut(auth).then(() => {
+                window.location.replace('index.html');
+            }).catch((error) => {
+                console.error("Logout error: ", error);
+            });
+        });
+    }
+
     // Set Greeting & Date
     updateGreetingAndDate();
     window.updateDashboardStats = updateDashboardStats; // Make globally accessible early
 
-    setTimeout(() => {
-        if (window.auth && window.onAuthStateChanged) {
-            window.onAuthStateChanged(window.auth, (user) => {
-                if (user) {
-                    currentUserUid = user.uid;
-                    initDashboard();
-                }
-            });
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            currentUserUid = user.uid;
+            initDashboard();
         }
-    }, 600);
+    });
 });
 
 async function initDashboard() {
@@ -96,11 +104,11 @@ if (cancelTreatmentBtn) {
 async function loadTreatments() {
     if (!currentUserUid) return;
     try {
-        const treatmentsRef = window.collection(window.db, "users", currentUserUid, "treatments");
-        const querySnapshot = await window.getDocs(treatmentsRef);
+        const treatmentsRef = collection(db, "users", currentUserUid, "treatments");
+        const querySnapshot = await getDocs(treatmentsRef);
         currentTreatments = [];
-        querySnapshot.forEach((doc) => {
-            currentTreatments.push({ id: doc.id, ...doc.data() });
+        querySnapshot.forEach((d) => {
+            currentTreatments.push({ id: d.id, ...d.data() });
         });
         renderTreatments();
         updateDashboardStats(); // Update revenue when treatments load
@@ -159,11 +167,11 @@ if (treatmentForm) {
 
         try {
             if (idField) {
-                const treatmentRef = window.doc(window.db, "users", currentUserUid, "treatments", idField);
-                await window.updateDoc(treatmentRef, { patientName, type, cost, status });
+                const treatmentRef = doc(db, "users", currentUserUid, "treatments", idField);
+                await updateDoc(treatmentRef, { patientName, type, cost, status });
             } else {
-                const treatmentsRef = window.collection(window.db, "users", currentUserUid, "treatments");
-                await window.addDoc(treatmentsRef, {
+                const treatmentsRef = collection(db, "users", currentUserUid, "treatments");
+                await addDoc(treatmentsRef, {
                     patientName, type, cost, status, createdAt: new Date().toISOString()
                 });
             }
@@ -195,7 +203,7 @@ window.editTreatment = function(id) {
 window.deleteTreatment = async function(id) {
     if (confirm('Are you sure you want to delete this treatment plan?')) {
         try {
-            await window.deleteDoc(window.doc(window.db, "users", currentUserUid, "treatments", id));
+            await deleteDoc(doc(db, "users", currentUserUid, "treatments", id));
             await loadTreatments();
             updateDashboardStats(); // Update dashboard stats (revenue/overdue)
             initChart();
@@ -226,11 +234,11 @@ if (cancelApptBtn) {
 async function loadAppointments() {
     if (!currentUserUid) return;
     try {
-        const appointmentsRef = window.collection(window.db, "users", currentUserUid, "appointments");
-        const querySnapshot = await window.getDocs(appointmentsRef);
+        const appointmentsRef = collection(db, "users", currentUserUid, "appointments");
+        const querySnapshot = await getDocs(appointmentsRef);
         currentAppointments = [];
-        querySnapshot.forEach((doc) => {
-            currentAppointments.push({ id: doc.id, ...doc.data() });
+        querySnapshot.forEach((d) => {
+            currentAppointments.push({ id: d.id, ...d.data() });
         });
 
         if (calendarInstance) {
@@ -265,11 +273,11 @@ if (appointmentForm) {
 
         try {
             if (idField) {
-                const apptRef = window.doc(window.db, "users", currentUserUid, "appointments", idField);
-                await window.updateDoc(apptRef, { patientName, date, time });
+                const apptRef = doc(db, "users", currentUserUid, "appointments", idField);
+                await updateDoc(apptRef, { patientName, date, time });
             } else {
-                const apptsRef = window.collection(window.db, "users", currentUserUid, "appointments");
-                await window.addDoc(apptsRef, { patientName, date, time, status: 'Scheduled' });
+                const apptsRef = collection(db, "users", currentUserUid, "appointments");
+                await addDoc(apptsRef, { patientName, date, time, status: 'Scheduled' });
             }
             await loadAppointments();
             updateDashboardStats(); // Update stats
@@ -286,7 +294,7 @@ if (appointmentForm) {
 window.deleteAppointmentFromCalendar = async function(id) {
     if (confirm('Delete this appointment?')) {
         try {
-            await window.deleteDoc(window.doc(window.db, "users", currentUserUid, "appointments", id));
+            await deleteDoc(doc(db, "users", currentUserUid, "appointments", id));
             await loadAppointments();
             updateDashboardStats(); // Update stats
         } catch (e) {
@@ -322,10 +330,10 @@ async function updateDashboardStats() {
 
     let allPatients = [];
     try {
-        const patientsRef = window.collection(window.db, "users", currentUserUid, "patients");
-        const querySnapshot = await window.getDocs(patientsRef);
-        querySnapshot.forEach((doc) => {
-            allPatients.push({ id: doc.id, ...doc.data() });
+        const patientsRef = collection(db, "users", currentUserUid, "patients");
+        const querySnapshot = await getDocs(patientsRef);
+        querySnapshot.forEach((d) => {
+            allPatients.push({ id: d.id, ...d.data() });
         });
         if(weeklyNewPatients) {
             // Simplify: just show total as "this week" for demo, or calc based on timestamp if exists
