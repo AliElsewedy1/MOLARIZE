@@ -28,3 +28,8 @@
 127.0.0.1 - - [23/Sep/2026 18:59:56] "GET /script.js HTTP/1.1" 200 -
 127.0.0.1 - - [23/Sep/2026 18:59:56] "GET /firebase-patients.js HTTP/1.1" 200 -
 127.0.0.1 - - [23/Sep/2026 18:59:56] "GET /firebase-app-data.js HTTP/1.1" 200 -
+127.0.0.1 - - [23/Sep/2026 19:11:44] "GET /dashboard.html HTTP/1.1" 200 -
+127.0.0.1 - - [23/Sep/2026 19:11:44] "GET /firebase-app-data.js HTTP/1.1" 200 -
+127.0.0.1 - - [23/Sep/2026 19:11:44] "GET /script.js HTTP/1.1" 200 -
+127.0.0.1 - - [23/Sep/2026 19:11:44] "GET /style.css HTTP/1.1" 200 -
+127.0.0.1 - - [23/Sep/2026 19:11:44] "GET /firebase-patients.js HTTP/1.1" 200 -
