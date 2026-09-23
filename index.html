@@ -4,18 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تسجيل الدخول - MOLARIZE</title>
+    <link rel="stylesheet" href="style.css">
     <style>
         body {
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background-color: #f8f9fa;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
             font-family: Arial, sans-serif;
             margin: 0;
+            position: relative;
+        }
+        .login-controls {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            display: flex;
+            gap: 1rem;
+        }
+        .login-controls button {
+            padding: 0.8rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-weight: bold;
+        }
+        .login-controls button:hover {
+            background-color: var(--border-color);
+        }
+        [dir="ltr"] .login-controls {
+            left: auto;
+            right: 2rem;
         }
         .login-box {
-            background: #ffffff;
+            background: var(--bg-surface);
             padding: 2.5rem;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -24,8 +50,11 @@
         }
         .login-box h2 {
             text-align: center;
-            color: #0077b6;
+            color: var(--brand-primary);
             margin-bottom: 1.5rem;
+        }
+        .login-box h3 {
+            color: var(--text-muted);
         }
         .input-group {
             margin-bottom: 1rem;
@@ -33,19 +62,21 @@
         .input-group label {
             display: block;
             margin-bottom: 0.5rem;
-            color: #2b2d42;
+            color: var(--text-primary);
         }
         .input-group input {
             width: 100%;
             padding: 0.75rem;
-            border: 1px solid #ccc;
+            border: 1px solid var(--border-color);
             border-radius: 6px;
             box-sizing: border-box;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
         }
         .btn-login {
             width: 100%;
             padding: 0.75rem;
-            background-color: #0077b6;
+            background-color: var(--accent-cta);
             color: white;
             border: none;
             border-radius: 6px;
@@ -55,27 +86,34 @@
             margin-top: 1rem;
         }
         .btn-login:hover {
-            background-color: #023e8a;
+            opacity: 0.9;
         }
     </style>
 </head>
 <body>
 
+    <div class="login-controls">
+        <button id="themeToggle">🌙 Dark Mode</button>
+        <button id="langToggle">English / عربي</button>
+    </div>
+
     <div class="login-box">
         <h2>MOLARIZE</h2>
-        <h3 style="text-align: center; color: #555; margin-bottom: 1.5rem;">تسجيل الدخول</h3>
+        <h3 data-ar="تسجيل الدخول" data-en="Login" style="text-align: center; margin-bottom: 1.5rem;">تسجيل الدخول</h3>
         <form id="loginForm">
             <div class="input-group">
-                <label for="username">البريد الإلكتروني:</label>
+                <label for="username" data-ar="البريد الإلكتروني:" data-en="Email:">البريد الإلكتروني:</label>
                 <input type="email" id="username" required>
             </div>
             <div class="input-group">
-                <label for="password">كلمة المرور:</label>
+                <label for="password" data-ar="كلمة المرور:" data-en="Password:">كلمة المرور:</label>
                 <input type="password" id="password" required>
             </div>
-            <button type="submit" class="btn-login">دخول</button>
+            <button type="submit" class="btn-login" data-ar="دخول" data-en="Login">دخول</button>
         </form>
     </div>
+
+    <script src="script.js"></script>
 
     <!-- كود فايربيس -->
     <script type="module">
