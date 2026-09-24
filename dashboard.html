@@ -257,12 +257,40 @@
                     </select>
                 </div>
                 <div class="input-group">
+                    <label for="patientAge" data-ar="العمر:" data-en="Age:">Age:</label>
+                    <input type="number" id="patientAge" required>
+                </div>
+                <div class="input-group">
                     <label for="patientPhone" data-ar="رقم الهاتف:" data-en="Phone Number:">Phone Number:</label>
                     <input type="tel" id="patientPhone" required>
                 </div>
                 <div class="input-group">
+                    <label for="patientPhone2" data-ar="رقم هاتف إضافي (اختياري):" data-en="Phone 2 (Optional):">Phone 2 (Optional):</label>
+                    <input type="tel" id="patientPhone2">
+                </div>
+                <div class="input-group" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 120px;">
+                        <label for="callPref" data-ar="رقم المكالمات:" data-en="Call Number:">Call Number:</label>
+                        <select id="callPref" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);">
+                            <option value="phone1" data-ar="الرقم الأول" data-en="Phone 1">Phone 1</option>
+                            <option value="phone2" data-ar="الرقم الإضافي" data-en="Phone 2">Phone 2</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1; min-width: 120px;">
+                        <label for="waPref" data-ar="رقم الواتساب:" data-en="WhatsApp Number:">WhatsApp Number:</label>
+                        <select id="waPref" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);">
+                            <option value="phone1" data-ar="الرقم الأول" data-en="Phone 1">Phone 1</option>
+                            <option value="phone2" data-ar="الرقم الإضافي" data-en="Phone 2">Phone 2</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="input-group">
                     <label for="lastVisit" data-ar="آخر زيارة:" data-en="Last Visit:">Last Visit:</label>
                     <input type="date" id="lastVisit" required>
+                </div>
+                <div class="input-group">
+                    <label for="patientNotes" data-ar="ملاحظات (اختياري):" data-en="Notes (Optional):">Notes (Optional):</label>
+                    <textarea id="patientNotes" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);"></textarea>
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn-secondary" id="cancelBtn" data-ar="إلغاء" data-en="Cancel">Cancel</button>
