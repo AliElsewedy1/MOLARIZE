@@ -242,6 +242,90 @@ window.deleteTreatment = async function(id) {
 }
 
 // ---------------------------------------------------------
+
+// ---------------------------------------------------------
+// Autocomplete for Appointments
+// ---------------------------------------------------------
+const apptPatientInput = document.getElementById('apptPatientName');
+const apptPatientId = document.getElementById('apptPatientId');
+const apptPatientDropdown = document.getElementById('apptPatientDropdown');
+const btnQuickAddPatient = document.getElementById('btnQuickAddPatient');
+
+if (apptPatientInput) {
+    apptPatientInput.addEventListener('input', (e) => {
+        const val = e.target.value.toLowerCase().trim();
+        apptPatientDropdown.innerHTML = '';
+        apptPatientId.value = ''; // Reset ID on new typing
+
+        if (!val) {
+            apptPatientDropdown.style.display = 'none';
+            return;
+        }
+
+        // We assume window.currentPatients exists from firebase-patients.js
+        const patients = window.currentPatients || [];
+
+        const matches = patients.filter(p => {
+            const nameMatch = p.name && p.name.toLowerCase().includes(val);
+            const phoneMatch = p.phone && p.phone.includes(val);
+            const idMatch = p.displayId && p.displayId.toLowerCase().includes(val);
+            return nameMatch || phoneMatch || idMatch;
+        });
+
+        if (matches.length > 0) {
+            matches.forEach(p => {
+                const item = document.createElement('div');
+                item.className = 'autocomplete-item';
+                item.innerHTML = `
+                    <div class="autocomplete-name">${p.name}</div>
+                    <div class="autocomplete-details">
+                        <span>ID: ${p.displayId || '-'}</span>
+                        <span>📱 ${p.phone || '-'}</span>
+                    </div>
+                `;
+                item.addEventListener('click', () => {
+                    apptPatientInput.value = p.name;
+                    apptPatientId.value = p.id; // store document ID
+                    apptPatientDropdown.style.display = 'none';
+                });
+                apptPatientDropdown.appendChild(item);
+            });
+            apptPatientDropdown.style.display = 'block';
+        } else {
+            apptPatientDropdown.innerHTML = '<div style="padding: 1rem; color: var(--text-muted); text-align: center;">No patients found.</div>';
+            apptPatientDropdown.style.display = 'block';
+        }
+    });
+
+
+    if (btnQuickAddPatient) {
+        btnQuickAddPatient.addEventListener('click', () => {
+            // Close appointment modal
+            if(window.closeModalAndPopState) window.closeModalAndPopState(appointmentModal);
+            else appointmentModal.classList.remove('show');
+
+            // Open patient modal
+            const openPatientBtn = document.getElementById('openModalBtn');
+            if (openPatientBtn) openPatientBtn.click();
+
+            // Pre-fill name if typed
+            setTimeout(() => {
+                const patNameInput = document.getElementById('patientName');
+                if (patNameInput && apptPatientInput.value) {
+                    patNameInput.value = apptPatientInput.value;
+                }
+            }, 100);
+        });
+    }
+
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (e.target !== apptPatientInput && e.target !== apptPatientDropdown && !apptPatientDropdown.contains(e.target)) {
+            apptPatientDropdown.style.display = 'none';
+        }
+    });
+}
+
 // Appointments & Schedule Logic
 // ---------------------------------------------------------
 
@@ -311,12 +395,13 @@ if (appointmentForm) {
         submitBtn.disabled = true;
 
         try {
+            const pId = document.getElementById('apptPatientId').value;
             if (idField) {
                 const apptRef = doc(db, "users", currentUserUid, "appointments", idField);
-                await updateDoc(apptRef, { patientName, date, time });
+                await updateDoc(apptRef, { patientName, patientId: pId, date, time });
             } else {
                 const apptsRef = collection(db, "users", currentUserUid, "appointments");
-                await addDoc(apptsRef, { patientName, date, time, status: 'Scheduled' });
+                await addDoc(apptsRef, { patientName, patientId: pId, date, time, status: 'Scheduled' });
             }
             await loadAppointments();
             updateDashboardStats(); // Update stats
