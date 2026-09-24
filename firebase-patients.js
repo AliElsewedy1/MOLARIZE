@@ -14,6 +14,7 @@ if (openModalBtn) {
     openModalBtn.addEventListener('click', () => {
         patientForm.reset();
         document.getElementById('patientId').value = '';
+        document.querySelectorAll('.alert-checkbox').forEach(cb => cb.checked = false);
         patientModal.classList.add('show');
         history.pushState({ modal: 'patient' }, '', window.location.hash);
     });
@@ -226,6 +227,7 @@ if (patientForm) {
                     notes: notes,
                     gender: gender,
                     lastVisit: lastVisit,
+                    medicalAlerts: Array.from(document.querySelectorAll('.alert-checkbox:checked')).map(cb => cb.value).join(', '),
                     displayId: 'P' + Date.now().toString().slice(-6)
                 });
             }
@@ -278,7 +280,16 @@ window.editPatient = function(id) {
             document.getElementById('patientGender').value = patient.gender;
         }
         document.getElementById('lastVisit').value = patient.lastVisit;
-        document.getElementById('medicalAlerts').value = patient.medicalAlerts || '';
+
+        document.querySelectorAll('.alert-checkbox').forEach(cb => cb.checked = false);
+        if (patient.medicalAlerts) {
+            const alertsArr = patient.medicalAlerts.split(', ');
+            document.querySelectorAll('.alert-checkbox').forEach(cb => {
+                if (alertsArr.includes(cb.value)) {
+                    cb.checked = true;
+                }
+            });
+        }
         patientModal.classList.add('show');
         history.pushState({ modal: 'patient' }, '', window.location.hash);
     }

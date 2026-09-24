@@ -599,6 +599,8 @@ td {
     width: 100%;
     max-width: 400px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .modal-content h3 {
@@ -894,4 +896,35 @@ td {
 
 .xray-thumbnail:hover {
     transform: scale(1.05);
+}
+
+/* Fix Modal scrolling for mobile devices */
+.modal-content {
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Medical Alerts Toggle Styles */
+.alert-toggle input[type="checkbox"] {
+    display: none;
+}
+
+.alert-chip {
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    background-color: var(--bg-surface);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.alert-toggle input[type="checkbox"]:checked + .alert-chip {
+    background-color: rgba(239, 68, 68, 0.1); /* light red */
+    border-color: var(--status-error);
+    color: var(--status-error);
+    font-weight: bold;
 }

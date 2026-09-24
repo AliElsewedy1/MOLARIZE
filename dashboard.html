@@ -310,7 +310,8 @@
                 </div>
                 <div class="quick-actions">
                     <button class="btn-primary" onclick="window.openVisitModal()" data-ar="+ زيارة جديدة" data-en="+ New Visit">+ New Visit</button>
-
+                    <button class="btn-primary" id="addProfileTreatmentBtn" data-ar="+ إضافة علاج" data-en="+ Add Treatment">+ Add Treatment</button>
+                    <button class="btn-outline" id="addProfilePrescriptionBtn" data-ar="روشتة جديدة" data-en="Prescription">Prescription</button>
                 </div>
             </div>
 
@@ -396,12 +397,10 @@
                 <div style="text-align: center; color: var(--text-muted); padding: 2rem;">Loading timeline...</div>
             </div>
 
-            <!-- Legacy Tabs (Hidden but kept for data logic structure if needed, or we just rely on timeline) -->
+            <!-- Legacy Table bodies required by some existing JS logic before being pushed to timeline -->
             <div style="display: none;">
-                <button id="addProfileTreatmentBtn"></button>
-                <button id="addProfilePrescriptionBtn"></button>
-                <tbody id="profile-treatments-body"></tbody>
-                <tbody id="profile-prescriptions-body"></tbody>
+                <table><tbody id="profile-treatments-body"></tbody></table>
+                <table><tbody id="profile-prescriptions-body"></tbody></table>
             </div>
 
         </section>
@@ -460,8 +459,33 @@
                 </div>
 
                 <div class="input-group">
-                    <label for="medicalAlerts" data-ar="التحذيرات الطبية (سيولة، سكر، حساسية...):" data-en="Medical Alerts (Bleeding, Diabetes...):">Medical Alerts (Bleeding, Diabetes...):</label>
-                    <textarea id="medicalAlerts" rows="2" style="width: 100%; padding: 0.75rem; border: 1px solid var(--status-error); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);"></textarea>
+                    <label data-ar="التحذيرات الطبية:" data-en="Medical Alerts:">Medical Alerts:</label>
+                    <div class="medical-alerts-container" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                        <label class="alert-toggle">
+                            <input type="checkbox" value="Diabetes" class="alert-checkbox">
+                            <span class="alert-chip" data-ar="سكر" data-en="Diabetes">Diabetes</span>
+                        </label>
+                        <label class="alert-toggle">
+                            <input type="checkbox" value="Hypertension" class="alert-checkbox">
+                            <span class="alert-chip" data-ar="ضغط دم" data-en="Hypertension">Hypertension</span>
+                        </label>
+                        <label class="alert-toggle">
+                            <input type="checkbox" value="Bleeding" class="alert-checkbox">
+                            <span class="alert-chip" data-ar="سيولة" data-en="Bleeding">Bleeding</span>
+                        </label>
+                        <label class="alert-toggle">
+                            <input type="checkbox" value="Heart Disease" class="alert-checkbox">
+                            <span class="alert-chip" data-ar="أمراض قلب" data-en="Heart Disease">Heart Disease</span>
+                        </label>
+                        <label class="alert-toggle">
+                            <input type="checkbox" value="Allergies" class="alert-checkbox">
+                            <span class="alert-chip" data-ar="حساسية" data-en="Allergies">Allergies</span>
+                        </label>
+                        <label class="alert-toggle">
+                            <input type="checkbox" value="Pregnancy" class="alert-checkbox">
+                            <span class="alert-chip" data-ar="حمل" data-en="Pregnancy">Pregnancy</span>
+                        </label>
+                    </div>
                 </div>
 
                 <div class="input-group">
