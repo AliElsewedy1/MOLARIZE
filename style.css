@@ -723,3 +723,31 @@ td {
     border-radius: 12px;
     border: 1px solid var(--border-color);
 }
+
+/* Print Styles for Invoice */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #print-invoice-container, #print-invoice-container * {
+        visibility: visible;
+    }
+    #print-invoice-container {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        color: #000 !important;
+        background: #fff !important;
+        padding: 2rem;
+    }
+
+    #print-invoice-container table {
+        border-collapse: collapse;
+    }
+    #print-invoice-container th, #print-invoice-container td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        color: #000;
+    }
+}
