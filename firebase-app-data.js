@@ -461,6 +461,8 @@ function initCalendar() {
             center: 'title',
             right: 'dayGridMonth,timeGridWeek,timeGridDay'
         },
+        slotMinTime: '09:00:00',
+        slotMaxTime: '22:00:00',
         events: formatEventsForCalendar(),
         eventClick: function(info) {
             // Ask to delete on click for simplicity
