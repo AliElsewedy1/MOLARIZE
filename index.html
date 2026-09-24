@@ -26,28 +26,35 @@
             --login-label: #475569;
         }
 
-        @keyframes gradientMove {
-            0% {
-                background-position: 0% 50%;
-            }
-            50% {
-                background-position: 100% 50%;
-            }
-            100% {
-                background-position: 0% 50%;
-            }
+        @keyframes blobBounce1 {
+            0% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+            100% { transform: translate(0, 0) scale(1); }
+        }
+
+        @keyframes blobBounce2 {
+            0% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(-30px, 50px) scale(1.15); }
+            66% { transform: translate(20px, -20px) scale(0.85); }
+            100% { transform: translate(0, 0) scale(1); }
+        }
+
+        @keyframes pulseHalo {
+            0% { box-shadow: 0 0 40px rgba(45, 212, 191, 0.3), 0 10px 30px rgba(0, 0, 0, 0.5); }
+            50% { box-shadow: 0 0 80px rgba(45, 212, 191, 0.6), 0 10px 30px rgba(0, 0, 0, 0.5); }
+            100% { box-shadow: 0 0 40px rgba(45, 212, 191, 0.3), 0 10px 30px rgba(0, 0, 0, 0.5); }
         }
 
         [data-theme="dark"] {
-            /* Teal gradient background */
+            /* Teal liquid background base */
             --login-bg: #0f172a;
-            --login-bg-pattern: linear-gradient(135deg, #0f172a 0%, #113f44 50%, #0f172a 100%);
-            --login-card-bg: #1e293b;
-            --login-card-shadow: 0 0 40px rgba(45, 212, 191, 0.3), 0 10px 30px rgba(0, 0, 0, 0.5);
-            --login-card-border: 1px solid rgba(45, 212, 191, 0.5); /* Teal border */
+            --login-bg-pattern: none;
+            --login-card-bg: rgba(30, 41, 59, 0.65); /* Transparent for glass effect */
+            --login-card-border: 1px solid rgba(45, 212, 191, 0.2); /* Subtle teal border */
             --login-title: #2dd4bf; /* Bright Teal */
-            --login-input-bg: #0f172a;
-            --login-input-border: #334155;
+            --login-input-bg: rgba(15, 23, 42, 0.7);
+            --login-input-border: rgba(51, 65, 85, 0.8);
             --login-input-focus: #2dd4bf; /* Bright Teal */
             --login-btn-bg: #2dd4bf;
             --login-btn-text: #0f172a;
@@ -62,16 +69,38 @@
             height: 100vh;
             background: var(--login-bg);
             background-image: var(--login-bg-pattern);
-            background-size: 100% 100%;
             color: var(--text-primary);
             font-family: 'Tajawal', Arial, sans-serif;
             margin: 0;
             position: relative;
+            overflow: hidden; /* Prevent scroll from blobs */
         }
 
-        [data-theme="dark"] body {
-            background-size: 200% 200%;
-            animation: gradientMove 10s ease infinite;
+        /* Liquid blobs */
+        [data-theme="dark"] body::before,
+        [data-theme="dark"] body::after {
+            content: '';
+            position: absolute;
+            width: 40vw;
+            height: 40vw;
+            border-radius: 50%;
+            filter: blur(100px);
+            z-index: -1;
+            opacity: 0.6;
+        }
+
+        [data-theme="dark"] body::before {
+            background-color: #115e59; /* Teal blob */
+            top: -10%;
+            left: -10%;
+            animation: blobBounce1 15s infinite ease-in-out;
+        }
+
+        [data-theme="dark"] body::after {
+            background-color: #0c4a6e; /* Blue blob */
+            bottom: -10%;
+            right: -10%;
+            animation: blobBounce2 18s infinite ease-in-out;
         }
 
         .login-controls {
@@ -117,6 +146,12 @@
             position: relative;
             z-index: 1;
             transition: all 0.3s ease;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        [data-theme="dark"] .login-box {
+            animation: pulseHalo 4s infinite ease-in-out;
         }
 
         .login-box h2 {
