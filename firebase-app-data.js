@@ -1,5 +1,5 @@
 // This file handles Appointments, Treatment Plans, and Dashboard Stats using Firebase Firestore.
-import { db, auth, onAuthStateChanged, signOut, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "./firebase-config.js";
+import { db, auth, onAuthStateChanged, signOut, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot } from "./firebase-config.js";
 
 let currentUserUid = null;
 let calendarInstance = null;
@@ -181,24 +181,29 @@ if (treatmentForm) {
         submitBtn.disabled = true;
 
         try {
-            if (targetPatientId) {
-                // Add to patient sub-collection directly
-                const subRef = collection(db, 'users', currentUserUid, 'patients', targetPatientId, 'treatments');
-                await addDoc(subRef, { patientName, type, cost, status, createdAt: new Date().toISOString() });
+            if (idField) {
+                const treatmentRef = doc(db, "users", currentUserUid, "treatments", idField);
+                await updateDoc(treatmentRef, { patientName, type, cost, status });
             } else {
-                if (idField) {
-                    const treatmentRef = doc(db, "users", currentUserUid, "treatments", idField);
-                    await updateDoc(treatmentRef, { patientName, type, cost, status });
-                } else {
-                    const treatmentsRef = collection(db, "users", currentUserUid, "treatments");
-                    await addDoc(treatmentsRef, {
-                        patientName, type, cost, status, createdAt: new Date().toISOString()
-                    });
+                const treatmentsRef = collection(db, "users", currentUserUid, "treatments");
+                const payload = {
+                    patientName, type, cost, status, createdAt: new Date().toISOString()
+                };
+                if (targetPatientId) {
+                    payload.patientId = targetPatientId;
                 }
+                await addDoc(treatmentsRef, payload);
             }
+
             await loadTreatments();
             if(window.closeModalAndPopState) window.closeModalAndPopState(treatmentModal);
             else treatmentModal.classList.remove('show');
+
+            // If we are in a patient profile, refresh timeline
+            if (targetPatientId && typeof window.loadPatientTimeline === 'function') {
+                window.loadPatientTimeline(targetPatientId);
+            }
+
             pNameInput.removeAttribute('data-target-id');
             updateDashboardStats(); // Update dashboard stats (revenue/overdue)
             initChart(); // Update chart

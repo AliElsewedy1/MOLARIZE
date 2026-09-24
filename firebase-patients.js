@@ -216,6 +216,19 @@ if (patientForm) {
                 });
             } else {
                 // Add new to Firestore
+
+                // 1. Get and increment the counter
+                const counterRef = doc(db, "users", currentUserUid, "metadata", "counters");
+                const counterDoc = await getDoc(counterRef);
+                let currentCount = 0;
+
+                if (counterDoc.exists() && counterDoc.data().patientCount) {
+                    currentCount = counterDoc.data().patientCount;
+                }
+
+                const newDisplayId = currentCount + 1;
+
+                // 2. Add the patient
                 const patientsRef = collection(db, "users", currentUserUid, "patients");
                 await addDoc(patientsRef, {
                     name: name,
@@ -228,8 +241,12 @@ if (patientForm) {
                     gender: gender,
                     lastVisit: lastVisit,
                     medicalAlerts: Array.from(document.querySelectorAll('.alert-checkbox:checked')).map(cb => cb.value).join(', '),
-                    displayId: 'P' + Date.now().toString().slice(-6)
+                    displayId: newDisplayId.toString(),
+                    createdAt: new Date().toISOString()
                 });
+
+                // 3. Update the counter
+                await setDoc(counterRef, { patientCount: newDisplayId }, { merge: true });
             }
 
             // Reload and render
@@ -336,7 +353,7 @@ window.openPatientProfile = function(patientId) {
 
     // Set Info
     document.getElementById('profilePatientName').innerText = patient.name;
-    document.getElementById('profilePatientId').innerText = patient.id.substring(0, 6);
+    document.getElementById('profilePatientId').innerText = patient.displayId || patient.id.substring(0, 6);
     document.getElementById('profilePatientAge').innerText = patient.age || '-';
     document.getElementById('profilePatientGender').innerText = patient.gender || '-';
     document.getElementById('profilePatientPhone').innerText = patient.phone;
@@ -520,17 +537,8 @@ document.getElementById('paymentForm').addEventListener('submit', async (e) => {
             createdAt: new Date().toISOString()
         });
 
-        // 2. Add to patient specific payments subcollection (for invoice)
-        const patientPaymentsRef = collection(db, 'users', user.uid, 'patients', pId, 'treatments', tId, 'payments');
-        await addDoc(patientPaymentsRef, {
-            amount: amount,
-            method: method,
-            date: date,
-            createdAt: new Date().toISOString()
-        });
-
-        // 3. Update paidAmount on treatment document
-        const tRef = doc(db, 'users', user.uid, 'patients', pId, 'treatments', tId);
+        // Update paidAmount on global treatment document
+        const tRef = doc(db, 'users', user.uid, 'treatments', tId);
         const tDoc = await getDoc(tRef);
         if (tDoc.exists()) {
             const currentPaid = parseFloat(tDoc.data().paidAmount) || 0;
@@ -539,6 +547,7 @@ document.getElementById('paymentForm').addEventListener('submit', async (e) => {
 
         window.closeModalAndPopState(document.getElementById('paymentModal'));
         alert('Payment added successfully');
+        loadPatientTimeline(pId);
     } catch (error) {
         console.error("Error saving payment", error);
         alert("Error saving payment.");
@@ -551,7 +560,7 @@ window.printInvoice = async function(tId, pId) {
     if (!user) return;
 
     try {
-        const tRef = doc(db, 'users', user.uid, 'patients', pId, 'treatments', tId);
+        const tRef = doc(db, 'users', user.uid, 'treatments', tId);
         const tDoc = await getDoc(tRef);
         if (!tDoc.exists()) return;
 
@@ -567,14 +576,16 @@ window.printInvoice = async function(tId, pId) {
         document.getElementById('invoice-paid').innerText = paid;
         document.getElementById('invoice-remaining').innerText = rem;
 
-        // Load payments for this treatment
-        const paymentsRef = collection(db, 'users', user.uid, 'patients', pId, 'treatments', tId, 'payments');
+        // Load payments for this treatment from global payments
+        const paymentsRef = collection(db, 'users', user.uid, 'payments');
         const pSnap = await getDocs(paymentsRef);
 
         const tbody = document.getElementById('invoice-payments-body');
         tbody.innerHTML = '';
 
-        const sortedPayments = pSnap.docs.map(d => d.data()).sort((a,b) => new Date(a.date) - new Date(b.date));
+        // filter global payments for this treatmentId
+        const filteredP = pSnap.docs.map(d => d.data()).filter(d => d.treatmentId === tId);
+        const sortedPayments = filteredP.sort((a,b) => new Date(a.date) - new Date(b.date));
 
         sortedPayments.forEach(p => {
             tbody.innerHTML += `
@@ -731,10 +742,12 @@ window.loadPatientTimeline = async function(patientId) {
         // Fetch all subcollections
         const visitsP = getDocs(collection(db, 'users', user.uid, 'patients', patientId, 'visits'));
 
-        const treatmentsP = getDocs(collection(db, 'users', user.uid, 'patients', patientId, 'treatments'));
+        const treatmentsP = getDocs(collection(db, 'users', user.uid, 'treatments'));
         const paymentsP = getDocs(collection(db, 'users', user.uid, 'payments')); // We query global payments for this patient
 
         const [visitsSnap, treatmentsSnap, paymentsSnap] = await Promise.all([visitsP, treatmentsP, paymentsP]);
+
+        const patientName = document.getElementById('profilePatientName').innerText;
 
         let events = [];
 
@@ -745,7 +758,10 @@ window.loadPatientTimeline = async function(patientId) {
 
         treatmentsSnap.forEach(doc => {
             const data = doc.data();
-            events.push({ id: doc.id, type: 'treatment', date: data.createdAt || data.timestamp, data });
+            // Filter global treatments for this patient (by id or exact name match)
+            if (data.patientId === patientId || data.patientName === patientName) {
+                events.push({ id: doc.id, type: 'treatment', date: data.createdAt || data.timestamp, data });
+            }
         });
 
         paymentsSnap.forEach(doc => {
