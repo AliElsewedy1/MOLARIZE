@@ -31,8 +31,8 @@
             --login-bg: #0f172a;
             --login-bg-pattern: linear-gradient(135deg, #0f172a 0%, #113f44 100%);
             --login-card-bg: #1e293b;
-            --login-card-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            --login-card-border: 1px solid rgba(45, 212, 191, 0.3); /* Teal border */
+            --login-card-shadow: 0 0 40px rgba(45, 212, 191, 0.3), 0 10px 30px rgba(0, 0, 0, 0.5);
+            --login-card-border: 1px solid rgba(45, 212, 191, 0.5); /* Teal border */
             --login-title: #2dd4bf; /* Bright Teal */
             --login-input-bg: #0f172a;
             --login-input-border: #334155;
@@ -177,6 +177,13 @@
 
         .btn-login:active {
             transform: translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            .login-box {
+                padding: 2rem 1.5rem;
+                max-width: 90%;
+            }
         }
 
     </style>
