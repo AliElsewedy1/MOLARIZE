@@ -278,6 +278,7 @@ window.editPatient = function(id) {
             document.getElementById('patientGender').value = patient.gender;
         }
         document.getElementById('lastVisit').value = patient.lastVisit;
+        document.getElementById('medicalAlerts').value = patient.medicalAlerts || '';
         patientModal.classList.add('show');
         history.pushState({ modal: 'patient' }, '', window.location.hash);
     }
@@ -325,24 +326,34 @@ window.openPatientProfile = function(patientId) {
     // Set Info
     document.getElementById('profilePatientName').innerText = patient.name;
     document.getElementById('profilePatientId').innerText = patient.id.substring(0, 6);
-    document.getElementById('profilePatientAge').innerText = patient.age;
-    document.getElementById('profilePatientGender').innerText = patient.gender;
+    document.getElementById('profilePatientAge').innerText = patient.age || '-';
+    document.getElementById('profilePatientGender').innerText = patient.gender || '-';
     document.getElementById('profilePatientPhone').innerText = patient.phone;
+
+    // Medical Alerts logic
+    const alertsBox = document.getElementById('profileMedicalAlertsBox');
+    const alertsText = document.getElementById('profileMedicalAlerts');
+    if (patient.medicalAlerts && patient.medicalAlerts.trim() !== '') {
+        alertsText.innerText = patient.medicalAlerts;
+        alertsBox.style.display = 'flex';
+    } else {
+        alertsBox.style.display = 'none';
+    }
 
     // Show Section
     document.querySelectorAll('.app-section').forEach(sec => sec.style.display = 'none');
     document.getElementById('patient-profile-section').style.display = 'block';
 
-    // Reset Tabs
-    document.querySelector('.tab-btn[data-tab="tab-odontogram"]').click();
+    // Reset Timeline Filter
+    document.querySelectorAll('.filter-chips .chip').forEach(c => c.classList.remove('active'));
+    document.querySelector('.chip[data-filter="all"]').classList.add('active');
 
     // History API
     history.pushState({ section: 'patient-profile-section', patientId: patientId }, '', '#patient-profile-section');
 
     // Load Patient Data
     loadOdontogram(patientId);
-    setupProfileTreatmentsListener(patientId);
-    setupProfilePrescriptionsListener(patientId);
+    loadPatientTimeline(patientId);
 };
 
 document.getElementById('backToPatientsBtn').addEventListener('click', () => {
@@ -646,4 +657,177 @@ document.getElementById('prescriptionForm').addEventListener('submit', async (e)
         console.error(err);
         alert('Error adding prescription');
     }
+});
+
+
+
+// --- Unified Timeline Logic ---
+
+function escapeHtml(unsafe) {
+    if (!unsafe) return '';
+    return unsafe
+         .toString()
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+}
+
+
+window.openVisitModal = function() {
+    document.getElementById('visitForm').reset();
+    const visitModal = document.getElementById('visitModal');
+    visitModal.classList.add('show');
+    history.pushState({ modal: 'visit' }, '', window.location.hash);
+};
+
+
+
+document.getElementById('visitForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!currentProfilePatientId) return;
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const complaint = document.getElementById('visitChiefComplaint').value;
+    const notes = document.getElementById('visitNotes').value;
+
+    try {
+        const ref = collection(db, 'users', user.uid, 'patients', currentProfilePatientId, 'visits');
+        await addDoc(ref, {
+            complaint,
+            notes,
+            timestamp: new Date().toISOString()
+        });
+        window.closeModalAndPopState(document.getElementById('visitModal'));
+        loadPatientTimeline(currentProfilePatientId);
+    } catch(err) {
+        console.error("Error saving visit", err);
+    }
+});
+
+let currentTimelineEvents = [];
+
+window.loadPatientTimeline = async function(patientId) {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const container = document.getElementById('patientTimelineContainer');
+    container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 2rem;">Loading timeline...</div>';
+
+    try {
+        // Fetch all subcollections
+        const visitsP = getDocs(collection(db, 'users', user.uid, 'patients', patientId, 'visits'));
+
+        const treatmentsP = getDocs(collection(db, 'users', user.uid, 'patients', patientId, 'treatments'));
+        const paymentsP = getDocs(collection(db, 'users', user.uid, 'payments')); // We query global payments for this patient
+
+        const [visitsSnap, treatmentsSnap, paymentsSnap] = await Promise.all([visitsP, treatmentsP, paymentsP]);
+
+        let events = [];
+
+        visitsSnap.forEach(doc => {
+            const data = doc.data();
+            events.push({ id: doc.id, type: 'visit', date: data.timestamp, data });
+        });
+
+        treatmentsSnap.forEach(doc => {
+            const data = doc.data();
+            events.push({ id: doc.id, type: 'treatment', date: data.createdAt || data.timestamp, data });
+        });
+
+        paymentsSnap.forEach(doc => {
+            const data = doc.data();
+            if (data.patientId === patientId) {
+                events.push({ id: doc.id, type: 'payment', date: data.createdAt || data.date, data });
+            }
+        });
+
+        events.sort((a, b) => new Date(b.date) - new Date(a.date));
+        currentTimelineEvents = events;
+        renderTimeline();
+
+    } catch (e) {
+        console.error("Error loading timeline", e);
+        container.innerHTML = '<div style="color: var(--status-error); text-align: center;">Error loading data.</div>';
+    }
+};
+
+function renderTimeline(filter = 'all') {
+    const container = document.getElementById('patientTimelineContainer');
+    container.innerHTML = '';
+
+    const filtered = currentTimelineEvents.filter(e => filter === 'all' || e.type === filter);
+
+    if (filtered.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 2rem;">No events found.</div>';
+        return;
+    }
+
+    filtered.forEach(event => {
+        const el = document.createElement('div');
+        el.className = `timeline-event type-${event.type}`;
+
+        let icon = '';
+        let title = '';
+        let details = '';
+        const displayDate = new Date(event.date).toLocaleDateString() + ' ' + new Date(event.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+        if (event.type === 'visit') {
+            icon = '🔵';
+            title = 'Clinical Visit';
+            details = `
+                <p><strong>Chief Complaint:</strong> ${escapeHtml(event.data.complaint)}</p>
+                <p style="white-space: pre-wrap;"><strong>Notes:</strong><br>${escapeHtml(event.data.notes)}</p>
+            `;
+        } else if (event.type === 'treatment') {
+            icon = '🟣';
+            const typeStr = event.data.type || event.data.treatmentType;
+            title = 'Treatment: ' + typeStr;
+            const total = parseFloat(event.data.cost) || 0;
+            const paid = parseFloat(event.data.paidAmount) || 0;
+            const rem = total - paid;
+
+            details = `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                    <span><strong>Total:</strong> ${total}</span>
+                    <span><strong>Paid:</strong> ${paid}</span>
+                    <span style="color: ${rem > 0 ? 'var(--status-error)' : 'var(--status-completed)'}"><strong>Remaining:</strong> ${rem}</span>
+                    <span><strong>Status:</strong> <span class="status-badge ${event.data.status === 'Completed' ? 'status-completed' : (event.data.status === 'In Progress' ? 'status-inprogress' : 'status-pending')}">${event.data.status}</span></span>
+                </div>
+                <div>
+                    ${rem > 0 ? `<button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.openPaymentModal('${event.id}', '${currentProfilePatientId}', '${document.getElementById('profilePatientName').innerText}', '${typeStr}')">Pay Now</button>` : ''}
+                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.printInvoice('${event.id}', '${currentProfilePatientId}')">Print Invoice</button>
+                </div>
+            `;
+        } else if (event.type === 'payment') {
+            icon = '🟢';
+            title = 'Payment Received';
+            details = `
+                <p><strong>Amount:</strong> <span style="color: var(--status-completed); font-weight: bold;">${event.data.amount}</span></p>
+                <p><strong>Method:</strong> ${event.data.method}</p>
+                <p><strong>For Treatment:</strong> ${event.data.treatmentName}</p>
+            `;
+        }
+
+        el.innerHTML = `
+            <div class="timeline-icon">${icon}</div>
+            <div class="event-header" onclick="this.parentElement.classList.toggle('expanded')">
+                <div class="event-title">${title}</div>
+                <div class="event-date">${displayDate}</div>
+            </div>
+            <div class="event-details">${details}</div>
+        `;
+        container.appendChild(el);
+    });
+}
+
+// Attach filter listeners
+document.querySelectorAll('.filter-chips .chip').forEach(chip => {
+    chip.addEventListener('click', (e) => {
+        document.querySelectorAll('.filter-chips .chip').forEach(c => c.classList.remove('active'));
+        e.target.classList.add('active');
+        renderTimeline(e.target.getAttribute('data-filter'));
+    });
 });
