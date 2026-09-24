@@ -4,90 +4,181 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تسجيل الدخول - MOLARIZE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <style>
+
+        :root {
+            --login-bg: #f0f4f8;
+            --login-bg-pattern: url('data:image/svg+xml;utf8,<svg width="20" height="20" xmlns="http://www.w3.org/2000/svg"><circle cx="2" cy="2" r="1" fill="%23e2e8f0"/></svg>');
+            --login-card-bg: #ffffff;
+            --login-card-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            --login-card-border: 1px solid transparent;
+            --login-title: #0f172a; /* Navy Blue */
+            --login-input-bg: #f8fafc;
+            --login-input-border: #cbd5e1;
+            --login-input-focus: #0284c7; /* Sky Blue */
+            --login-btn-bg: #0284c7;
+            --login-btn-text: #ffffff;
+            --login-btn-shadow: none;
+            --login-label: #475569;
+        }
+
+        [data-theme="dark"] {
+            /* Teal gradient background */
+            --login-bg: linear-gradient(135deg, #0f172a 0%, #113f44 100%);
+            --login-bg-pattern: none;
+            --login-card-bg: #1e293b;
+            --login-card-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --login-card-border: 1px solid rgba(45, 212, 191, 0.3); /* Teal border */
+            --login-title: #2dd4bf; /* Bright Teal */
+            --login-input-bg: #0f172a;
+            --login-input-border: #334155;
+            --login-input-focus: #2dd4bf; /* Bright Teal */
+            --login-btn-bg: #2dd4bf;
+            --login-btn-text: #0f172a;
+            --login-btn-shadow: 0 0 15px rgba(45, 212, 191, 0.4); /* Glow effect */
+            --login-label: #e2e8f0;
+        }
+
         body {
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background-color: var(--bg-primary);
+            background: var(--login-bg);
+            background-image: var(--login-bg-pattern);
             color: var(--text-primary);
-            font-family: Arial, sans-serif;
+            font-family: 'Tajawal', Arial, sans-serif;
             margin: 0;
             position: relative;
         }
+
         .login-controls {
             position: absolute;
             top: 2rem;
             left: 2rem;
             display: flex;
             gap: 1rem;
+            z-index: 10;
         }
+
         .login-controls button {
-            padding: 0.8rem;
+            padding: 0.6rem 1rem;
             border: 1px solid var(--border-color);
             border-radius: 8px;
             cursor: pointer;
-            background-color: var(--bg-primary);
+            background-color: var(--login-card-bg);
             color: var(--text-primary);
-            font-weight: bold;
+            font-weight: 500;
+            font-family: 'Tajawal', sans-serif;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
+
         .login-controls button:hover {
-            background-color: var(--border-color);
+            border-color: var(--login-input-focus);
+            color: var(--login-input-focus);
         }
+
         [dir="ltr"] .login-controls {
             left: auto;
             right: 2rem;
         }
+
         .login-box {
-            background: var(--bg-surface);
-            padding: 2.5rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            background: var(--login-card-bg);
+            padding: 3rem 2.5rem;
+            border-radius: 16px;
+            box-shadow: var(--login-card-shadow);
+            border: var(--login-card-border);
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
+            position: relative;
+            z-index: 1;
+            transition: all 0.3s ease;
         }
+
         .login-box h2 {
             text-align: center;
-            color: var(--brand-primary);
-            margin-bottom: 1.5rem;
+            color: var(--login-title);
+            margin-bottom: 0.5rem;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
+            font-size: 2rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
         }
+
         .login-box h3 {
             color: var(--text-muted);
+            font-family: 'Tajawal', sans-serif;
+            font-weight: 500;
         }
+
         .input-group {
-            margin-bottom: 1rem;
+            margin-bottom: 1.25rem;
         }
+
         .input-group label {
             display: block;
             margin-bottom: 0.5rem;
-            color: var(--text-primary);
+            color: var(--login-label);
+            font-size: 0.9rem;
+            font-weight: 500;
         }
+
         .input-group input {
             width: 100%;
-            padding: 0.75rem;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
+            padding: 0.85rem;
+            border: 1.5px solid var(--login-input-border);
+            border-radius: 8px;
             box-sizing: border-box;
-            background-color: var(--bg-primary);
+            background-color: var(--login-input-bg);
             color: var(--text-primary);
+            font-family: inherit;
+            transition: all 0.3s ease;
+            outline: none;
         }
+
+        .input-group input:focus {
+            border-color: var(--login-input-focus);
+            box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.1);
+        }
+
+        [data-theme="light"] .input-group input:focus {
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
+        }
+
         .btn-login {
             width: 100%;
-            padding: 0.75rem;
-            background-color: var(--accent-cta);
-            color: white;
+            padding: 0.85rem;
+            background-color: var(--login-btn-bg);
+            color: var(--login-btn-text);
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 1rem;
+            font-size: 1.1rem;
             font-weight: bold;
-            margin-top: 1rem;
+            font-family: 'Montserrat', 'Tajawal', sans-serif;
+            margin-top: 1.5rem;
+            transition: all 0.3s ease;
+            box-shadow: var(--login-btn-shadow);
+            letter-spacing: 1px;
+            text-transform: uppercase;
         }
+
         .btn-login:hover {
-            opacity: 0.9;
+            transform: translateY(-2px);
+            filter: brightness(1.1);
         }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
     </style>
 </head>
 <body>
