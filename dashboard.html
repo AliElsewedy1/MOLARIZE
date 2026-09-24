@@ -225,7 +225,43 @@
 
         <!-- Payments Chart Section -->
         <section id="payments-section" class="app-section" style="display: none;">
-            <h1 data-ar="المدفوعات" data-en="Payments">Payments</h1>
+            <div class="table-header" style="margin-top:0;">
+                <h1 data-ar="المدفوعات والخزينة" data-en="Payments & Billing">Payments & Billing</h1>
+            </div>
+
+            <div class="home-grid three-cols" style="margin-top: 1rem;">
+                <div class="col-item center-text" style="background: var(--bg-surface); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <div class="stat-value" id="ledger-today-revenue" style="color: var(--brand-primary);">$0</div>
+                    <div class="stat-label" data-ar="دخل اليوم" data-en="Today's Revenue">Today's Revenue</div>
+                </div>
+                <div class="col-item center-text" style="background: var(--bg-surface); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <div class="stat-value" id="ledger-month-revenue" style="color: var(--status-completed);">$0</div>
+                    <div class="stat-label" data-ar="دخل الشهر" data-en="This Month's Revenue">This Month's Revenue</div>
+                </div>
+                <div class="col-item center-text" style="background: var(--bg-surface); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <div class="stat-value" id="ledger-outstanding" style="color: var(--status-error);">$0</div>
+                    <div class="stat-label" data-ar="إجمالي المبالغ المستحقة" data-en="Total Outstanding">Total Outstanding</div>
+                </div>
+            </div>
+
+            <div class="table-container" style="margin-top: 2rem;">
+                <div class="table-header">
+                    <h3 data-ar="سجل المعاملات المالي" data-en="Transaction Ledger">Transaction Ledger</h3>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-ar="التاريخ" data-en="Date">Date</th>
+                            <th data-ar="المريض" data-en="Patient">Patient</th>
+                            <th data-ar="الإجراء" data-en="Treatment">Treatment</th>
+                            <th data-ar="المبلغ" data-en="Amount">Amount</th>
+                            <th data-ar="الوسيلة" data-en="Method">Method</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledger-table-body">
+                    </tbody>
+                </table>
+            </div>
 
             <div class="chart-container" style="background-color: var(--bg-surface); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color); margin-top: 1.5rem;">
                 <canvas id="revenueChart"></canvas>
@@ -338,8 +374,11 @@
                         <thead>
                             <tr>
                                 <th data-ar="النوع" data-en="Type">Type</th>
-                                <th data-ar="التكلفة" data-en="Cost">Cost</th>
+                                <th data-ar="الإجمالي" data-en="Total Cost">Total Cost</th>
+                                <th data-ar="المدفوع" data-en="Paid">Paid</th>
+                                <th data-ar="المتبقي" data-en="Remaining">Remaining</th>
                                 <th data-ar="الحالة" data-en="Status">Status</th>
+                                <th data-ar="الإجراءات" data-en="Actions">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="profile-treatments-body"></tbody>
@@ -502,6 +541,41 @@
     </div>
 
 
+
+    <!-- Modal for Adding Payment -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <h3 data-ar="إضافة دفعة مالية" data-en="Add Payment">Add Payment</h3>
+            <form id="paymentForm">
+                <input type="hidden" id="paymentTreatmentId">
+                <input type="hidden" id="paymentPatientId">
+                <input type="hidden" id="paymentPatientName">
+                <input type="hidden" id="paymentTreatmentName">
+
+                <div class="input-group">
+                    <label for="paymentAmount" data-ar="المبلغ المدفوع:" data-en="Amount Paid:">Amount Paid:</label>
+                    <input type="number" id="paymentAmount" required>
+                </div>
+                <div class="input-group">
+                    <label for="paymentMethod" data-ar="طريقة الدفع:" data-en="Payment Method:">Payment Method:</label>
+                    <select id="paymentMethod" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);">
+                        <option value="Cash" data-ar="كاش" data-en="Cash">Cash</option>
+                        <option value="Card" data-ar="بطاقة ائتمان" data-en="Card">Card</option>
+                        <option value="Insurance" data-ar="تأمين" data-en="Insurance">Insurance</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="paymentDate" data-ar="التاريخ:" data-en="Date:">Date:</label>
+                    <input type="date" id="paymentDate" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelPaymentBtn" data-ar="إلغاء" data-en="Cancel">Cancel</button>
+                    <button type="submit" class="btn-primary" data-ar="حفظ" data-en="Save">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal for Prescriptions -->
     <div id="prescriptionModal" class="modal">
         <div class="modal-content">
@@ -549,5 +623,39 @@
     <script type="module" src="firebase-app-data.js"></script>
     <script type="module" src="firebase-patients.js"></script>
     <script type="module" src="firebase-inventory.js"></script>
+
+    <!-- Hidden Printable Invoice -->
+    <div id="print-invoice-container" style="display: none;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <h2>MOLARIZE CLINIC</h2>
+            <p data-ar="فاتورة علاج" data-en="Treatment Invoice">Treatment Invoice</p>
+        </div>
+        <div style="margin-bottom: 2rem; display: flex; justify-content: space-between;">
+            <div>
+                <strong><span data-ar="اسم المريض:" data-en="Patient Name:">Patient Name:</span></strong> <span id="invoice-patient-name"></span><br>
+                <strong><span data-ar="التاريخ:" data-en="Date:">Date:</span></strong> <span id="invoice-date"></span>
+            </div>
+            <div>
+                <strong><span data-ar="نوع العلاج:" data-en="Treatment:" >Treatment:</span></strong> <span id="invoice-treatment"></span>
+            </div>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 2rem;">
+            <thead>
+                <tr style="border-bottom: 2px solid #000;">
+                    <th style="text-align: left; padding: 0.5rem;" data-ar="تاريخ الدفعة" data-en="Payment Date">Payment Date</th>
+                    <th style="text-align: right; padding: 0.5rem;" data-ar="المبلغ المدفوع" data-en="Amount Paid">Amount Paid</th>
+                    <th style="text-align: right; padding: 0.5rem;" data-ar="طريقة الدفع" data-en="Method">Method</th>
+                </tr>
+            </thead>
+            <tbody id="invoice-payments-body">
+            </tbody>
+        </table>
+        <div style="text-align: right; font-size: 1.1rem;">
+            <p><strong><span data-ar="إجمالي التكلفة:" data-en="Total Cost:">Total Cost:</span></strong> <span id="invoice-total"></span></p>
+            <p><strong><span data-ar="إجمالي المدفوع:" data-en="Total Paid:">Total Paid:</span></strong> <span id="invoice-paid"></span></p>
+            <p><strong><span data-ar="المبلغ المتبقي:" data-en="Remaining Balance:">Remaining Balance:</span></strong> <span id="invoice-remaining"></span></p>
+        </div>
+    </div>
+
 </body>
 </html>

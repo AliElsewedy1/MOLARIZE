@@ -79,6 +79,7 @@ async function initDashboard() {
     updateDashboardStats();
     initCalendar();
     initChart();
+    setupGlobalLedger();
 }
 
 // ---------------------------------------------------------
@@ -539,6 +540,51 @@ function initChart() {
             plugins: {
                 legend: { display: false }
             }
+        }
+    });
+}
+
+
+// --- Ledger Logic ---
+function setupGlobalLedger() {
+    const user = auth.currentUser;
+    if (!user) return;
+    const ledgerRef = collection(db, 'users', user.uid, 'payments');
+    onSnapshot(ledgerRef, (snapshot) => {
+        const tbody = document.getElementById('ledger-table-body');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+
+        let todayRev = 0;
+        let monthRev = 0;
+
+        const today = new Date();
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+
+        const sorted = snapshot.docs.map(d => d.data()).sort((a,b) => new Date(b.date) - new Date(a.date));
+
+        sorted.forEach(data => {
+            const amount = parseFloat(data.amount) || 0;
+            const dateIso = new Date(data.date).toISOString();
+
+            if (dateIso >= startOfDay) todayRev += amount;
+            if (dateIso >= startOfMonth) monthRev += amount;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>${data.date}</td>
+                    <td>${data.patientName}</td>
+                    <td>${data.treatmentName}</td>
+                    <td style="color: var(--status-completed); font-weight: bold;">${amount}</td>
+                    <td>${data.method}</td>
+                </tr>
+            `;
+        });
+
+        if (document.getElementById('ledger-today-revenue')) {
+            document.getElementById('ledger-today-revenue').innerText = todayRev;
+            document.getElementById('ledger-month-revenue').innerText = monthRev;
         }
     });
 }

@@ -432,16 +432,150 @@ function setupProfileTreatmentsListener(patientId) {
         tbody.innerHTML = '';
         snapshot.docs.forEach(doc => {
             const data = doc.data();
+            const tId = doc.id;
+            const total = parseFloat(data.cost) || 0;
+            const paid = parseFloat(data.paidAmount) || 0;
+            const rem = total - paid;
+
             tbody.innerHTML += `
                 <tr>
-                    <td>${data.type}</td>
-                    <td>${data.cost}</td>
+                    <td>${data.type || data.treatmentType}</td>
+                    <td>${total}</td>
+                    <td>${paid}</td>
+                    <td style="color: ${rem > 0 ? 'var(--status-error)' : 'var(--status-completed)'}">${rem}</td>
                     <td><span class="status-badge ${data.status === 'Completed' ? 'status-completed' : (data.status === 'In Progress' ? 'status-inprogress' : 'status-pending')}">${data.status}</span></td>
+                    <td>
+                        ${rem > 0 ? `<button class="btn-outline" onclick="window.openPaymentModal('${tId}', '${patientId}', '${data.patientName || ''}', '${data.type || data.treatmentType}')">Pay</button>` : ''}
+                        <button class="btn-outline" onclick="window.printInvoice('${tId}', '${patientId}')">Print</button>
+                    </td>
                 </tr>
             `;
         });
     });
 }
+
+// Payment Modal Logic
+window.openPaymentModal = function(tId, pId, pName, tName) {
+    document.getElementById('paymentForm').reset();
+    document.getElementById('paymentTreatmentId').value = tId;
+    document.getElementById('paymentPatientId').value = pId;
+    document.getElementById('paymentPatientName').value = pName;
+    document.getElementById('paymentTreatmentName').value = tName;
+
+    const paymentModal = document.getElementById('paymentModal');
+    paymentModal.classList.add('show');
+    history.pushState({ modal: 'payment' }, '', window.location.hash);
+};
+
+document.getElementById('cancelPaymentBtn').addEventListener('click', () => {
+    window.closeModalAndPopState(document.getElementById('paymentModal'));
+});
+
+document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const tId = document.getElementById('paymentTreatmentId').value;
+    const pId = document.getElementById('paymentPatientId').value;
+    const pName = document.getElementById('paymentPatientName').value || document.getElementById('profilePatientName').innerText;
+    const tName = document.getElementById('paymentTreatmentName').value;
+    const amount = parseFloat(document.getElementById('paymentAmount').value);
+    const method = document.getElementById('paymentMethod').value;
+    const date = document.getElementById('paymentDate').value;
+
+    try {
+        // 1. Add to global payments ledger
+        const paymentsRef = collection(db, 'users', user.uid, 'payments');
+        await addDoc(paymentsRef, {
+            treatmentId: tId,
+            patientId: pId,
+            patientName: pName,
+            treatmentName: tName,
+            amount: amount,
+            method: method,
+            date: date,
+            createdAt: new Date().toISOString()
+        });
+
+        // 2. Add to patient specific payments subcollection (for invoice)
+        const patientPaymentsRef = collection(db, 'users', user.uid, 'patients', pId, 'treatments', tId, 'payments');
+        await addDoc(patientPaymentsRef, {
+            amount: amount,
+            method: method,
+            date: date,
+            createdAt: new Date().toISOString()
+        });
+
+        // 3. Update paidAmount on treatment document
+        const tRef = doc(db, 'users', user.uid, 'patients', pId, 'treatments', tId);
+        const tDoc = await getDoc(tRef);
+        if (tDoc.exists()) {
+            const currentPaid = parseFloat(tDoc.data().paidAmount) || 0;
+            await updateDoc(tRef, { paidAmount: currentPaid + amount });
+        }
+
+        window.closeModalAndPopState(document.getElementById('paymentModal'));
+        alert('Payment added successfully');
+    } catch (error) {
+        console.error("Error saving payment", error);
+        alert("Error saving payment.");
+    }
+});
+
+// Print Invoice Logic
+window.printInvoice = async function(tId, pId) {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+        const tRef = doc(db, 'users', user.uid, 'patients', pId, 'treatments', tId);
+        const tDoc = await getDoc(tRef);
+        if (!tDoc.exists()) return;
+
+        const data = tDoc.data();
+        const total = parseFloat(data.cost) || 0;
+        const paid = parseFloat(data.paidAmount) || 0;
+        const rem = total - paid;
+
+        document.getElementById('invoice-patient-name').innerText = document.getElementById('profilePatientName').innerText;
+        document.getElementById('invoice-date').innerText = new Date().toLocaleDateString();
+        document.getElementById('invoice-treatment').innerText = data.type || data.treatmentType;
+        document.getElementById('invoice-total').innerText = total;
+        document.getElementById('invoice-paid').innerText = paid;
+        document.getElementById('invoice-remaining').innerText = rem;
+
+        // Load payments for this treatment
+        const paymentsRef = collection(db, 'users', user.uid, 'patients', pId, 'treatments', tId, 'payments');
+        const pSnap = await getDocs(paymentsRef);
+
+        const tbody = document.getElementById('invoice-payments-body');
+        tbody.innerHTML = '';
+
+        const sortedPayments = pSnap.docs.map(d => d.data()).sort((a,b) => new Date(a.date) - new Date(b.date));
+
+        sortedPayments.forEach(p => {
+            tbody.innerHTML += `
+                <tr>
+                    <td style="text-align: left; padding: 0.5rem;">${p.date}</td>
+                    <td style="text-align: right; padding: 0.5rem;">${p.amount}</td>
+                    <td style="text-align: right; padding: 0.5rem;">${p.method}</td>
+                </tr>
+            `;
+        });
+
+        if(sortedPayments.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">No payments found.</td></tr>';
+        }
+
+        window.print();
+
+    } catch (e) {
+        console.error("Error generating invoice", e);
+    }
+};
+
+
 
 document.getElementById('addProfileTreatmentBtn').addEventListener('click', () => {
     document.getElementById('treatmentPatientName').value = document.getElementById('profilePatientName').innerText;
