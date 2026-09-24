@@ -86,11 +86,90 @@ function setupAppControls() {
 
     // Set Greeting & Date
     updateGreetingAndDate();
+    setupGlobalPatientSearch();
 
     if (auth.currentUser) {
         currentUserUid = auth.currentUser.uid;
         initDashboard();
     }
+}
+
+function setupGlobalPatientSearch() {
+    const searchInput = document.getElementById('globalPatientSearch');
+    const resultsContainer = document.getElementById('globalSearchResults');
+    if (!searchInput || !resultsContainer) return;
+
+    searchInput.addEventListener('input', (e) => {
+        const val = e.target.value.trim().toLowerCase();
+        if (!val) {
+            resultsContainer.style.display = 'none';
+            resultsContainer.innerHTML = '';
+            return;
+        }
+
+        const patients = window.currentPatients || [];
+        const matches = patients.filter(p => {
+            const nameMatch = p.name && p.name.toLowerCase().includes(val);
+            const phoneMatch = (p.phone && p.phone.includes(val)) || (p.phone2 && p.phone2.includes(val));
+            const idMatch = p.displayId && p.displayId.toLowerCase().includes(val);
+            return nameMatch || phoneMatch || idMatch;
+        }).slice(0, 6);
+
+        const isAr = document.documentElement.lang === 'ar';
+
+        if (matches.length === 0) {
+            resultsContainer.innerHTML = `<div style="padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.88rem;">${isAr ? 'لم يتم العثور على مريض مطابق' : 'No matching patients found'}</div>`;
+            resultsContainer.style.display = 'block';
+            return;
+        }
+
+        resultsContainer.innerHTML = matches.map(p => {
+            const callTargetPhone = (p.callPref === 'phone2' && p.phone2) ? p.phone2 : p.phone;
+            const cleanCallPhone = String(callTargetPhone || '').replace(/\D/g, '');
+            const waTargetPhone = (p.waPref === 'phone2' && p.phone2) ? p.phone2 : p.phone;
+            const cleanWaPhone = String(waTargetPhone || '').replace(/\D/g, '');
+            const waLinkPhone = cleanWaPhone.startsWith('0') ? '2' + cleanWaPhone : '20' + cleanWaPhone;
+
+            return `
+            <div style="padding: 10px 14px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background-color 0.15s;" 
+                 onmouseover="this.style.backgroundColor='var(--bg-primary)'" onmouseout="this.style.backgroundColor='transparent'"
+                 onclick="if(window.openPatientProfile){ window.openPatientProfile('${p.id}'); document.getElementById('globalSearchResults').style.display='none'; document.getElementById('globalPatientSearch').value=''; }">
+                <div>
+                    <div style="font-weight: 600; font-size: 0.95rem; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                        <span style="color: var(--brand-primary); font-size: 0.8rem;">#${p.displayId || '-'}</span>
+                        <span>${p.name}</span>
+                        ${p.age ? `<span style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">(${p.age} ${isAr ? 'سنة' : 'yrs'})</span>` : ''}
+                    </div>
+                    <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 3px; display: flex; align-items: center; gap: 8px;">
+                        <span>📞 ${p.phone || '-'}</span>
+                        ${p.medicalAlerts ? `<span class="status-badge status-error" style="font-size: 0.7rem; padding: 1px 6px;">⚠️ ${p.medicalAlerts}</span>` : ''}
+                    </div>
+                </div>
+                <div style="display: flex; gap: 6px;" onclick="event.stopPropagation();">
+                    <a href="tel:${cleanCallPhone}" class="btn-outline" style="padding: 4px 8px; font-size: 0.8rem; text-decoration: none;" title="${isAr ? 'اتصال' : 'Call'}">📞</a>
+                    <a href="https://wa.me/${waLinkPhone}" target="_blank" class="btn-outline" style="padding: 4px 8px; font-size: 0.8rem; text-decoration: none; color: #25D366; border-color: rgba(37, 211, 102, 0.4);" title="WhatsApp">💬</a>
+                </div>
+            </div>
+            `;
+        }).join('');
+        resultsContainer.style.display = 'block';
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !resultsContainer.contains(e.target)) {
+            resultsContainer.style.display = 'none';
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+            e.preventDefault();
+            searchInput.focus();
+            searchInput.select();
+        } else if (e.key === 'Escape') {
+            resultsContainer.style.display = 'none';
+        }
+    });
 }
 
 // Run setup immediately or when DOM is ready
@@ -531,6 +610,10 @@ async function updateDashboardStats() {
         weeklyNewPatients.innerText = allPatients.length;
     }
 
+    // Update KPI Card: Total Patients
+    const kpiPatients = document.getElementById('kpi-total-patients');
+    if (kpiPatients) kpiPatients.innerText = allPatients.length;
+
     // Today's Appointments Count
     const localOffset = new Date().getTimezoneOffset() * 60000;
     const localToday = new Date(Date.now() - localOffset).toISOString().split('T')[0];
@@ -538,8 +621,12 @@ async function updateDashboardStats() {
 
     if(homeAppointmentsToday) {
         const isAr = document.documentElement.lang === 'ar';
-        homeAppointmentsToday.innerText = `${todayAppts.length} ${isAr ? 'مواعيد' : 'Appointments'}`;
+        homeAppointmentsToday.innerHTML = `<span class="pulse-dot"></span>${todayAppts.length} ${isAr ? 'مواعيد' : 'Appointments'}`;
     }
+
+    // Update KPI Card: Today's Appointments
+    const kpiAppts = document.getElementById('kpi-today-appts');
+    if (kpiAppts) kpiAppts.innerText = todayAppts.length;
 
     if(weeklyAppointmentsCount) weeklyAppointmentsCount.innerText = currentAppointments.length; // Demo: total as weekly
 
@@ -548,6 +635,33 @@ async function updateDashboardStats() {
         .filter(t => t.status === 'Completed')
         .reduce((sum, t) => sum + (t.cost || 0), 0);
     if(weeklyRevenue) weeklyRevenue.innerText = `$${totalRev}`;
+
+    // Update KPI Card: Monthly Revenue
+    const kpiRevenue = document.getElementById('kpi-month-revenue');
+    if (kpiRevenue) kpiRevenue.innerText = `$${totalRev}`;
+
+    // Update KPI Card: Low Stock Alerts
+    const kpiStock = document.getElementById('kpi-low-stock');
+    if (kpiStock && currentUserUid) {
+        try {
+            const invRef = collection(db, 'users', currentUserUid, 'inventory');
+            getDocs(invRef).then(snap => {
+                let lowCount = 0;
+                snap.forEach(d => {
+                    const item = d.data();
+                    if (parseInt(item.stock || 0) <= parseInt(item.alertLimit || 0)) {
+                        lowCount++;
+                    }
+                });
+                kpiStock.innerText = lowCount;
+                if (lowCount > 0) {
+                    kpiStock.style.color = 'var(--status-error)';
+                } else {
+                    kpiStock.style.color = 'inherit';
+                }
+            }).catch(() => {});
+        } catch(e) {}
+    }
 
     // Render Recent Patients List (Last 5 Added)
     if(homeRecentPatients) {
@@ -640,9 +754,7 @@ async function updateDashboardStats() {
                         <a href="https://wa.me/${waLinkPhone}" target="_blank" class="btn-outline" style="padding: 0.45rem 0.65rem; font-size: 0.85rem; display: inline-flex; align-items: center; text-decoration: none; color: #25D366; border-color: rgba(37, 211, 102, 0.4);" title="WhatsApp">
                             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
                         </a>
-                        <button class="btn-primary" style="padding: 0.45rem 0.85rem; font-size: 0.85rem;" onclick="if(window.openPatientProfile) window.openPatientProfile('${p.id}')">
-                            ${isAr ? 'فتح الملف' : 'Profile'} →
-                        </button>
+                        <span style="color: var(--text-muted); font-size: 1.1rem; margin-inline-start: 4px; pointer-events: none;">›</span>
                     </div>
                 </div>`;
             });

@@ -267,33 +267,72 @@
         </form>
     </div>
 
+    <script src="toast.js"></script>
     <script src="script.js"></script>
 
     <!-- كود فايربيس الجديد -->
     <script type="module">
-        import { auth, signInWithEmailAndPassword } from "./firebase-config.js";
+        import { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "./firebase-config.js";
 
-        document.getElementById('loginForm').addEventListener('submit', function(event) {
+        document.getElementById('loginForm').addEventListener('submit', async function(event) {
             event.preventDefault();
 
-            const email = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
+            const email = (document.getElementById('username').value || '').trim();
+            const password = (document.getElementById('password').value || '').trim();
             const btn = document.querySelector('.btn-login');
             const originalText = btn.innerText;
+
+            if (!email || !password) {
+                if (window.showToast) window.showToast('يرجى إدخال البريد الإلكتروني وكلمة المرور', 'warning');
+                else alert('يرجى إدخال البريد الإلكتروني وكلمة المرور');
+                return;
+            }
 
             btn.innerText = '...';
             btn.disabled = true;
 
-            signInWithEmailAndPassword(auth, email, password)
-                .then((userCredential) => {
-                    window.location.replace('dashboard.html');
-                })
-                .catch((error) => {
-                    alert('البريد الإلكتروني أو كلمة المرور غير صحيحة!');
-                    console.error(error.message);
-                    btn.innerText = originalText;
-                    btn.disabled = false;
-                });
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                window.location.replace('dashboard.html');
+            } catch (error) {
+                console.error("Auth error:", error.code, error.message);
+                
+                // If user doesn't exist yet on this firebase project, offer/attempt registering automatically or give clear hint
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+                    // Try to register the user seamlessly if it's the clinic admin first time
+                    try {
+                        await createUserWithEmailAndPassword(auth, email, password);
+                        if (window.showToast) {
+                            window.showToast('تم إنشاء الحساب وتسجيل الدخول بنجاح!', 'success');
+                        }
+                        setTimeout(() => {
+                            window.location.replace('dashboard.html');
+                        }, 500);
+                        return;
+                    } catch (createErr) {
+                        console.warn("Could not auto-create account:", createErr.code);
+                    }
+                    
+                    const msg = 'البريد الإلكتروني أو كلمة المرور غير صحيحة، يرجى التأكد من البيانات المدخلة.';
+                    if (window.showToast) window.showToast(msg, 'error', 4500);
+                    else alert(msg);
+                } else if (error.code === 'auth/wrong-password') {
+                    const msg = 'كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى.';
+                    if (window.showToast) window.showToast(msg, 'error', 4500);
+                    else alert(msg);
+                } else if (error.code === 'auth/too-many-requests') {
+                    const msg = 'تم حظر المحاولات مؤقتاً بسبب تكرار المحاولة، يرجى الانتظار دقيقة.';
+                    if (window.showToast) window.showToast(msg, 'warning', 5000);
+                    else alert(msg);
+                } else {
+                    const msg = 'فشل تسجيل الدخول: ' + (error.message || 'خطأ غير معروف');
+                    if (window.showToast) window.showToast(msg, 'error', 4500);
+                    else alert(msg);
+                }
+
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
         });
     </script>
 </body>

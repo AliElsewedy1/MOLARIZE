@@ -52,13 +52,28 @@
         <!-- Home Section -->
         <section id="dashboard-section" class="app-section home-section" style="display: block;">
 
-            <!-- Header (Welcome & Quick Actions) -->
-            <div class="home-header">
+            <!-- Header (Welcome, Global Search & Quick Actions) -->
+            <div class="home-header" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
                 <div class="welcome-text">
                     <h1 id="greetingMessage" data-ar="مرحباً، المشرف" data-en="Good evening, Admin">Good evening, Admin</h1>
                     <p id="currentDateDisplay" class="text-muted">Wednesday, September 23, 2026</p>
                 </div>
-                <div class="quick-actions">
+
+                <!-- Global Quick Search Bar -->
+                <div class="global-search-wrapper" style="position: relative; flex: 1; max-width: 420px; min-width: 260px;">
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <span style="position: absolute; left: 12px; font-size: 14px; opacity: 0.6; pointer-events: none;">🔍</span>
+                        <input type="text" id="globalPatientSearch" class="search-input" 
+                            placeholder="Search patient by name, phone or ID... (Ctrl+K)" 
+                            data-ar="ابحث عن مريض بالاسم، الهاتف، أو الرقم... (Ctrl+K)" 
+                            data-en="Search patient by name, phone or ID... (Ctrl+K)"
+                            style="padding-left: 36px; padding-right: 64px; border-radius: 8px; font-size: 0.88rem; width: 100%;">
+                        <kbd style="position: absolute; right: 10px; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-muted); font-family: monospace; pointer-events: none;">Ctrl K</kbd>
+                    </div>
+                    <div id="globalSearchResults" class="autocomplete-dropdown" style="display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 1000; max-height: 320px; overflow-y: auto; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);"></div>
+                </div>
+
+                <div class="quick-actions" style="display: flex; gap: 0.5rem;">
                     <button class="btn-outline" id="quickNewPatientBtn" onclick="if(window.openNewPatientModal) window.openNewPatientModal(); else document.getElementById('openModalBtn')?.click();" data-ar="مريض جديد" data-en="New patient">
                         👤 New patient
                     </button>
@@ -68,9 +83,51 @@
                 </div>
             </div>
 
-            <!-- Quick Stats Cards (Removed standalone Appointments Today) -->
-            <div class="home-grid stats-grid">
+            <!-- Quick Stats Cards (4 KPI Cards) -->
+            <div class="home-grid stats-grid" style="margin-bottom: 1.5rem;">
+                <div class="home-card" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onclick="document.querySelector('.sidebar-link[data-target=\'patients-section\']').click();">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <div class="stat-label" data-ar="إجمالي المرضى" data-en="Total Patients">Total Patients</div>
+                            <div class="stat-value" id="kpi-total-patients" style="font-size: 1.8rem; margin: 0.35rem 0 0.2rem;">0</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);" data-ar="سجلات نشطة بالعيادة" data-en="Active clinic records">Active clinic records</div>
+                        </div>
+                        <div style="font-size: 1.5rem; padding: 10px 14px; border-radius: 10px; background: rgba(56, 189, 248, 0.12); color: var(--brand-primary);">👥</div>
+                    </div>
+                </div>
 
+                <div class="home-card" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onclick="document.querySelector('.sidebar-link[data-target=\'schedule-section\']').click();">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <div class="stat-label" data-ar="مواعيد اليوم" data-en="Today's Appointments">Today's Appointments</div>
+                            <div class="stat-value" id="kpi-today-appts" style="font-size: 1.8rem; margin: 0.35rem 0 0.2rem;">0</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);" data-ar="مجدولة في جدول اليوم" data-en="Scheduled today">Scheduled today</div>
+                        </div>
+                        <div style="font-size: 1.5rem; padding: 10px 14px; border-radius: 10px; background: rgba(251, 191, 36, 0.12); color: var(--status-pending);">🕒</div>
+                    </div>
+                </div>
+
+                <div class="home-card" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onclick="document.querySelector('.sidebar-link[data-target=\'payments-section\']').click();">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <div class="stat-label" data-ar="إيرادات هذا الشهر" data-en="Monthly Revenue">Monthly Revenue</div>
+                            <div class="stat-value" id="kpi-month-revenue" style="font-size: 1.8rem; margin: 0.35rem 0 0.2rem; color: var(--status-completed);">$0</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);" data-ar="تحصيلات الشهر الحالي" data-en="Current month ledger">Current month ledger</div>
+                        </div>
+                        <div style="font-size: 1.5rem; padding: 10px 14px; border-radius: 10px; background: rgba(52, 211, 153, 0.12); color: var(--status-completed);">💰</div>
+                    </div>
+                </div>
+
+                <div class="home-card" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onclick="document.querySelector('.sidebar-link[data-target=\'inventory-section\']').click();">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <div class="stat-label" data-ar="نواقص المخزون" data-en="Low Stock Alerts">Low Stock Alerts</div>
+                            <div class="stat-value" id="kpi-low-stock" style="font-size: 1.8rem; margin: 0.35rem 0 0.2rem;">0</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);" data-ar="مواد بحاجة لإعادة الطلب" data-en="Items needing reorder">Items needing reorder</div>
+                        </div>
+                        <div style="font-size: 1.5rem; padding: 10px 14px; border-radius: 10px; background: rgba(248, 113, 113, 0.12); color: var(--status-error);">📦</div>
+                    </div>
+                </div>
             </div>
 
             <!-- Today's Schedule -->
@@ -311,7 +368,7 @@
                 <div>
                     <button class="btn-outline" id="backToPatientsBtn" data-ar="&larr; عودة للمرضى" data-en="&larr; Back to Patients">&larr; Back to Patients</button>
                 </div>
-                <div class="quick-actions">
+                <div class="quick-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                     <button class="btn-primary" onclick="window.openVisitModal()" data-ar="+ زيارة جديدة" data-en="+ New Visit">+ New Visit</button>
                     <button class="btn-primary" id="addProfileTreatmentBtn" data-ar="+ إضافة علاج" data-en="+ Add Treatment">+ Add Treatment</button>
                     <button class="btn-outline" id="addProfilePrescriptionBtn" data-ar="روشتة جديدة" data-en="Prescription">Prescription</button>
@@ -319,15 +376,21 @@
             </div>
 
             <!-- Glassmorphism Patient Info Card -->
-            <div class="patient-info-card glass-card" style="margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start;">
-                <div style="display: flex; gap: 1.5rem; align-items: center;">
-                    <div class="patient-avatar" style="width: 80px; height: 80px; background: var(--brand-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: #fff;">
+            <div class="patient-info-card glass-card" style="margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 1rem;">
+                <div style="display: flex; gap: 1rem; align-items: center; min-width: 0; flex: 1; max-width: 100%;">
+                    <div class="patient-avatar" style="width: 64px; height: 64px; background: var(--brand-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: #fff; flex-shrink: 0;">
                         👤
                     </div>
-                    <div>
-                        <div style="display: flex; align-items: center; gap: 1rem; margin: 0 0 0.5rem 0;">
-                            <h1 id="profilePatientName" style="margin: 0;">Patient Name</h1>
-                            <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.9rem; border: none; background: transparent; color: var(--brand-primary); cursor: pointer;" onclick="window.editPatient(currentProfilePatientId)" title="Edit Patient">✏️</button>
+                    <div style="min-width: 0; flex: 1; overflow: hidden;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin: 0 0 0.4rem 0; flex-wrap: nowrap; max-width: 100%;">
+                            <h1 id="profilePatientName" style="margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: clamp(1rem, 2.5vw, 1.35rem); font-weight: 600; line-height: 1.25;">Patient Name</h1>
+                            <button id="editPatientProfileBtn" class="btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.85rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--brand-primary); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; transition: all 0.2s;" onclick="if(window.editPatient && window.currentProfilePatientId) window.editPatient(window.currentProfilePatientId);" title="تعديل بيانات المريض / Edit Patient" data-ar-title="تعديل بيانات المريض" data-en-title="Edit Patient">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                                </svg>
+                                <span data-ar="تعديل" data-en="Edit">Edit</span>
+                            </button>
                         </div>
                         <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.9rem; color: var(--text-muted);">
                             <div><strong>ID:</strong> <span id="profilePatientId"></span></div>
@@ -335,13 +398,19 @@
                             <div><strong>Gender:</strong> <span id="profilePatientGender"></span></div>
                             <div><strong>Phone:</strong> <span id="profilePatientPhone"></span></div>
                         </div>
-                    </div>
-                </div>
-
-                <div style="display: flex; flex-direction: column; gap: 1rem; align-items: flex-end;">
-                    <div class="alert-box" id="profileMedicalAlertsBox" style="display: none; background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--status-error); padding: 0.5rem 1rem; border-radius: 4px;">
-                        <strong style="color: var(--status-error);" data-ar="⚠️ تحذير طبي:" data-en="⚠️ Medical Alert:">⚠️ Medical Alert:</strong>
-                        <span id="profileMedicalAlerts" style="color: var(--text-primary); margin-left: 0.5rem;"></span>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.6rem; align-items: center; flex-wrap: wrap;">
+                            <a id="profileCallLink" href="#" class="btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" title="Call">
+                                📞 <span data-ar="اتصال" data-en="Call">Call</span>
+                            </a>
+                            <a id="profileWaLink" href="#" target="_blank" class="btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; text-decoration: none; color: #25D366; border-color: rgba(37, 211, 102, 0.4); display: inline-flex; align-items: center; gap: 4px;" title="WhatsApp">
+                                💬 <span data-ar="واتساب" data-en="WhatsApp">WhatsApp</span>
+                            </a>
+                        </div>
+                        <!-- Compact Medical Alert under patient details -->
+                        <div class="alert-box profile-alert-compact" id="profileMedicalAlertsBox" style="display: none; margin-top: 0.6rem; background: rgba(239, 68, 68, 0.1); border-left: 3px solid var(--status-error); padding: 0.3rem 0.65rem; border-radius: 6px; font-size: 0.82rem; align-items: center; width: fit-content; max-width: 100%;">
+                            <strong style="color: var(--status-error); font-size: 0.82rem;" data-ar="⚠️ تنبيه طبي:" data-en="⚠️ Alert:">⚠️ تنبيه طبي:</strong>
+                            <span id="profileMedicalAlerts" style="color: var(--text-primary); margin-inline-start: 0.35rem; font-size: 0.82rem; font-weight: 500;"></span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -353,7 +422,10 @@
                     <span id="odontogramIcon">▼</span>
                 </button>
                 <div class="collapsible-content" id="odontogramContent" style="display: none; padding: 1rem; background: var(--bg-surface); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 8px 8px;">
-                    <div class="odontogram-container" style="display: flex; justify-content: center; margin-top: 1rem;">
+                    <div id="odontogramSelectedToothInfo" style="text-align: center; font-size: 0.9rem; color: var(--brand-primary); font-weight: 600; min-height: 24px; margin-bottom: 0.75rem;">
+                        <span data-ar="اضغط على أي سن لتحديد حالته" data-en="Click on any tooth to select and mark condition">Click on any tooth to select and mark condition</span>
+                    </div>
+                    <div class="odontogram-container" style="display: flex; justify-content: center; margin-top: 0.5rem;">
                         <div style="display: flex; gap: 0.2rem; flex-wrap: wrap; justify-content: center;" id="upper-teeth"></div>
                     </div>
                     <div class="odontogram-container" style="display: flex; justify-content: center; margin-top: 1rem; margin-bottom: 2rem;">
@@ -421,7 +493,7 @@
     <!-- Modal لإضافة مريض جديد -->
     <div id="patientModal" class="modal">
         <div class="modal-content">
-            <h3 data-ar="إضافة مريض جديد" data-en="Add New Patient">Add New Patient</h3>
+            <h3 id="patientModalTitle" data-ar="إضافة مريض جديد" data-en="Add New Patient">Add New Patient</h3>
             <form id="patientForm">
                 <input type="hidden" id="patientId">
                 <div class="input-group">
@@ -659,6 +731,7 @@
         </div>
     </div>
 
+    <script src="toast.js"></script>
     <script src="script.js"></script>
     <script type="module" src="firebase-app-data.js"></script>
     <script type="module" src="firebase-patients.js"></script>
@@ -684,41 +757,6 @@
                     <button type="submit" class="btn-primary" id="saveVisitBtn" data-ar="حفظ الزيارة" data-en="Save Visit">Save Visit</button>
                 </div>
             </form>
-        </div>
-    </div>
-
-
-
-    <!-- Hidden Printable Invoice -->
-    <div id="print-invoice-container" style="display: none;">
-        <div style="text-align: center; margin-bottom: 2rem;">
-            <h2>MOLARIZE CLINIC</h2>
-            <p data-ar="فاتورة علاج" data-en="Treatment Invoice">Treatment Invoice</p>
-        </div>
-        <div style="margin-bottom: 2rem; display: flex; justify-content: space-between;">
-            <div>
-                <strong><span data-ar="اسم المريض:" data-en="Patient Name:">Patient Name:</span></strong> <span id="invoice-patient-name"></span><br>
-                <strong><span data-ar="التاريخ:" data-en="Date:">Date:</span></strong> <span id="invoice-date"></span>
-            </div>
-            <div>
-                <strong><span data-ar="نوع العلاج:" data-en="Treatment:" >Treatment:</span></strong> <span id="invoice-treatment"></span>
-            </div>
-        </div>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 2rem;">
-            <thead>
-                <tr style="border-bottom: 2px solid #000;">
-                    <th style="text-align: left; padding: 0.5rem;" data-ar="تاريخ الدفعة" data-en="Payment Date">Payment Date</th>
-                    <th style="text-align: right; padding: 0.5rem;" data-ar="المبلغ المدفوع" data-en="Amount Paid">Amount Paid</th>
-                    <th style="text-align: right; padding: 0.5rem;" data-ar="طريقة الدفع" data-en="Method">Method</th>
-                </tr>
-            </thead>
-            <tbody id="invoice-payments-body">
-            </tbody>
-        </table>
-        <div style="text-align: right; font-size: 1.1rem;">
-            <p><strong><span data-ar="إجمالي التكلفة:" data-en="Total Cost:">Total Cost:</span></strong> <span id="invoice-total"></span></p>
-            <p><strong><span data-ar="إجمالي المدفوع:" data-en="Total Paid:">Total Paid:</span></strong> <span id="invoice-paid"></span></p>
-            <p><strong><span data-ar="المبلغ المتبقي:" data-en="Remaining Balance:">Remaining Balance:</span></strong> <span id="invoice-remaining"></span></p>
         </div>
     </div>
 

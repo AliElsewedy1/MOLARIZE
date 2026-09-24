@@ -15,6 +15,19 @@ window.openNewPatientModal = function() {
     if (pForm) pForm.reset();
     const pId = document.getElementById('patientId');
     if (pId) pId.value = '';
+    const modalTitle = document.getElementById('patientModalTitle');
+    const isAr = document.documentElement.lang === 'ar';
+    if (modalTitle) {
+        modalTitle.innerText = isAr ? 'إضافة مريض جديد' : 'Add New Patient';
+        modalTitle.setAttribute('data-ar', 'إضافة مريض جديد');
+        modalTitle.setAttribute('data-en', 'Add New Patient');
+    }
+    const submitBtn = pForm ? pForm.querySelector('button[type="submit"]') : null;
+    if (submitBtn) {
+        submitBtn.innerText = isAr ? 'حفظ المريض' : 'Save Patient';
+        submitBtn.setAttribute('data-ar', 'حفظ المريض');
+        submitBtn.setAttribute('data-en', 'Save Patient');
+    }
     document.querySelectorAll('.alert-checkbox').forEach(cb => cb.checked = false);
     if (pModal) {
         pModal.classList.add('show');
@@ -128,10 +141,10 @@ function renderPatients(patientsToRender = currentPatients) {
 
     row.style.cursor = 'pointer';
     row.innerHTML = `
-      <td onclick="window.openPatientProfile('${patient.id}')">${displayId}</td>
-      <td onclick="window.openPatientProfile('${patient.id}')" style="font-weight: 500; color: var(--text-primary);">${patient.name || 'Unknown'}</td>
+      <td onclick="window.openPatientProfile('${patient.id}')" style="cursor: pointer;">${displayId}</td>
+      <td onclick="window.openPatientProfile('${patient.id}')" style="font-weight: 600; color: var(--brand-primary); cursor: pointer; text-decoration: underline; text-decoration-color: transparent; transition: text-decoration-color 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;" onmouseover="this.style.textDecorationColor='var(--brand-primary)'" onmouseout="this.style.textDecorationColor='transparent'">${patient.name || 'Unknown'}</td>
       <td>
-        <span onclick="window.openPatientProfile('${patient.id}')">${displayPhone}</span>
+        <span onclick="window.openPatientProfile('${patient.id}')" style="white-space: nowrap; cursor: pointer;">${displayPhone}</span>
         <a href="tel:${cleanCallPhone}" style="color:var(--brand-primary); text-decoration:none; margin-left:0.5rem; display:inline-flex; align-items:center;" title="Call">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
         </a>
@@ -141,8 +154,10 @@ function renderPatients(patientsToRender = currentPatients) {
       </td>
       <td onclick="window.openPatientProfile('${patient.id}')">${patient.lastVisit || '-'}</td>
       <td>
-        <button class="btn-action btn-edit" onclick="window.editPatient('${patient.id}')">Edit</button>
-        <button class="btn-action btn-delete" onclick="window.deletePatient('${patient.id}')">Delete</button>
+        <button class="btn-action btn-edit" onclick="window.editPatient('${patient.id}')" style="display:inline-flex; align-items:center; gap:3px;" title="تعديل بيانات المريض / Edit">
+            ⚙️ <span data-ar="تعديل" data-en="Edit">Edit</span>
+        </button>
+        <button class="btn-action btn-delete" onclick="window.deletePatient('${patient.id}')" title="حذف / Delete">Delete</button>
       </td>
     `;
     tbody.appendChild(row);
@@ -251,6 +266,7 @@ if (patientForm) {
             if (idField) {
                 // Edit existing in Firestore
                 const patientRef = doc(db, "users", currentUserUid, "patients", idField);
+                const selectedAlerts = Array.from(document.querySelectorAll('.alert-checkbox:checked')).map(cb => cb.value).join(', ');
                 await updateDoc(patientRef, {
                     name: name,
                     phone: phone,
@@ -260,7 +276,9 @@ if (patientForm) {
                     age: age,
                     notes: notes,
                     gender: gender,
-                    lastVisit: lastVisit
+                    lastVisit: lastVisit,
+                    medicalAlerts: selectedAlerts,
+                    updatedAt: new Date().toISOString()
                 });
             } else {
                 // Add new to Firestore
@@ -300,16 +318,33 @@ if (patientForm) {
             // Reload and render
             await loadPatients();
 
+            // If the user was viewing this patient's profile, update the profile view immediately!
+            if (currentProfilePatientId === idField && typeof window.openPatientProfile === 'function') {
+                window.openPatientProfile(idField);
+            }
+
             // Also update home dashboard stats if function exists
             if (typeof window.updateDashboardStats === 'function') {
                 window.updateDashboardStats();
+            }
+
+            const isAr = document.documentElement.lang === 'ar';
+            if (window.showToast) {
+                window.showToast(idField ? 
+                    (isAr ? 'تم حفظ تعديلات المريض بنجاح' : 'Patient details updated successfully!') : 
+                    (isAr ? 'تمت إضافة المريض بنجاح' : 'Patient added successfully!'), 'success');
             }
 
             if(window.closeModalAndPopState) window.closeModalAndPopState(patientModal);
             else patientModal.classList.remove('show');
         } catch (e) {
             console.error("Error saving patient: ", e);
-            alert("Error saving patient data. Please try again.");
+            const isAr = document.documentElement.lang === 'ar';
+            if (window.showToast) {
+                window.showToast(isAr ? 'حدث خطأ أثناء حفظ بيانات المريض' : 'Error saving patient data. Please try again.', 'error');
+            } else {
+                alert("Error saving patient data. Please try again.");
+            }
         } finally {
             submitBtn.innerText = originalText;
             submitBtn.disabled = false;
@@ -329,6 +364,21 @@ window.editPatient = function(id) {
         document.getElementById('patientAge').value = patient.age || '';
         document.getElementById('patientNotes').value = patient.notes || '';
 
+        const modalTitle = document.getElementById('patientModalTitle');
+        const isAr = document.documentElement.lang === 'ar';
+        if (modalTitle) {
+            modalTitle.innerText = isAr ? 'تعديل بيانات المريض' : 'Edit Patient Details';
+            modalTitle.setAttribute('data-ar', 'تعديل بيانات المريض');
+            modalTitle.setAttribute('data-en', 'Edit Patient Details');
+        }
+
+        const submitBtn = patientForm.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.innerText = isAr ? 'حفظ التعديلات' : 'Save Changes';
+            submitBtn.setAttribute('data-ar', 'حفظ التعديلات');
+            submitBtn.setAttribute('data-en', 'Save Changes');
+        }
+
         if (patient.callPref) {
             document.getElementById('callPref').value = patient.callPref;
         } else {
@@ -344,7 +394,7 @@ window.editPatient = function(id) {
         if (patient.gender) {
             document.getElementById('patientGender').value = patient.gender;
         }
-        document.getElementById('lastVisit').value = patient.lastVisit;
+        document.getElementById('lastVisit').value = patient.lastVisit || '';
 
         document.querySelectorAll('.alert-checkbox').forEach(cb => cb.checked = false);
         if (patient.medicalAlerts) {
@@ -392,10 +442,12 @@ onAuthStateChanged(auth, (user) => {
 // --- PATIENT PROFILE LOGIC ---
 
 let currentProfilePatientId = null;
+window.currentProfilePatientId = null;
 
 // Expose globally for onclick
 window.openPatientProfile = function(patientId) {
     currentProfilePatientId = patientId;
+    window.currentProfilePatientId = patientId;
     const patient = currentPatients.find(p => p.id === patientId);
     if (!patient) return;
 
@@ -416,6 +468,24 @@ window.openPatientProfile = function(patientId) {
         alertsBox.style.display = 'none';
     }
 
+    // Direct Call & WhatsApp links on profile card
+    const callLink = document.getElementById('profileCallLink');
+    const waLink = document.getElementById('profileWaLink');
+    const callPhone = (patient.callPref === 'phone2' && patient.phone2) ? patient.phone2 : patient.phone;
+    const cleanCall = String(callPhone || '').replace(/\D/g, '');
+    const waPhone = (patient.waPref === 'phone2' && patient.phone2) ? patient.phone2 : patient.phone;
+    const cleanWa = String(waPhone || '').replace(/\D/g, '');
+    const fullWa = cleanWa.startsWith('0') ? '2' + cleanWa : '20' + cleanWa;
+
+    if (callLink) callLink.href = cleanCall ? `tel:${cleanCall}` : '#';
+    if (waLink) {
+        const isAr = document.documentElement.lang === 'ar';
+        const defaultMsg = isAr ? 
+            `مرحباً ${patient.name}، معك عيادة الأسنان بخصوص موعدكم القادم.` : 
+            `Hello ${patient.name}, this is your dental clinic regarding your upcoming appointment.`;
+        waLink.href = cleanWa ? `https://wa.me/${fullWa}?text=${encodeURIComponent(defaultMsg)}` : '#';
+    }
+
     // Show Section
     document.querySelectorAll('.app-section').forEach(sec => sec.style.display = 'none');
     document.getElementById('patient-profile-section').style.display = 'block';
@@ -432,9 +502,40 @@ window.openPatientProfile = function(patientId) {
     loadPatientTimeline(patientId);
 };
 
+window.printPatientSummary = function() {
+    window.print();
+};
+
 document.getElementById('backToPatientsBtn').addEventListener('click', () => {
     document.querySelector('.sidebar-link[data-target="patients-section"]').click();
 });
+
+// FDI Tooth Names Mapping
+const toothNames = {
+    1: { en: 'Central Incisor', ar: 'قاطع مركزي' },
+    2: { en: 'Lateral Incisor', ar: 'قاطع جانبي' },
+    3: { en: 'Canine', ar: 'ناب' },
+    4: { en: 'First Premolar', ar: 'ضاحك أول' },
+    5: { en: 'Second Premolar', ar: 'ضاحك ثانٍ' },
+    6: { en: 'First Molar', ar: 'ضرس أول' },
+    7: { en: 'Second Molar', ar: 'ضرس ثانٍ' },
+    8: { en: 'Third Molar (Wisdom)', ar: 'ضرس العقل' }
+};
+const quadNames = {
+    1: { en: 'Upper Right', ar: 'العلوي الأيمن' },
+    2: { en: 'Upper Left', ar: 'العلوي الأيسر' },
+    3: { en: 'Lower Left', ar: 'السفلي الأيسر' },
+    4: { en: 'Lower Right', ar: 'السفلي الأيمن' }
+};
+
+function getToothDescription(num) {
+    const quad = Math.floor(num / 10);
+    const pos = num % 10;
+    const isAr = document.documentElement.lang === 'ar';
+    const q = quadNames[quad] ? (isAr ? quadNames[quad].ar : quadNames[quad].en) : '';
+    const t = toothNames[pos] ? (isAr ? toothNames[pos].ar : toothNames[pos].en) : '';
+    return isAr ? `${t} (${q}) - رقم ${num}` : `Tooth #${num}: ${q} ${t}`;
+}
 
 // --- Odontogram Logic ---
 const toothBoxes = document.querySelectorAll('.tooth-box');
@@ -444,6 +545,12 @@ const saveOdontogramBtn = document.getElementById('saveOdontogramBtn');
 document.addEventListener('click', (e) => {
     if (e.target.classList.contains('tooth-box')) {
         const condition = document.querySelector('input[name="toothCondition"]:checked').value;
+        const toothNum = parseInt(e.target.getAttribute('data-tooth'));
+
+        // Trigger tactile micro-bounce animation
+        e.target.classList.remove('tooth-bounce');
+        void e.target.offsetWidth;
+        e.target.classList.add('tooth-bounce');
 
         // Remove existing condition classes
         e.target.classList.remove('cond-decay', 'cond-filled', 'cond-missing');
@@ -452,6 +559,18 @@ document.addEventListener('click', (e) => {
         if (condition !== 'normal') {
             e.target.classList.add('cond-' + condition);
             e.target.setAttribute('data-condition', condition);
+        }
+
+        const infoEl = document.getElementById('odontogramSelectedToothInfo');
+        if (infoEl && toothNum) {
+            const isAr = document.documentElement.lang === 'ar';
+            const condMap = {
+                'normal': isAr ? 'سليم' : 'Normal',
+                'decay': isAr ? 'تسوس' : 'Decay',
+                'filled': isAr ? 'حشو' : 'Filled',
+                'missing': isAr ? 'مخلوع' : 'Missing'
+            };
+            infoEl.innerHTML = `<span>${getToothDescription(toothNum)} &bull; <strong>${condMap[condition] || condition}</strong></span>`;
         }
     }
 });
@@ -498,14 +617,22 @@ saveOdontogramBtn.addEventListener('click', async () => {
     });
 
     try {
-        // Use setDoc to create or overwrite the odontogram doc
-
+        const isAr = document.documentElement.lang === 'ar';
         const docRef = doc(db, 'users', user.uid, 'patients', currentProfilePatientId, 'records', 'odontogram');
         await setDoc(docRef, { teeth: teethData, updatedAt: new Date().toISOString() });
-        alert("Odontogram saved successfully!");
+        if (window.showToast) {
+            window.showToast(isAr ? 'تم حفظ مخطط الأسنان بنجاح' : 'Odontogram saved successfully!', 'success');
+        } else {
+            alert("Odontogram saved successfully!");
+        }
     } catch (e) {
         console.error("Error saving odontogram", e);
-        alert("Error saving.");
+        const isAr = document.documentElement.lang === 'ar';
+        if (window.showToast) {
+            window.showToast(isAr ? 'حدث خطأ أثناء حفظ مخطط الأسنان' : 'Error saving odontogram', 'error');
+        } else {
+            alert("Error saving.");
+        }
     }
 });
 
@@ -710,7 +837,6 @@ function renderTimeline(filter = 'all') {
                 </div>
                 <div>
                     ${rem > 0 ? `<button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.openPaymentModal('${event.id}', '${currentProfilePatientId}', '${document.getElementById('profilePatientName').innerText}', '${typeStr}')">Pay Now</button>` : ''}
-                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.printInvoice('${event.id}', '${currentProfilePatientId}')">Print Invoice</button>
                     <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.editTreatment('${event.id}')">Edit</button>
                     <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; color: var(--status-error); border-color: var(--status-error);" onclick="window.deleteTreatment('${event.id}')">Delete</button>
                 </div>
