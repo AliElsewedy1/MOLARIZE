@@ -4,7 +4,6 @@ const patientModal = document.getElementById('patientModal');
 const openModalBtn = document.getElementById('openModalBtn');
 const cancelBtn = document.getElementById('cancelBtn');
 const patientForm = document.getElementById('patientForm');
-const patientsTableBody = document.getElementById('patients-table-body');
 
 let currentPatients = [];
 let currentUserUid = null;
@@ -39,80 +38,98 @@ if (patientModal) {
 }
 
 // Load patients from Firestore
+// Load patients from Firestore
 async function loadPatients() {
-    if (!currentUserUid) return;
-    try {
-        const patientsRef = collection(db, "users", currentUserUid, "patients");
-        const querySnapshot = await getDocs(patientsRef);
-        currentPatients = [];
-        querySnapshot.forEach((d) => {
-            currentPatients.push({ id: d.id, ...d.data() });
-        });
+  if (!currentUserUid) {
+      const user = auth.currentUser;
+      if (user) currentUserUid = user.uid;
+      else return;
+  }
 
-        // Initialize displayId if not present for searching
-        currentPatients = currentPatients.map(p => ({
-            ...p,
-            displayId: p.displayId || 'P' + p.id.substring(0, 5).toUpperCase()
-        }));
+  try {
+    const patientsRef = collection(db, "users", currentUserUid, "patients");
+    const querySnapshot = await getDocs(patientsRef);
+    let fetchedPatients = [];
 
-        window.currentPatients = currentPatients;
-        renderPatients(currentPatients);
-    } catch (e) {
-        console.error("Error loading patients: ", e);
-    }
+    querySnapshot.forEach((d) => {
+      fetchedPatients.push({ id: d.id, ...d.data() });
+    });
+
+    // Initialize displayId if not present for searching
+    fetchedPatients = fetchedPatients.map(p => ({
+      ...p,
+      displayId: p.displayId || 'P' + p.id.substring(0, 5).toUpperCase()
+    }));
+
+    currentPatients = fetchedPatients;
+    window.currentPatients = currentPatients;
+
+    renderPatients(currentPatients);
+  } catch (e) {
+    console.error("Error loading patients: ", e);
+  }
 }
+window.loadPatients = loadPatients;
 
 // Render patients table
 function renderPatients(patientsToRender = currentPatients) {
-    if (!patientsTableBody) return;
+  const tbody = document.getElementById('patients-table-body');
+  if (!tbody) {
+      console.warn("Table body not found!");
+      return;
+  }
 
-    patientsTableBody.innerHTML = '';
+  tbody.innerHTML = '';
 
-    // Sort from newest to oldest based on createdAt, fallback to numeric displayId
-    patientsToRender.sort((a, b) => {
-        if (a.createdAt && b.createdAt) {
-            return new Date(b.createdAt) - new Date(a.createdAt);
-        }
-        // Fallback: parse numbers from displayId (e.g. "P123" -> 123)
-        const aId = parseInt(String(a.displayId).replace(/\D/g, '')) || 0;
-        const bId = parseInt(String(b.displayId).replace(/\D/g, '')) || 0;
-        return bId - aId;
-    });
+  const sortedPatients = [...patientsToRender];
 
-    patientsToRender.forEach(patient => {
-        const row = document.createElement('tr');
-        const displayId = patient.displayId;
+  // Sort from newest to oldest based on createdAt, fallback to numeric displayId
+  sortedPatients.sort((a, b) => {
+    if (a.createdAt && b.createdAt) {
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    }
+    const aId = parseInt(String(a.displayId).replace(/\D/g, '')) || 0;
+    const bId = parseInt(String(b.displayId).replace(/\D/g, '')) || 0;
+    return bId - aId;
+  });
 
-        // Setup Call Phone
-        const callTargetPhone = (patient.callPref === 'phone2' && patient.phone2) ? patient.phone2 : patient.phone;
-        const cleanCallPhone = (callTargetPhone || '').replace(/\D/g, '');
+  sortedPatients.forEach(patient => {
+    const row = document.createElement('tr');
+    const displayId = patient.displayId;
 
-        // Setup WhatsApp Phone
-        const waTargetPhone = (patient.waPref === 'phone2' && patient.phone2) ? patient.phone2 : patient.phone;
-        const cleanWaPhone = (waTargetPhone || '').replace(/\D/g, '');
-        const waLinkPhone = cleanWaPhone.startsWith('0') ? '2' + cleanWaPhone : '20' + cleanWaPhone;
+    const callTargetPhone = (patient.callPref === 'phone2' && patient.phone2) ? patient.phone2 : patient.phone;
+    const cleanCallPhone = String(callTargetPhone || '').replace(/\D/g, '');
 
-        let displayPhone = patient.phone;
-        if (patient.phone2) displayPhone += ` / ${patient.phone2}`;
+    const waTargetPhone = (patient.waPref === 'phone2' && patient.phone2) ? patient.phone2 : patient.phone;
+    const cleanWaPhone = String(waTargetPhone || '').replace(/\D/g, '');
+    const waLinkPhone = cleanWaPhone.startsWith('0') ? '2' + cleanWaPhone : '20' + cleanWaPhone;
 
-        row.style.cursor = 'pointer';
-        row.innerHTML = `
-            <td onclick="window.openPatientProfile('${patient.id}')">${displayId}</td>
-            <td onclick="window.openPatientProfile('${patient.id}')" style="font-weight: 500; color: var(--text-primary);">${patient.name}</td>
-            <td>
-                <span onclick="window.openPatientProfile('${patient.id}')">${displayPhone}</span>
-                <a href="tel:${cleanCallPhone}" style="color:var(--brand-primary); text-decoration:none; margin-left:0.5rem; display:inline-flex; align-items:center;" title="Call"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg></a>
-                <a href="https://wa.me/${waLinkPhone}" target="_blank" style="color:#25D366; text-decoration:none; margin-left:0.5rem; display:inline-flex; align-items:center;" title="WhatsApp"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg></a>
-            </td>
-            <td onclick="window.openPatientProfile('${patient.id}')">${patient.lastVisit}</td>
-            <td>
-                <button class="btn-action btn-edit" onclick="window.editPatient('${patient.id}')">Edit</button>
-                <button class="btn-action btn-delete" onclick="window.deletePatient('${patient.id}')">Delete</button>
-            </td>
-        `;
-        patientsTableBody.appendChild(row);
-    });
+    let displayPhone = patient.phone || '-';
+    if (patient.phone2) displayPhone += ` / ${patient.phone2}`;
+
+    row.style.cursor = 'pointer';
+    row.innerHTML = `
+      <td onclick="window.openPatientProfile('${patient.id}')">${displayId}</td>
+      <td onclick="window.openPatientProfile('${patient.id}')" style="font-weight: 500; color: var(--text-primary);">${patient.name || 'Unknown'}</td>
+      <td>
+        <span onclick="window.openPatientProfile('${patient.id}')">${displayPhone}</span>
+        <a href="tel:${cleanCallPhone}" style="color:var(--brand-primary); text-decoration:none; margin-left:0.5rem; display:inline-flex; align-items:center;" title="Call">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+        </a>
+        <a href="https://wa.me/${waLinkPhone}" target="_blank" style="color:#25D366; text-decoration:none; margin-left:0.5rem; display:inline-flex; align-items:center;" title="WhatsApp">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+        </a>
+      </td>
+      <td onclick="window.openPatientProfile('${patient.id}')">${patient.lastVisit || '-'}</td>
+      <td>
+        <button class="btn-action btn-edit" onclick="window.editPatient('${patient.id}')">Edit</button>
+        <button class="btn-action btn-delete" onclick="window.deletePatient('${patient.id}')">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
 }
+window.renderPatients = renderPatients;
 
 // Search Logic
 const patientSearchInput = document.getElementById('patientSearchInput');
@@ -473,10 +490,6 @@ saveOdontogramBtn.addEventListener('click', async () => {
     }
 });
 
-
-    });
-}
-
 const prescriptionModal = document.getElementById('prescriptionModal');
 document.getElementById('addProfilePrescriptionBtn').addEventListener('click', () => {
     document.getElementById('prescriptionForm').reset();
@@ -678,10 +691,6 @@ function renderTimeline(filter = 'all') {
             title = 'Prescription';
             details = `
                 <p style="white-space: pre-wrap;"><strong>Medications:</strong><br>${escapeHtml(event.data.medications)}</p>
-            `;
-        }</span></p>
-                <p><strong>Method:</strong> ${event.data.method}</p>
-                <p><strong>For Treatment:</strong> ${event.data.treatmentName}</p>
             `;
         }
 
