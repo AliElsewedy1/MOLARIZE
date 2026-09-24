@@ -33,6 +33,7 @@
         <a href="#" class="sidebar-link" data-target="patients-section" data-ar="إدارة المرضى" data-en="Patient Management">Patient Management</a>
         <a href="#" class="sidebar-link" data-target="schedule-section" data-ar="المواعيد" data-en="Appointments">Appointments</a>
         <a href="#" class="sidebar-link" data-target="payments-section" data-ar="المدفوعات" data-en="Payments">Payments</a>
+        <a href="#" class="sidebar-link" data-target="inventory-section" data-ar="إدارة المخزون" data-en="Inventory">Inventory</a>
         <a href="#" class="sidebar-link" data-target="settings-section" data-ar="الإعدادات" data-en="Settings">Settings</a>
 
         <div class="controls">
@@ -231,6 +232,141 @@
             </div>
         </section>
 
+
+        <!-- Inventory Section -->
+        <section id="inventory-section" class="app-section" style="display: none;">
+            <div class="table-header" style="margin-top:0;">
+                <h1 data-ar="إدارة المخزون" data-en="Inventory Management">Inventory Management</h1>
+                <button class="btn-primary" id="openInventoryModalBtn" data-ar="+ إضافة مادة" data-en="+ Add Item">+ Add Item</button>
+            </div>
+            <p data-ar="تتبع كميات المواد والأدوات الطبية وتنبيهات النواقص." data-en="Track medical supplies, materials, and low-stock alerts.">Track medical supplies, materials, and low-stock alerts.</p>
+
+            <div class="search-container" style="margin-top: 1.5rem;">
+                <input type="text" id="inventorySearchInput" class="search-input" data-ar="بحث باسم المادة..." data-en="Search item name..." placeholder="Search item name...">
+            </div>
+
+            <div class="table-container" style="margin-top: 1rem;">
+                <div class="table-header">
+                    <h3 data-ar="قائمة المخزون" data-en="Inventory List">Inventory List</h3>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-ar="اسم المادة" data-en="Item Name">Item Name</th>
+                            <th data-ar="الفئة" data-en="Category">Category</th>
+                            <th data-ar="الكمية المتاحة" data-en="Stock">Stock</th>
+                            <th data-ar="حد التنبيه" data-en="Alert Limit">Alert Limit</th>
+                            <th data-ar="الإجراءات" data-en="Actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventory-table-body">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+
+        <!-- Patient Profile Section -->
+        <section id="patient-profile-section" class="app-section" style="display: none;">
+            <div class="table-header" style="margin-top:0;">
+                <div>
+                    <button class="btn-outline" id="backToPatientsBtn" data-ar="&larr; عودة للمرضى" data-en="&larr; Back to Patients">&larr; Back to Patients</button>
+                    <h1 id="profilePatientName" style="display: inline-block; margin-left: 1rem;">Patient Name</h1>
+                </div>
+            </div>
+
+            <div class="patient-info-card" style="background: var(--bg-surface); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid var(--border-color); display: flex; gap: 2rem; flex-wrap: wrap;">
+                <div><strong><span data-ar="رقم الملف:" data-en="ID:">ID:</span></strong> <span id="profilePatientId"></span></div>
+                <div><strong><span data-ar="العمر:" data-en="Age:">Age:</span></strong> <span id="profilePatientAge"></span></div>
+                <div><strong><span data-ar="النوع:" data-en="Gender:">Gender:</span></strong> <span id="profilePatientGender"></span></div>
+                <div><strong><span data-ar="الهاتف:" data-en="Phone:">Phone:</span></strong> <span id="profilePatientPhone"></span></div>
+            </div>
+
+            <!-- Profile Tabs -->
+            <div class="profile-tabs" style="display: flex; gap: 1rem; border-bottom: 2px solid var(--border-color); margin-bottom: 1.5rem;">
+                <button class="tab-btn active" data-tab="tab-odontogram" style="background: none; border: none; padding: 0.5rem 1rem; color: var(--text-primary); cursor: pointer; border-bottom: 3px solid transparent;" data-ar="مخطط الأسنان" data-en="Odontogram">Odontogram</button>
+                <button class="tab-btn" data-tab="tab-treatments" style="background: none; border: none; padding: 0.5rem 1rem; color: var(--text-primary); cursor: pointer; border-bottom: 3px solid transparent;" data-ar="خطط العلاج" data-en="Treatments">Treatments</button>
+                <button class="tab-btn" data-tab="tab-prescriptions" style="background: none; border: none; padding: 0.5rem 1rem; color: var(--text-primary); cursor: pointer; border-bottom: 3px solid transparent;" data-ar="الروشتات" data-en="Prescriptions">Prescriptions</button>
+            </div>
+
+            <div class="tab-content" id="tab-odontogram" style="display: block;">
+                <h3 data-ar="مخطط الأسنان" data-en="Interactive Odontogram">Interactive Odontogram</h3>
+                <div class="odontogram-container" style="display: flex; justify-content: center; margin-top: 2rem;">
+                    <!-- Upper Teeth -->
+                    <div style="display: flex; gap: 0.2rem; flex-wrap: wrap; justify-content: center;" id="upper-teeth">
+                        <!-- Teeth 18 to 28 -->
+                    </div>
+                </div>
+                <div class="odontogram-container" style="display: flex; justify-content: center; margin-top: 1rem; margin-bottom: 2rem;">
+                    <!-- Lower Teeth -->
+                    <div style="display: flex; gap: 0.2rem; flex-wrap: wrap; justify-content: center;" id="lower-teeth">
+                         <!-- Teeth 48 to 38 -->
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: center; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="radio" name="toothCondition" id="cond-normal" value="normal" checked>
+                        <label for="cond-normal" data-ar="سليم" data-en="Normal">Normal</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="radio" name="toothCondition" id="cond-decay" value="decay">
+                        <label for="cond-decay" data-ar="تسوس" data-en="Decay" style="color: #ef4444;">Decay</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="radio" name="toothCondition" id="cond-filled" value="filled">
+                        <label for="cond-filled" data-ar="حشو" data-en="Filled" style="color: #3b82f6;">Filled</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="radio" name="toothCondition" id="cond-missing" value="missing">
+                        <label for="cond-missing" data-ar="مخلوع" data-en="Missing" style="color: #6b7280;">Missing</label>
+                    </div>
+                </div>
+
+                <div style="text-align: center;">
+                    <button class="btn-primary" id="saveOdontogramBtn" data-ar="حفظ المخطط" data-en="Save Odontogram">Save Odontogram</button>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-treatments" style="display: none;">
+                <div class="table-header">
+                    <h3 data-ar="خطط العلاج" data-en="Treatment Plans">Treatment Plans</h3>
+                    <button class="btn-primary" id="addProfileTreatmentBtn" data-ar="+ إضافة علاج" data-en="+ Add Treatment">+ Add Treatment</button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th data-ar="النوع" data-en="Type">Type</th>
+                                <th data-ar="التكلفة" data-en="Cost">Cost</th>
+                                <th data-ar="الحالة" data-en="Status">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="profile-treatments-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-prescriptions" style="display: none;">
+                <div class="table-header">
+                    <h3 data-ar="الروشتات" data-en="Prescriptions">Prescriptions</h3>
+                    <button class="btn-primary" id="addProfilePrescriptionBtn" data-ar="+ إضافة روشتة" data-en="+ Add Prescription">+ Add Prescription</button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th data-ar="التاريخ" data-en="Date">Date</th>
+                                <th data-ar="الأدوية" data-en="Medications">Medications</th>
+                            </tr>
+                        </thead>
+                        <tbody id="profile-prescriptions-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
         <!-- Settings Section -->
         <section id="settings-section" class="app-section" style="display: none;">
             <h1 data-ar="الإعدادات" data-en="Settings">Settings</h1>
@@ -334,6 +470,55 @@
         </div>
     </div>
 
+
+    <!-- Modal for Inventory -->
+    <div id="inventoryModal" class="modal">
+        <div class="modal-content">
+            <h3 data-ar="إضافة/تعديل مادة" data-en="Add/Edit Item">Add/Edit Item</h3>
+            <form id="inventoryForm">
+                <input type="hidden" id="inventoryItemId">
+                <div class="input-group">
+                    <label for="inventoryItemName" data-ar="اسم المادة:" data-en="Item Name:">Item Name:</label>
+                    <input type="text" id="inventoryItemName" required>
+                </div>
+                <div class="input-group">
+                    <label for="inventoryCategory" data-ar="الفئة:" data-en="Category:">Category:</label>
+                    <input type="text" id="inventoryCategory" placeholder="e.g. Consumables, Instruments..." required>
+                </div>
+                <div class="input-group">
+                    <label for="inventoryStock" data-ar="الكمية الحالية:" data-en="Current Stock:">Current Stock:</label>
+                    <input type="number" id="inventoryStock" required>
+                </div>
+                <div class="input-group">
+                    <label for="inventoryAlertLimit" data-ar="حد تنبيه النواقص:" data-en="Low Stock Alert Limit:">Low Stock Alert Limit:</label>
+                    <input type="number" id="inventoryAlertLimit" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelInventoryBtn" data-ar="إلغاء" data-en="Cancel">Cancel</button>
+                    <button type="submit" class="btn-primary" data-ar="حفظ" data-en="Save">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Modal for Prescriptions -->
+    <div id="prescriptionModal" class="modal">
+        <div class="modal-content">
+            <h3 data-ar="إضافة روشتة" data-en="Add Prescription">Add Prescription</h3>
+            <form id="prescriptionForm">
+                <div class="input-group">
+                    <label for="prescMeds" data-ar="الأدوية (افصل بينها بفاصلة):" data-en="Medications (Comma separated):">Medications (Comma separated):</label>
+                    <textarea id="prescMeds" rows="4" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelPrescBtn" data-ar="إلغاء" data-en="Cancel">Cancel</button>
+                    <button type="submit" class="btn-primary" data-ar="حفظ" data-en="Save">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal for Appointments -->
     <div id="appointmentModal" class="modal">
         <div class="modal-content">
@@ -363,5 +548,6 @@
     <script src="script.js"></script>
     <script type="module" src="firebase-app-data.js"></script>
     <script type="module" src="firebase-patients.js"></script>
+    <script type="module" src="firebase-inventory.js"></script>
 </body>
 </html>
