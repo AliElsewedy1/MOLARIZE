@@ -26,10 +26,22 @@
             --login-label: #475569;
         }
 
+        @keyframes gradientMove {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
         [data-theme="dark"] {
             /* Teal gradient background */
             --login-bg: #0f172a;
-            --login-bg-pattern: linear-gradient(135deg, #0f172a 0%, #113f44 100%);
+            --login-bg-pattern: linear-gradient(135deg, #0f172a 0%, #113f44 50%, #0f172a 100%);
             --login-card-bg: #1e293b;
             --login-card-shadow: 0 0 40px rgba(45, 212, 191, 0.3), 0 10px 30px rgba(0, 0, 0, 0.5);
             --login-card-border: 1px solid rgba(45, 212, 191, 0.5); /* Teal border */
@@ -50,10 +62,16 @@
             height: 100vh;
             background: var(--login-bg);
             background-image: var(--login-bg-pattern);
+            background-size: 100% 100%;
             color: var(--text-primary);
             font-family: 'Tajawal', Arial, sans-serif;
             margin: 0;
             position: relative;
+        }
+
+        [data-theme="dark"] body {
+            background-size: 200% 200%;
+            animation: gradientMove 10s ease infinite;
         }
 
         .login-controls {
