@@ -1,4 +1,4 @@
-import { db, auth, onAuthStateChanged, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "./firebase-config.js";
+import { db, auth, onAuthStateChanged, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, setDoc, getDoc, onSnapshot } from "./firebase-config.js";
 
 const patientModal = document.getElementById('patientModal');
 const openModalBtn = document.getElementById('openModalBtn');
@@ -384,7 +384,7 @@ async function loadOdontogram(patientId) {
         const docSnap = await getDocs(collection(db, 'users', user.uid, 'patients', patientId, 'records')); // Actually, directly get doc
 
         // Use modular getDoc
-        const { getDoc } = await import("https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js");
+
         const oDoc = await getDoc(docRef);
 
         if (oDoc.exists()) {
@@ -415,7 +415,7 @@ saveOdontogramBtn.addEventListener('click', async () => {
 
     try {
         // Use setDoc to create or overwrite the odontogram doc
-        const { setDoc } = await import("https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js");
+
         const docRef = doc(db, 'users', user.uid, 'patients', currentProfilePatientId, 'records', 'odontogram');
         await setDoc(docRef, { teeth: teethData, updatedAt: new Date().toISOString() });
         alert("Odontogram saved successfully!");
