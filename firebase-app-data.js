@@ -89,6 +89,7 @@ if (openTreatmentModalBtn) {
     openTreatmentModalBtn.addEventListener('click', () => {
         treatmentForm.reset();
         document.getElementById('treatmentId').value = '';
+        document.getElementById('treatmentPatientName').removeAttribute('data-target-id');
         treatmentModal.classList.add('show');
         history.pushState({ modal: 'treatment' }, '', window.location.hash);
     });
@@ -96,6 +97,7 @@ if (openTreatmentModalBtn) {
 
 if (cancelTreatmentBtn) {
     cancelTreatmentBtn.addEventListener('click', () => {
+        document.getElementById('treatmentPatientName').removeAttribute('data-target-id');
         if(window.closeModalAndPopState) window.closeModalAndPopState(treatmentModal);
         else treatmentModal.classList.remove('show');
     });
@@ -104,6 +106,7 @@ if (cancelTreatmentBtn) {
 if (treatmentModal) {
     window.addEventListener('click', (event) => {
         if (event.target === treatmentModal) {
+            document.getElementById('treatmentPatientName').removeAttribute('data-target-id');
             if(window.closeModalAndPopState) window.closeModalAndPopState(treatmentModal);
             else treatmentModal.classList.remove('show');
         }
@@ -166,7 +169,9 @@ if (treatmentForm) {
     treatmentForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         const idField = document.getElementById('treatmentId').value;
-        const patientName = document.getElementById('treatmentPatientName').value;
+        const pNameInput = document.getElementById('treatmentPatientName');
+        const patientName = pNameInput.value;
+        const targetPatientId = pNameInput.getAttribute('data-target-id');
         const type = document.getElementById('treatmentType').value;
         const cost = parseFloat(document.getElementById('treatmentCost').value) || 0;
         const status = document.getElementById('treatmentStatus').value;
@@ -175,18 +180,25 @@ if (treatmentForm) {
         submitBtn.disabled = true;
 
         try {
-            if (idField) {
-                const treatmentRef = doc(db, "users", currentUserUid, "treatments", idField);
-                await updateDoc(treatmentRef, { patientName, type, cost, status });
+            if (targetPatientId) {
+                // Add to patient sub-collection directly
+                const subRef = collection(db, 'users', currentUserUid, 'patients', targetPatientId, 'treatments');
+                await addDoc(subRef, { patientName, type, cost, status, createdAt: new Date().toISOString() });
             } else {
-                const treatmentsRef = collection(db, "users", currentUserUid, "treatments");
-                await addDoc(treatmentsRef, {
-                    patientName, type, cost, status, createdAt: new Date().toISOString()
-                });
+                if (idField) {
+                    const treatmentRef = doc(db, "users", currentUserUid, "treatments", idField);
+                    await updateDoc(treatmentRef, { patientName, type, cost, status });
+                } else {
+                    const treatmentsRef = collection(db, "users", currentUserUid, "treatments");
+                    await addDoc(treatmentsRef, {
+                        patientName, type, cost, status, createdAt: new Date().toISOString()
+                    });
+                }
             }
             await loadTreatments();
             if(window.closeModalAndPopState) window.closeModalAndPopState(treatmentModal);
             else treatmentModal.classList.remove('show');
+            pNameInput.removeAttribute('data-target-id');
             updateDashboardStats(); // Update dashboard stats (revenue/overdue)
             initChart(); // Update chart
         } catch (e) {

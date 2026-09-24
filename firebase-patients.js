@@ -82,15 +82,16 @@ function renderPatients(patientsToRender = currentPatients) {
         let displayPhone = patient.phone;
         if (patient.phone2) displayPhone += ` / ${patient.phone2}`;
 
+        row.style.cursor = 'pointer';
         row.innerHTML = `
-            <td>${displayId}</td>
-            <td>${patient.name}</td>
+            <td onclick="window.openPatientProfile('${patient.id}')">${displayId}</td>
+            <td onclick="window.openPatientProfile('${patient.id}')" style="font-weight: 500; color: var(--text-primary);">${patient.name}</td>
             <td>
-                ${displayPhone}
+                <span onclick="window.openPatientProfile('${patient.id}')">${displayPhone}</span>
                 <a href="tel:${cleanCallPhone}" style="color:var(--brand-primary); text-decoration:none; margin-left:0.5rem;" title="Call">📞</a>
                 <a href="https://wa.me/${waLinkPhone}" target="_blank" style="color:#25D366; text-decoration:none; margin-left:0.5rem;" title="WhatsApp">💬</a>
             </td>
-            <td>${patient.lastVisit}</td>
+            <td onclick="window.openPatientProfile('${patient.id}')">${patient.lastVisit}</td>
             <td>
                 <button class="btn-action btn-edit" onclick="window.editPatient('${patient.id}')">Edit</button>
                 <button class="btn-action btn-delete" onclick="window.deletePatient('${patient.id}')">Delete</button>
@@ -307,5 +308,211 @@ onAuthStateChanged(auth, (user) => {
         loadPatients();
     } else {
         window.location.replace('index.html');
+    }
+});
+
+
+// --- PATIENT PROFILE LOGIC ---
+
+let currentProfilePatientId = null;
+
+// Expose globally for onclick
+window.openPatientProfile = function(patientId) {
+    currentProfilePatientId = patientId;
+    const patient = currentPatients.find(p => p.id === patientId);
+    if (!patient) return;
+
+    // Set Info
+    document.getElementById('profilePatientName').innerText = patient.name;
+    document.getElementById('profilePatientId').innerText = patient.id.substring(0, 6);
+    document.getElementById('profilePatientAge').innerText = patient.age;
+    document.getElementById('profilePatientGender').innerText = patient.gender;
+    document.getElementById('profilePatientPhone').innerText = patient.phone;
+
+    // Show Section
+    document.querySelectorAll('.app-section').forEach(sec => sec.style.display = 'none');
+    document.getElementById('patient-profile-section').style.display = 'block';
+
+    // Reset Tabs
+    document.querySelector('.tab-btn[data-tab="tab-odontogram"]').click();
+
+    // History API
+    history.pushState({ section: 'patient-profile-section', patientId: patientId }, '', '#patient-profile-section');
+
+    // Load Patient Data
+    loadOdontogram(patientId);
+    setupProfileTreatmentsListener(patientId);
+    setupProfilePrescriptionsListener(patientId);
+};
+
+document.getElementById('backToPatientsBtn').addEventListener('click', () => {
+    document.querySelector('.sidebar-link[data-target="patients-section"]').click();
+});
+
+// --- Odontogram Logic ---
+const toothBoxes = document.querySelectorAll('.tooth-box');
+const saveOdontogramBtn = document.getElementById('saveOdontogramBtn');
+
+// Handle tooth click
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('tooth-box')) {
+        const condition = document.querySelector('input[name="toothCondition"]:checked').value;
+
+        // Remove existing condition classes
+        e.target.classList.remove('cond-decay', 'cond-filled', 'cond-missing');
+        e.target.removeAttribute('data-condition');
+
+        if (condition !== 'normal') {
+            e.target.classList.add('cond-' + condition);
+            e.target.setAttribute('data-condition', condition);
+        }
+    }
+});
+
+async function loadOdontogram(patientId) {
+    // Reset visual state
+    document.querySelectorAll('.tooth-box').forEach(box => {
+        box.classList.remove('cond-decay', 'cond-filled', 'cond-missing');
+        box.removeAttribute('data-condition');
+    });
+
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+        const docRef = doc(db, 'users', user.uid, 'patients', patientId, 'records', 'odontogram');
+        const docSnap = await getDocs(collection(db, 'users', user.uid, 'patients', patientId, 'records')); // Actually, directly get doc
+
+        // Use modular getDoc
+        const { getDoc } = await import("https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js");
+        const oDoc = await getDoc(docRef);
+
+        if (oDoc.exists()) {
+            const data = oDoc.data().teeth || {};
+            for (const [tooth, condition] of Object.entries(data)) {
+                const el = document.querySelector(`.tooth-box[data-tooth="${tooth}"]`);
+                if (el && condition !== 'normal') {
+                    el.classList.add('cond-' + condition);
+                    el.setAttribute('data-condition', condition);
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Error loading odontogram", e);
+    }
+}
+
+saveOdontogramBtn.addEventListener('click', async () => {
+    if (!currentProfilePatientId) return;
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const teethData = {};
+    document.querySelectorAll('.tooth-box').forEach(box => {
+        const cond = box.getAttribute('data-condition') || 'normal';
+        teethData[box.getAttribute('data-tooth')] = cond;
+    });
+
+    try {
+        // Use setDoc to create or overwrite the odontogram doc
+        const { setDoc } = await import("https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js");
+        const docRef = doc(db, 'users', user.uid, 'patients', currentProfilePatientId, 'records', 'odontogram');
+        await setDoc(docRef, { teeth: teethData, updatedAt: new Date().toISOString() });
+        alert("Odontogram saved successfully!");
+    } catch (e) {
+        console.error("Error saving odontogram", e);
+        alert("Error saving.");
+    }
+});
+
+// --- Treatments Sub-collection Logic ---
+function setupProfileTreatmentsListener(patientId) {
+    const user = auth.currentUser;
+    if (!user) return;
+    const ref = collection(db, 'users', user.uid, 'patients', patientId, 'treatments');
+    onSnapshot(ref, (snapshot) => {
+        const tbody = document.getElementById('profile-treatments-body');
+        tbody.innerHTML = '';
+        snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            tbody.innerHTML += `
+                <tr>
+                    <td>${data.type}</td>
+                    <td>${data.cost}</td>
+                    <td><span class="status-badge ${data.status === 'Completed' ? 'status-completed' : (data.status === 'In Progress' ? 'status-inprogress' : 'status-pending')}">${data.status}</span></td>
+                </tr>
+            `;
+        });
+    });
+}
+
+document.getElementById('addProfileTreatmentBtn').addEventListener('click', () => {
+    document.getElementById('treatmentPatientName').value = document.getElementById('profilePatientName').innerText;
+    // Store target patient id somewhere temporarily
+    document.getElementById('treatmentPatientName').setAttribute('data-target-id', currentProfilePatientId);
+
+    document.getElementById('treatmentForm').reset();
+    document.getElementById('treatmentId').value = '';
+
+    const treatmentModal = document.getElementById('treatmentModal');
+    treatmentModal.classList.add('show');
+    history.pushState({ modal: 'treatment' }, '', '#patient-profile-section');
+});
+
+// Hijack the global treatment form submit (which was previously in firebase-app-data.js, but actually we need to make sure we route it correctly).
+// Note: If the main treatment modal logic is in firebase-app-data.js, we should handle sub-collection additions there or here.
+// For simplicity, we will intercept the form submit here if 'data-target-id' is set.
+
+// --- Prescriptions Sub-collection Logic ---
+function setupProfilePrescriptionsListener(patientId) {
+    const user = auth.currentUser;
+    if (!user) return;
+    const ref = collection(db, 'users', user.uid, 'patients', patientId, 'prescriptions');
+    onSnapshot(ref, (snapshot) => {
+        const tbody = document.getElementById('profile-prescriptions-body');
+        tbody.innerHTML = '';
+
+        const docs = snapshot.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => new Date(b.date) - new Date(a.date));
+
+        docs.forEach(data => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${new Date(data.date).toLocaleDateString()}</td>
+                    <td>${data.medications}</td>
+                </tr>
+            `;
+        });
+    });
+}
+
+const prescriptionModal = document.getElementById('prescriptionModal');
+document.getElementById('addProfilePrescriptionBtn').addEventListener('click', () => {
+    document.getElementById('prescriptionForm').reset();
+    prescriptionModal.classList.add('show');
+    history.pushState({ modal: 'prescription' }, '', '#patient-profile-section');
+});
+
+document.getElementById('cancelPrescBtn').addEventListener('click', () => {
+    window.closeModalAndPopState(prescriptionModal);
+});
+
+document.getElementById('prescriptionForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!currentProfilePatientId) return;
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const meds = document.getElementById('prescMeds').value;
+
+    try {
+        const ref = collection(db, 'users', user.uid, 'patients', currentProfilePatientId, 'prescriptions');
+        await addDoc(ref, {
+            medications: meds,
+            date: new Date().toISOString()
+        });
+        window.closeModalAndPopState(prescriptionModal);
+    } catch(err) {
+        console.error(err);
+        alert('Error adding prescription');
     }
 });
