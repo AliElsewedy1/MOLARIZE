@@ -73,7 +73,10 @@ function renderPatients(patientsToRender = currentPatients) {
         if (a.createdAt && b.createdAt) {
             return new Date(b.createdAt) - new Date(a.createdAt);
         }
-        return parseInt(b.displayId) - parseInt(a.displayId);
+        // Fallback: parse numbers from displayId (e.g. "P123" -> 123)
+        const aId = parseInt(String(a.displayId).replace(/\D/g, '')) || 0;
+        const bId = parseInt(String(b.displayId).replace(/\D/g, '')) || 0;
+        return bId - aId;
     });
 
     patientsToRender.forEach(patient => {
@@ -596,8 +599,6 @@ window.loadPatientTimeline = async function(patientId) {
         prescriptionsSnap.forEach(doc => {
             const data = doc.data();
             events.push({ id: doc.id, type: 'prescription', date: data.date, data });
-        });
-            }
         });
 
         paymentsSnap.forEach(doc => {

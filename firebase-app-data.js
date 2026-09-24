@@ -495,7 +495,9 @@ async function updateDashboardStats() {
                 if (a.createdAt && b.createdAt) {
                     return new Date(b.createdAt) - new Date(a.createdAt);
                 }
-                return parseInt(b.displayId) - parseInt(a.displayId);
+                const aId = parseInt(String(a.displayId).replace(/\D/g, '')) || 0;
+                const bId = parseInt(String(b.displayId).replace(/\D/g, '')) || 0;
+                return bId - aId;
             }).slice(0, 5).forEach(p => {
                 const cleanPhone = (p.phone || '').replace(/\D/g, '');
                 const waPhone = cleanPhone.startsWith('0') ? '2' + cleanPhone : '20' + cleanPhone;
