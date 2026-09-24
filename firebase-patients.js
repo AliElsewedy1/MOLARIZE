@@ -69,16 +69,26 @@ function renderPatients(patientsToRender = currentPatients) {
     patientsToRender.forEach(patient => {
         const row = document.createElement('tr');
         const displayId = patient.displayId;
-        const cleanPhone = (patient.phone || '').replace(/\D/g, '');
-        const waPhone = cleanPhone.startsWith('0') ? '2' + cleanPhone : '20' + cleanPhone;
+
+        // Setup Call Phone
+        const callTargetPhone = (patient.callPref === 'phone2' && patient.phone2) ? patient.phone2 : patient.phone;
+        const cleanCallPhone = (callTargetPhone || '').replace(/\D/g, '');
+
+        // Setup WhatsApp Phone
+        const waTargetPhone = (patient.waPref === 'phone2' && patient.phone2) ? patient.phone2 : patient.phone;
+        const cleanWaPhone = (waTargetPhone || '').replace(/\D/g, '');
+        const waLinkPhone = cleanWaPhone.startsWith('0') ? '2' + cleanWaPhone : '20' + cleanWaPhone;
+
+        let displayPhone = patient.phone;
+        if (patient.phone2) displayPhone += ` / ${patient.phone2}`;
 
         row.innerHTML = `
             <td>${displayId}</td>
             <td>${patient.name}</td>
             <td>
-                ${patient.phone}
-                <a href="tel:${cleanPhone}" style="color:var(--brand-primary); text-decoration:none; margin-left:0.5rem;" title="Call">📞</a>
-                <a href="https://wa.me/${waPhone}" target="_blank" style="color:#25D366; text-decoration:none; margin-left:0.5rem;" title="WhatsApp">💬</a>
+                ${displayPhone}
+                <a href="tel:${cleanCallPhone}" style="color:var(--brand-primary); text-decoration:none; margin-left:0.5rem;" title="Call">📞</a>
+                <a href="https://wa.me/${waLinkPhone}" target="_blank" style="color:#25D366; text-decoration:none; margin-left:0.5rem;" title="WhatsApp">💬</a>
             </td>
             <td>${patient.lastVisit}</td>
             <td>
@@ -150,6 +160,12 @@ if (patientForm) {
         const gender = document.getElementById('patientGender').value;
         const lastVisit = document.getElementById('lastVisit').value;
 
+        const age = document.getElementById('patientAge').value;
+        const phone2 = document.getElementById('patientPhone2').value.trim();
+        const callPref = document.getElementById('callPref').value;
+        const waPref = document.getElementById('waPref').value;
+        const notes = document.getElementById('patientNotes').value.trim();
+
         // Validation for 3 words
         if (name.split(/\s+/).length < 3) {
             alert('يرجى إدخال اسم المريض الثلاثي (3 كلمات على الأقل). / Please enter the full name (at least 3 words).');
@@ -161,6 +177,15 @@ if (patientForm) {
         if (cleanPhoneSubmit.length !== 11) {
             alert('يجب أن يكون رقم الهاتف مكون من 11 رقماً. / Phone number must be exactly 11 digits.');
             return;
+        }
+
+        // Validation for phone 2 if provided
+        if (phone2) {
+            const cleanPhone2Submit = phone2.replace(/\D/g, '');
+            if (cleanPhone2Submit.length !== 11) {
+                alert('يجب أن يكون رقم الهاتف الإضافي مكون من 11 رقماً. / Additional phone number must be exactly 11 digits.');
+                return;
+            }
         }
 
         const submitBtn = patientForm.querySelector('button[type="submit"]');
@@ -179,6 +204,11 @@ if (patientForm) {
                 await updateDoc(patientRef, {
                     name: name,
                     phone: phone,
+                    phone2: phone2,
+                    callPref: callPref,
+                    waPref: waPref,
+                    age: age,
+                    notes: notes,
                     gender: gender,
                     lastVisit: lastVisit
                 });
@@ -188,6 +218,11 @@ if (patientForm) {
                 await addDoc(patientsRef, {
                     name: name,
                     phone: phone,
+                    phone2: phone2,
+                    callPref: callPref,
+                    waPref: waPref,
+                    age: age,
+                    notes: notes,
                     gender: gender,
                     lastVisit: lastVisit,
                     displayId: 'P' + Date.now().toString().slice(-6)
@@ -222,6 +257,22 @@ window.editPatient = function(id) {
         document.getElementById('patientId').value = patient.id;
         document.getElementById('patientName').value = patient.name;
         document.getElementById('patientPhone').value = patient.phone;
+        document.getElementById('patientPhone2').value = patient.phone2 || '';
+        document.getElementById('patientAge').value = patient.age || '';
+        document.getElementById('patientNotes').value = patient.notes || '';
+
+        if (patient.callPref) {
+            document.getElementById('callPref').value = patient.callPref;
+        } else {
+            document.getElementById('callPref').value = 'phone1';
+        }
+
+        if (patient.waPref) {
+            document.getElementById('waPref').value = patient.waPref;
+        } else {
+            document.getElementById('waPref').value = 'phone1';
+        }
+
         if (patient.gender) {
             document.getElementById('patientGender').value = patient.gender;
         }
