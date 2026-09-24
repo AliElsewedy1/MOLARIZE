@@ -30,47 +30,81 @@ const openAppointmentModalBtn = document.getElementById('openAppointmentModalBtn
 const cancelApptBtn = document.getElementById('cancelApptBtn');
 const appointmentForm = document.getElementById('appointmentForm');
 
-// Initialize modules on Auth
-document.addEventListener('DOMContentLoaded', () => {
+// Helper to open New Appointment modal from anywhere
+window.openNewAppointmentModal = function() {
+    const aModal = document.getElementById('appointmentModal');
+    const aForm = document.getElementById('appointmentForm');
+    if (aForm) aForm.reset();
+    const aId = document.getElementById('appointmentId');
+    if (aId) aId.value = '';
+    const aDropdown = document.getElementById('apptPatientDropdown');
+    if (aDropdown) aDropdown.style.display = 'none';
+    if (aModal) {
+        aModal.classList.add('show');
+        history.pushState({ modal: 'appointment' }, '', window.location.hash);
+    }
+};
 
+// Make updateDashboardStats globally available immediately
+window.updateDashboardStats = updateDashboardStats;
+
+function setupAppControls() {
     // Quick Actions
     const quickNewPatientBtn = document.getElementById('quickNewPatientBtn');
     const quickNewAppointmentBtn = document.getElementById('quickNewAppointmentBtn');
 
     if (quickNewPatientBtn) {
-        quickNewPatientBtn.addEventListener('click', () => {
-            const btn = document.getElementById('openModalBtn');
-            if(btn) btn.click();
-        });
+        quickNewPatientBtn.onclick = (e) => {
+            e.preventDefault();
+            if (typeof window.openNewPatientModal === 'function') {
+                window.openNewPatientModal();
+            } else {
+                const btn = document.getElementById('openModalBtn');
+                if (btn) btn.click();
+            }
+        };
     }
     if (quickNewAppointmentBtn) {
-        quickNewAppointmentBtn.addEventListener('click', () => {
-            if(openAppointmentModalBtn) openAppointmentModalBtn.click();
-        });
+        quickNewAppointmentBtn.onclick = (e) => {
+            e.preventDefault();
+            window.openNewAppointmentModal();
+        };
     }
 
     // Logout
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
+        logoutBtn.onclick = (e) => {
+            e.preventDefault();
             signOut(auth).then(() => {
                 window.location.replace('index.html');
             }).catch((error) => {
                 console.error("Logout error: ", error);
             });
-        });
+        };
     }
 
     // Set Greeting & Date
     updateGreetingAndDate();
-    window.updateDashboardStats = updateDashboardStats; // Make globally accessible early
 
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            currentUserUid = user.uid;
-            initDashboard();
-        }
-    });
+    if (auth.currentUser) {
+        currentUserUid = auth.currentUser.uid;
+        initDashboard();
+    }
+}
+
+// Run setup immediately or when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupAppControls);
+} else {
+    setupAppControls();
+}
+
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        currentUserUid = user.uid;
+        initDashboard();
+    }
 });
 
 async function initDashboard() {
@@ -468,20 +502,34 @@ function updateGreetingAndDate() {
 }
 
 async function updateDashboardStats() {
-    if (!currentUserUid) return;
+    if (!currentUserUid) {
+        const user = auth.currentUser;
+        if (user) currentUserUid = user.uid;
+        else return;
+    }
 
     let allPatients = [];
-    try {
-        const patientsRef = collection(db, "users", currentUserUid, "patients");
-        const querySnapshot = await getDocs(patientsRef);
-        querySnapshot.forEach((d) => {
-            allPatients.push({ id: d.id, ...d.data() });
-        });
-        if(weeklyNewPatients) {
-            // Simplify: just show total as "this week" for demo, or calc based on timestamp if exists
-            weeklyNewPatients.innerText = allPatients.length;
-        }
-    } catch(e) { console.error(e); }
+    if (window.currentPatients && window.currentPatients.length > 0) {
+        allPatients = [...window.currentPatients];
+    } else {
+        try {
+            const patientsRef = collection(db, "users", currentUserUid, "patients");
+            const querySnapshot = await getDocs(patientsRef);
+            querySnapshot.forEach((d) => {
+                allPatients.push({ id: d.id, ...d.data() });
+            });
+            allPatients = allPatients.map(p => ({
+                ...p,
+                displayId: p.displayId || 'P' + p.id.substring(0, 5).toUpperCase()
+            }));
+            window.currentPatients = allPatients;
+        } catch(e) { console.error("Error fetching patients in updateDashboardStats:", e); }
+    }
+
+    if(weeklyNewPatients) {
+        // Show total patients count
+        weeklyNewPatients.innerText = allPatients.length;
+    }
 
     // Today's Appointments Count
     const localOffset = new Date().getTimezoneOffset() * 60000;
@@ -501,21 +549,61 @@ async function updateDashboardStats() {
         .reduce((sum, t) => sum + (t.cost || 0), 0);
     if(weeklyRevenue) weeklyRevenue.innerText = `$${totalRev}`;
 
-    // Render Recent Patients List
+    // Render Recent Patients List (Last 5 Added)
     if(homeRecentPatients) {
         homeRecentPatients.innerHTML = '';
+        const isAr = document.documentElement.lang === 'ar';
+
         if(allPatients.length === 0) {
-            homeRecentPatients.innerHTML = `<div class="list-item"><div class="list-item-title" data-ar="لا يوجد مرضى" data-en="No patients">No patients</div></div>`;
+            homeRecentPatients.innerHTML = `
+                <div class="list-item" style="justify-content: center; padding: 1.5rem; text-align: center; color: var(--text-muted);">
+                    <div>
+                        <p style="margin: 0 0 0.5rem 0;">${isAr ? 'لا يوجد مرضى مضافون بعد' : 'No patients added yet'}</p>
+                        <button class="btn-outline" onclick="if(window.openNewPatientModal) window.openNewPatientModal(); else document.getElementById('openModalBtn')?.click();" style="font-size: 0.85rem;">
+                            ${isAr ? '+ إضافة مريض جديد' : '+ Add New Patient'}
+                        </button>
+                    </div>
+                </div>`;
         } else {
-            // Sort by createdAt descending
-            allPatients.sort((a, b) => {
-                if (a.createdAt && b.createdAt) {
-                    return new Date(b.createdAt) - new Date(a.createdAt);
+            // Helper to get reliable sort priority for recent patients
+            const getPatientSortValue = (p) => {
+                const dateVal = p.createdAt || p.timestamp || p.date || p.created;
+                if (dateVal) {
+                    if (typeof dateVal === 'string') {
+                        const ms = new Date(dateVal).getTime();
+                        if (!isNaN(ms) && ms > 0) return ms;
+                    } else if (typeof dateVal === 'number') {
+                        return dateVal;
+                    } else if (dateVal.toMillis) {
+                        return dateVal.toMillis();
+                    } else if (dateVal.seconds) {
+                        return dateVal.seconds * 1000;
+                    }
                 }
-                const aId = parseInt(String(a.displayId).replace(/\D/g, '')) || 0;
-                const bId = parseInt(String(b.displayId).replace(/\D/g, '')) || 0;
-                return bId - aId;
-            }).slice(0, 5).forEach(p => {
+                if (p.displayId) {
+                    const num = parseInt(String(p.displayId).replace(/\D/g, ''));
+                    if (!isNaN(num) && num > 0) {
+                        return num * 1000;
+                    }
+                }
+                return 0;
+            };
+
+            // Sort descending: newest created / highest ID first
+            allPatients.sort((a, b) => {
+                const valA = getPatientSortValue(a);
+                const valB = getPatientSortValue(b);
+                if (valA !== valB) {
+                    return valB - valA;
+                }
+                const idA = parseInt(String(a.displayId || a.id).replace(/\D/g, '')) || 0;
+                const idB = parseInt(String(b.displayId || b.id).replace(/\D/g, '')) || 0;
+                return idB - idA;
+            });
+
+            const recentFive = allPatients.slice(0, 5);
+
+            recentFive.forEach(p => {
                 const callTargetPhone = (p.callPref === 'phone2' && p.phone2) ? p.phone2 : p.phone;
                 const cleanCallPhone = String(callTargetPhone || '').replace(/\D/g, '');
 
@@ -526,15 +614,35 @@ async function updateDashboardStats() {
                 let displayPhone = p.phone || '-';
                 if (p.phone2) displayPhone += ` / ${p.phone2}`;
 
+                const ageText = p.age ? `• ${p.age} ${isAr ? 'سنة' : 'yrs'}` : '';
+                const alertBadge = (p.medicalAlerts && p.medicalAlerts.trim()) ? 
+                    `<span class="status-badge status-error" style="font-size: 0.72rem; padding: 2px 6px;">⚠️ ${p.medicalAlerts}</span>` : '';
+
                 homeRecentPatients.innerHTML += `
-                <div class="list-item">
-                    <div class="list-item-left">
-                        <span class="list-item-title">${p.name}</span>
-                        <span class="list-item-sub">${displayPhone}</span>
+                <div class="list-item" style="cursor: pointer; transition: background-color 0.2s, transform 0.2s;" onclick="if(window.openPatientProfile) window.openPatientProfile('${p.id}')">
+                    <div class="list-item-left" style="gap: 4px;">
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <span class="status-badge" style="background-color: rgba(45, 212, 191, 0.15); color: var(--brand-primary); font-size: 0.75rem; padding: 2px 7px; border-radius: 4px; font-weight: 700;">
+                                #${p.displayId || '-'}
+                            </span>
+                            <span class="list-item-title" style="font-size: 1.05rem;">${p.name || 'Unknown'}</span>
+                            <span style="font-size: 0.85rem; color: var(--text-muted);">${ageText}</span>
+                            ${alertBadge}
+                        </div>
+                        <div class="list-item-sub" style="display: flex; align-items: center; gap: 8px;">
+                            <span>📞 ${displayPhone}</span>
+                        </div>
                     </div>
-                    <div class="list-item-right" style="display: flex; gap: 0.5rem; font-size:1.2rem;">
-                        <a href="tel:${cleanCallPhone}" style="color:var(--brand-primary); text-decoration:none; display:inline-flex; align-items:center;" title="Call"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg></a>
-                        <a href="https://wa.me/${waLinkPhone}" target="_blank" style="color:#25D366; text-decoration:none; display:inline-flex; align-items:center;" title="WhatsApp"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg></a>
+                    <div class="list-item-right" style="display: flex; align-items: center; gap: 0.5rem;" onclick="event.stopPropagation();">
+                        <a href="tel:${cleanCallPhone}" class="btn-outline" style="padding: 0.45rem 0.65rem; font-size: 0.85rem; display: inline-flex; align-items: center; text-decoration: none;" title="${isAr ? 'اتصال' : 'Call'}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                        </a>
+                        <a href="https://wa.me/${waLinkPhone}" target="_blank" class="btn-outline" style="padding: 0.45rem 0.65rem; font-size: 0.85rem; display: inline-flex; align-items: center; text-decoration: none; color: #25D366; border-color: rgba(37, 211, 102, 0.4);" title="WhatsApp">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+                        </a>
+                        <button class="btn-primary" style="padding: 0.45rem 0.85rem; font-size: 0.85rem;" onclick="if(window.openPatientProfile) window.openPatientProfile('${p.id}')">
+                            ${isAr ? 'فتح الملف' : 'Profile'} →
+                        </button>
                     </div>
                 </div>`;
             });

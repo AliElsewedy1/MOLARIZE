@@ -59,10 +59,10 @@
                     <p id="currentDateDisplay" class="text-muted">Wednesday, September 23, 2026</p>
                 </div>
                 <div class="quick-actions">
-                    <button class="btn-outline" id="quickNewPatientBtn" data-ar="مريض جديد" data-en="New patient">
+                    <button class="btn-outline" id="quickNewPatientBtn" onclick="if(window.openNewPatientModal) window.openNewPatientModal(); else document.getElementById('openModalBtn')?.click();" data-ar="مريض جديد" data-en="New patient">
                         👤 New patient
                     </button>
-                    <button class="btn-primary" id="quickNewAppointmentBtn" data-ar="موعد جديد" data-en="New appointment">
+                    <button class="btn-primary" id="quickNewAppointmentBtn" onclick="if(window.openNewAppointmentModal) window.openNewAppointmentModal(); else document.getElementById('openAppointmentModalBtn')?.click();" data-ar="موعد جديد" data-en="New appointment">
                         📅 New appointment
                     </button>
                 </div>
@@ -113,13 +113,13 @@
             </div>
 
             <!-- Recent Patients -->
-            <div class="home-card full-width" style="cursor: pointer;" onclick="document.querySelector('.sidebar-link[data-target=\'patients-section\']').click();">
+            <div class="home-card full-width">
                 <div class="card-header-flex">
                     <div class="header-title">
                         <span>👥</span>
-                        <h3 data-ar="المرضى الأخيرين" data-en="Recent patients">Recent patients</h3>
+                        <h3 data-ar="آخر 5 مرضى مضافين" data-en="Last 5 Added Patients">Last 5 Added Patients</h3>
                     </div>
-                    <a href="#" class="nav-link" data-target-section="patients-section">→</a>
+                    <a href="#" class="nav-link" data-target-section="patients-section" data-ar="عرض كل المرضى ←" data-en="View all patients →">View all patients →</a>
                 </div>
                 <div class="list-container" id="home-recent-patients">
                     <!-- Populated by JS -->

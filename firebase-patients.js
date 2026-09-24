@@ -9,13 +9,28 @@ let currentPatients = [];
 let currentUserUid = null;
 
 // Open modal
-if (openModalBtn) {
-    openModalBtn.addEventListener('click', () => {
-        patientForm.reset();
-        document.getElementById('patientId').value = '';
-        document.querySelectorAll('.alert-checkbox').forEach(cb => cb.checked = false);
-        patientModal.classList.add('show');
+window.openNewPatientModal = function() {
+    const pModal = document.getElementById('patientModal');
+    const pForm = document.getElementById('patientForm');
+    if (pForm) pForm.reset();
+    const pId = document.getElementById('patientId');
+    if (pId) pId.value = '';
+    document.querySelectorAll('.alert-checkbox').forEach(cb => cb.checked = false);
+    if (pModal) {
+        pModal.classList.add('show');
         history.pushState({ modal: 'patient' }, '', window.location.hash);
+    }
+};
+
+if (openModalBtn) {
+    openModalBtn.addEventListener('click', window.openNewPatientModal);
+}
+
+const quickNewPatientBtn = document.getElementById('quickNewPatientBtn');
+if (quickNewPatientBtn) {
+    quickNewPatientBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.openNewPatientModal();
     });
 }
 
@@ -65,6 +80,10 @@ async function loadPatients() {
     window.currentPatients = currentPatients;
 
     renderPatients(currentPatients);
+
+    if (typeof window.updateDashboardStats === 'function') {
+      window.updateDashboardStats();
+    }
   } catch (e) {
     console.error("Error loading patients: ", e);
   }
