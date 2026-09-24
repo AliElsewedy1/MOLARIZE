@@ -628,9 +628,12 @@
             <h3 data-ar="إضافة موعد" data-en="Add Appointment">Add Appointment</h3>
             <form id="appointmentForm">
                 <input type="hidden" id="appointmentId">
-                <div class="input-group">
-                    <label for="apptPatientName" data-ar="اسم المريض:" data-en="Patient Name:">Patient Name:</label>
-                    <input type="text" id="apptPatientName" required>
+                <div class="input-group" style="position: relative;">
+                    <label for="apptPatientName" data-ar="المريض (بحث بالاسم، الهاتف، أو الرقم):" data-en="Patient (Search Name, Phone, ID):">Patient (Search Name, Phone, ID):</label>
+                    <input type="text" id="apptPatientName" autocomplete="off" placeholder="Search..." required>
+                    <input type="hidden" id="apptPatientId">
+                    <div id="apptPatientDropdown" class="autocomplete-dropdown" style="display: none;"></div>
+                    <button type="button" id="btnQuickAddPatient" class="btn-outline" style="margin-top: 0.5rem; width: 100%; font-size: 0.85rem;" data-ar="+ تسجيل مريض جديد" data-en="+ Register New Patient">+ Register New Patient</button>
                 </div>
                 <div class="input-group">
                     <label for="apptDate" data-ar="التاريخ:" data-en="Date:">Date:</label>

@@ -55,6 +55,7 @@ async function loadPatients() {
             displayId: p.displayId || 'P' + p.id.substring(0, 5).toUpperCase()
         }));
 
+        window.currentPatients = currentPatients;
         renderPatients(currentPatients);
     } catch (e) {
         console.error("Error loading patients: ", e);
