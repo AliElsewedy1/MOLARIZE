@@ -90,8 +90,8 @@ function renderPatients(patientsToRender = currentPatients) {
             <td onclick="window.openPatientProfile('${patient.id}')" style="font-weight: 500; color: var(--text-primary);">${patient.name}</td>
             <td>
                 <span onclick="window.openPatientProfile('${patient.id}')">${displayPhone}</span>
-                <a href="tel:${cleanCallPhone}" style="color:var(--brand-primary); text-decoration:none; margin-left:0.5rem;" title="Call">📞</a>
-                <a href="https://wa.me/${waLinkPhone}" target="_blank" style="color:#25D366; text-decoration:none; margin-left:0.5rem;" title="WhatsApp">💬</a>
+                <a href="tel:${cleanCallPhone}" style="color:var(--brand-primary); text-decoration:none; margin-left:0.5rem; display:inline-flex; align-items:center;" title="Call"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg></a>
+                <a href="https://wa.me/${waLinkPhone}" target="_blank" style="color:#25D366; text-decoration:none; margin-left:0.5rem; display:inline-flex; align-items:center;" title="WhatsApp"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg></a>
             </td>
             <td onclick="window.openPatientProfile('${patient.id}')">${patient.lastVisit}</td>
             <td>
@@ -462,191 +462,7 @@ saveOdontogramBtn.addEventListener('click', async () => {
     }
 });
 
-// --- Treatments Sub-collection Logic ---
-function setupProfileTreatmentsListener(patientId) {
-    const user = auth.currentUser;
-    if (!user) return;
-    const ref = collection(db, 'users', user.uid, 'patients', patientId, 'treatments');
-    onSnapshot(ref, (snapshot) => {
-        const tbody = document.getElementById('profile-treatments-body');
-        tbody.innerHTML = '';
-        snapshot.docs.forEach(doc => {
-            const data = doc.data();
-            const tId = doc.id;
-            const total = parseFloat(data.cost) || 0;
-            const paid = parseFloat(data.paidAmount) || 0;
-            const rem = total - paid;
 
-            tbody.innerHTML += `
-                <tr>
-                    <td>${data.type || data.treatmentType}</td>
-                    <td>${total}</td>
-                    <td>${paid}</td>
-                    <td style="color: ${rem > 0 ? 'var(--status-error)' : 'var(--status-completed)'}">${rem}</td>
-                    <td><span class="status-badge ${data.status === 'Completed' ? 'status-completed' : (data.status === 'In Progress' ? 'status-inprogress' : 'status-pending')}">${data.status}</span></td>
-                    <td>
-                        ${rem > 0 ? `<button class="btn-outline" onclick="window.openPaymentModal('${tId}', '${patientId}', '${data.patientName || ''}', '${data.type || data.treatmentType}')">Pay</button>` : ''}
-                        <button class="btn-outline" onclick="window.printInvoice('${tId}', '${patientId}')">Print</button>
-                    </td>
-                </tr>
-            `;
-        });
-    });
-}
-
-// Payment Modal Logic
-window.openPaymentModal = function(tId, pId, pName, tName) {
-    document.getElementById('paymentForm').reset();
-    document.getElementById('paymentTreatmentId').value = tId;
-    document.getElementById('paymentPatientId').value = pId;
-    document.getElementById('paymentPatientName').value = pName;
-    document.getElementById('paymentTreatmentName').value = tName;
-
-    const paymentModal = document.getElementById('paymentModal');
-    paymentModal.classList.add('show');
-    history.pushState({ modal: 'payment' }, '', window.location.hash);
-};
-
-document.getElementById('cancelPaymentBtn').addEventListener('click', () => {
-    window.closeModalAndPopState(document.getElementById('paymentModal'));
-});
-
-document.getElementById('paymentForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const tId = document.getElementById('paymentTreatmentId').value;
-    const pId = document.getElementById('paymentPatientId').value;
-    const pName = document.getElementById('paymentPatientName').value || document.getElementById('profilePatientName').innerText;
-    const tName = document.getElementById('paymentTreatmentName').value;
-    const amount = parseFloat(document.getElementById('paymentAmount').value);
-    const method = document.getElementById('paymentMethod').value;
-    const date = document.getElementById('paymentDate').value;
-
-    try {
-        // 1. Add to global payments ledger
-        const paymentsRef = collection(db, 'users', user.uid, 'payments');
-        await addDoc(paymentsRef, {
-            treatmentId: tId,
-            patientId: pId,
-            patientName: pName,
-            treatmentName: tName,
-            amount: amount,
-            method: method,
-            date: date,
-            createdAt: new Date().toISOString()
-        });
-
-        // Update paidAmount on global treatment document
-        const tRef = doc(db, 'users', user.uid, 'treatments', tId);
-        const tDoc = await getDoc(tRef);
-        if (tDoc.exists()) {
-            const currentPaid = parseFloat(tDoc.data().paidAmount) || 0;
-            await updateDoc(tRef, { paidAmount: currentPaid + amount });
-        }
-
-        window.closeModalAndPopState(document.getElementById('paymentModal'));
-        alert('Payment added successfully');
-        loadPatientTimeline(pId);
-    } catch (error) {
-        console.error("Error saving payment", error);
-        alert("Error saving payment.");
-    }
-});
-
-// Print Invoice Logic
-window.printInvoice = async function(tId, pId) {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    try {
-        const tRef = doc(db, 'users', user.uid, 'treatments', tId);
-        const tDoc = await getDoc(tRef);
-        if (!tDoc.exists()) return;
-
-        const data = tDoc.data();
-        const total = parseFloat(data.cost) || 0;
-        const paid = parseFloat(data.paidAmount) || 0;
-        const rem = total - paid;
-
-        document.getElementById('invoice-patient-name').innerText = document.getElementById('profilePatientName').innerText;
-        document.getElementById('invoice-date').innerText = new Date().toLocaleDateString();
-        document.getElementById('invoice-treatment').innerText = data.type || data.treatmentType;
-        document.getElementById('invoice-total').innerText = total;
-        document.getElementById('invoice-paid').innerText = paid;
-        document.getElementById('invoice-remaining').innerText = rem;
-
-        // Load payments for this treatment from global payments
-        const paymentsRef = collection(db, 'users', user.uid, 'payments');
-        const pSnap = await getDocs(paymentsRef);
-
-        const tbody = document.getElementById('invoice-payments-body');
-        tbody.innerHTML = '';
-
-        // filter global payments for this treatmentId
-        const filteredP = pSnap.docs.map(d => d.data()).filter(d => d.treatmentId === tId);
-        const sortedPayments = filteredP.sort((a,b) => new Date(a.date) - new Date(b.date));
-
-        sortedPayments.forEach(p => {
-            tbody.innerHTML += `
-                <tr>
-                    <td style="text-align: left; padding: 0.5rem;">${p.date}</td>
-                    <td style="text-align: right; padding: 0.5rem;">${p.amount}</td>
-                    <td style="text-align: right; padding: 0.5rem;">${p.method}</td>
-                </tr>
-            `;
-        });
-
-        if(sortedPayments.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">No payments found.</td></tr>';
-        }
-
-        window.print();
-
-    } catch (e) {
-        console.error("Error generating invoice", e);
-    }
-};
-
-
-
-document.getElementById('addProfileTreatmentBtn').addEventListener('click', () => {
-    document.getElementById('treatmentPatientName').value = document.getElementById('profilePatientName').innerText;
-    // Store target patient id somewhere temporarily
-    document.getElementById('treatmentPatientName').setAttribute('data-target-id', currentProfilePatientId);
-
-    document.getElementById('treatmentForm').reset();
-    document.getElementById('treatmentId').value = '';
-
-    const treatmentModal = document.getElementById('treatmentModal');
-    treatmentModal.classList.add('show');
-    history.pushState({ modal: 'treatment' }, '', '#patient-profile-section');
-});
-
-// Hijack the global treatment form submit (which was previously in firebase-app-data.js, but actually we need to make sure we route it correctly).
-// Note: If the main treatment modal logic is in firebase-app-data.js, we should handle sub-collection additions there or here.
-// For simplicity, we will intercept the form submit here if 'data-target-id' is set.
-
-// --- Prescriptions Sub-collection Logic ---
-function setupProfilePrescriptionsListener(patientId) {
-    const user = auth.currentUser;
-    if (!user) return;
-    const ref = collection(db, 'users', user.uid, 'patients', patientId, 'prescriptions');
-    onSnapshot(ref, (snapshot) => {
-        const tbody = document.getElementById('profile-prescriptions-body');
-        tbody.innerHTML = '';
-
-        const docs = snapshot.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => new Date(b.date) - new Date(a.date));
-
-        docs.forEach(data => {
-            tbody.innerHTML += `
-                <tr>
-                    <td>${new Date(data.date).toLocaleDateString()}</td>
-                    <td>${data.medications}</td>
-                </tr>
-            `;
-        });
     });
 }
 
@@ -659,6 +475,7 @@ document.getElementById('addProfilePrescriptionBtn').addEventListener('click', (
 
 document.getElementById('cancelPrescBtn').addEventListener('click', () => {
     window.closeModalAndPopState(prescriptionModal);
+        loadPatientTimeline(currentProfilePatientId);
 });
 
 document.getElementById('prescriptionForm').addEventListener('submit', async (e) => {
@@ -746,7 +563,10 @@ window.loadPatientTimeline = async function(patientId) {
         const treatmentsP = getDocs(collection(db, 'users', user.uid, 'treatments'));
         const paymentsP = getDocs(collection(db, 'users', user.uid, 'payments')); // We query global payments for this patient
 
-        const [visitsSnap, treatmentsSnap, paymentsSnap] = await Promise.all([visitsP, treatmentsP, paymentsP]);
+
+        const prescriptionsP = getDocs(collection(db, 'users', user.uid, 'patients', patientId, 'prescriptions'));
+        const [visitsSnap, treatmentsSnap, paymentsSnap, prescriptionsSnap] = await Promise.all([visitsP, treatmentsP, paymentsP, prescriptionsP]);
+
 
         const patientName = document.getElementById('profilePatientName').innerText;
 
@@ -762,6 +582,13 @@ window.loadPatientTimeline = async function(patientId) {
             // Filter global treatments for this patient (by id or exact name match)
             if (data.patientId === patientId || data.patientName === patientName) {
                 events.push({ id: doc.id, type: 'treatment', date: data.createdAt || data.timestamp, data });
+            }
+        });
+
+        prescriptionsSnap.forEach(doc => {
+            const data = doc.data();
+            events.push({ id: doc.id, type: 'prescription', date: data.date, data });
+        });
             }
         });
 
@@ -834,6 +661,16 @@ function renderTimeline(filter = 'all') {
             title = 'Payment Received';
             details = `
                 <p><strong>Amount:</strong> <span style="color: var(--status-completed); font-weight: bold;">${event.data.amount}</span></p>
+                <p><strong>Method:</strong> ${event.data.method}</p>
+                <p><strong>For Treatment:</strong> ${event.data.treatmentName}</p>
+            `;
+        } else if (event.type === 'prescription') {
+            icon = '💊';
+            title = 'Prescription';
+            details = `
+                <p style="white-space: pre-wrap;"><strong>Medications:</strong><br>${escapeHtml(event.data.medications)}</p>
+            `;
+        }</span></p>
                 <p><strong>Method:</strong> ${event.data.method}</p>
                 <p><strong>For Treatment:</strong> ${event.data.treatmentName}</p>
             `;

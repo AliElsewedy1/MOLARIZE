@@ -973,3 +973,5 @@ td {
     gap: 1rem;
     margin-top: 0.2rem;
 }
+
+.timeline-event.type-prescription .timeline-icon { border-color: #ef4444; background: #fef2f2; color: #ef4444;}
