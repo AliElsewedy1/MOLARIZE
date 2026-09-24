@@ -15,13 +15,15 @@ if (openModalBtn) {
         patientForm.reset();
         document.getElementById('patientId').value = '';
         patientModal.classList.add('show');
+        history.pushState({ modal: 'patient' }, '', window.location.hash);
     });
 }
 
 // Close modal
 if (cancelBtn) {
     cancelBtn.addEventListener('click', () => {
-        patientModal.classList.remove('show');
+        if(window.closeModalAndPopState) window.closeModalAndPopState(patientModal);
+        else patientModal.classList.remove('show');
     });
 }
 
@@ -29,7 +31,8 @@ if (cancelBtn) {
 if (patientModal) {
     window.addEventListener('click', (event) => {
         if (event.target === patientModal) {
-            patientModal.classList.remove('show');
+            if(window.closeModalAndPopState) window.closeModalAndPopState(patientModal);
+            else patientModal.classList.remove('show');
         }
     });
 }
@@ -104,15 +107,61 @@ if (patientSearchInput) {
     });
 }
 
+// Helper: basic local prediction for Arabic/English names
+function predictGender(nameStr) {
+    const name = nameStr.trim().split(' ')[0].toLowerCase();
+
+    // Some common female name endings and known names
+    if (name.endsWith('a') || name.endsWith('ة') || name.endsWith('اء')) {
+        // Exclude some common male exceptions if needed:
+        const maleExceptions = ['usama', 'osama', 'hamza', 'أسامة', 'حمزة', 'موسى', 'عيسى', 'يحيى', 'mustafa', 'مصطفى', 'طالبة', 'عطية', 'معاوية', 'طلحة', 'خليفة', 'عنترة'];
+        if (!maleExceptions.includes(name)) {
+            return 'Female';
+        }
+    }
+
+    // Known female names lacking standard endings
+    const femaleNames = ['maryam', 'مريم', 'زينب', 'zaynab', 'nour', 'نور', 'سعاد', 'هند', 'مي', 'ندى', 'فرح'];
+    if (femaleNames.includes(name)) return 'Female';
+
+    // Default
+    return 'Male';
+}
+
+const patientNameInput = document.getElementById('patientName');
+const patientGenderSelect = document.getElementById('patientGender');
+
+if (patientNameInput && patientGenderSelect) {
+    patientNameInput.addEventListener('blur', () => {
+        if (patientNameInput.value) {
+            patientGenderSelect.value = predictGender(patientNameInput.value);
+        }
+    });
+}
+
 // Handle form submission (Add/Edit)
 if (patientForm) {
     patientForm.addEventListener('submit', async (event) => {
         event.preventDefault();
 
         const idField = document.getElementById('patientId').value;
-        const name = document.getElementById('patientName').value;
-        const phone = document.getElementById('patientPhone').value;
+        const name = document.getElementById('patientName').value.trim();
+        const phone = document.getElementById('patientPhone').value.trim();
+        const gender = document.getElementById('patientGender').value;
         const lastVisit = document.getElementById('lastVisit').value;
+
+        // Validation for 3 words
+        if (name.split(/\s+/).length < 3) {
+            alert('يرجى إدخال اسم المريض الثلاثي (3 كلمات على الأقل). / Please enter the full name (at least 3 words).');
+            return;
+        }
+
+        // Validation for 11 digits
+        const cleanPhoneSubmit = phone.replace(/\D/g, '');
+        if (cleanPhoneSubmit.length !== 11) {
+            alert('يجب أن يكون رقم الهاتف مكون من 11 رقماً. / Phone number must be exactly 11 digits.');
+            return;
+        }
 
         const submitBtn = patientForm.querySelector('button[type="submit"]');
         const originalText = submitBtn.innerText;
@@ -130,6 +179,7 @@ if (patientForm) {
                 await updateDoc(patientRef, {
                     name: name,
                     phone: phone,
+                    gender: gender,
                     lastVisit: lastVisit
                 });
             } else {
@@ -138,6 +188,7 @@ if (patientForm) {
                 await addDoc(patientsRef, {
                     name: name,
                     phone: phone,
+                    gender: gender,
                     lastVisit: lastVisit,
                     displayId: 'P' + Date.now().toString().slice(-6)
                 });
@@ -151,7 +202,8 @@ if (patientForm) {
                 window.updateDashboardStats();
             }
 
-            patientModal.classList.remove('show');
+            if(window.closeModalAndPopState) window.closeModalAndPopState(patientModal);
+            else patientModal.classList.remove('show');
         } catch (e) {
             console.error("Error saving patient: ", e);
             alert("Error saving patient data. Please try again.");
@@ -170,8 +222,12 @@ window.editPatient = function(id) {
         document.getElementById('patientId').value = patient.id;
         document.getElementById('patientName').value = patient.name;
         document.getElementById('patientPhone').value = patient.phone;
+        if (patient.gender) {
+            document.getElementById('patientGender').value = patient.gender;
+        }
         document.getElementById('lastVisit').value = patient.lastVisit;
         patientModal.classList.add('show');
+        history.pushState({ modal: 'patient' }, '', window.location.hash);
     }
 }
 

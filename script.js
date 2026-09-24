@@ -72,6 +72,14 @@ if (sidebarLinks.length > 0) {
         link.addEventListener('click', function(e) {
             e.preventDefault();
 
+            // Show the target section
+            const targetId = this.getAttribute('data-target');
+
+            // History API: Push state when navigating to a new section
+            if (targetId && window.location.hash !== `#${targetId}`) {
+                history.pushState({ section: targetId }, '', `#${targetId}`);
+            }
+
             // Close mobile menu on link click
             closeMobileMenu();
 
@@ -85,8 +93,6 @@ if (sidebarLinks.length > 0) {
                 section.style.display = 'none';
             });
 
-            // Show the target section
-            const targetId = this.getAttribute('data-target');
             if (targetId) {
                 const targetSection = document.getElementById(targetId);
                 if (targetSection) {
@@ -96,6 +102,63 @@ if (sidebarLinks.length > 0) {
         });
     });
 }
+
+// Helper to safely close modals and pop the modal state
+window.closeModalAndPopState = function(modalElement) {
+    modalElement.classList.remove('show');
+    // If the top state in history is a modal state, pop it so we don't trap the user
+    if (history.state && history.state.modal) {
+        history.back();
+    }
+};
+
+// Handle Mobile Back Button and Modals
+window.addEventListener('popstate', (e) => {
+    const openModals = document.querySelectorAll('.modal.show');
+
+    // 1. If any modal is open, close it. The back button has already popped the state,
+    // so we don't need to push it back. The hash remains the section hash.
+    if (openModals.length > 0) {
+        openModals.forEach(modal => modal.classList.remove('show'));
+        // If there's still a modal state after popping, it means there was a mismatch,
+        // let's try to restore the section state
+        if (e.state && e.state.modal) {
+            // we should technically be in a section state now, if not we wait for next pop
+             return;
+        }
+        // If we popped into a section state, just return and stay there
+        return;
+    }
+
+    // 2. Otherwise, handle section navigation
+    if (e.state && e.state.section) {
+        const targetSidebarLink = document.querySelector(`.sidebar-link[data-target="${e.state.section}"]`);
+        if (targetSidebarLink) {
+            // Avoid pushing state again in the click handler by simulating the logic
+            sidebarLinks.forEach(l => l.classList.remove('active'));
+            targetSidebarLink.classList.add('active');
+            appSections.forEach(sec => sec.style.display = 'none');
+            const targetSec = document.getElementById(e.state.section);
+            if(targetSec) targetSec.style.display = 'block';
+        }
+    } else {
+        // Default to dashboard if no state (e.g., just landed on page)
+        const dashboardLink = document.querySelector('.sidebar-link[data-target="dashboard-section"]');
+        if (dashboardLink) {
+            dashboardLink.click();
+        }
+    }
+});
+
+// Set initial state on load
+document.addEventListener('DOMContentLoaded', () => {
+    if (!window.location.hash) {
+        history.replaceState({ section: 'dashboard-section' }, '', '#dashboard-section');
+    } else {
+        const hash = window.location.hash.substring(1);
+        history.replaceState({ section: hash }, '', window.location.hash);
+    }
+});
 
 // Ensure in-page nav-links (like 'View all') switch sections via the same mechanism
 const navLinks = document.querySelectorAll('.nav-link[data-target-section]');

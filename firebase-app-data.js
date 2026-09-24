@@ -90,12 +90,23 @@ if (openTreatmentModalBtn) {
         treatmentForm.reset();
         document.getElementById('treatmentId').value = '';
         treatmentModal.classList.add('show');
+        history.pushState({ modal: 'treatment' }, '', window.location.hash);
     });
 }
 
 if (cancelTreatmentBtn) {
     cancelTreatmentBtn.addEventListener('click', () => {
-        treatmentModal.classList.remove('show');
+        if(window.closeModalAndPopState) window.closeModalAndPopState(treatmentModal);
+        else treatmentModal.classList.remove('show');
+    });
+}
+
+if (treatmentModal) {
+    window.addEventListener('click', (event) => {
+        if (event.target === treatmentModal) {
+            if(window.closeModalAndPopState) window.closeModalAndPopState(treatmentModal);
+            else treatmentModal.classList.remove('show');
+        }
     });
 }
 
@@ -174,7 +185,8 @@ if (treatmentForm) {
                 });
             }
             await loadTreatments();
-            treatmentModal.classList.remove('show');
+            if(window.closeModalAndPopState) window.closeModalAndPopState(treatmentModal);
+            else treatmentModal.classList.remove('show');
             updateDashboardStats(); // Update dashboard stats (revenue/overdue)
             initChart(); // Update chart
         } catch (e) {
@@ -220,12 +232,23 @@ if (openAppointmentModalBtn) {
         appointmentForm.reset();
         document.getElementById('appointmentId').value = '';
         appointmentModal.classList.add('show');
+        history.pushState({ modal: 'appointment' }, '', window.location.hash);
     });
 }
 
 if (cancelApptBtn) {
     cancelApptBtn.addEventListener('click', () => {
-        appointmentModal.classList.remove('show');
+        if(window.closeModalAndPopState) window.closeModalAndPopState(appointmentModal);
+        else appointmentModal.classList.remove('show');
+    });
+}
+
+if (appointmentModal) {
+    window.addEventListener('click', (event) => {
+        if (event.target === appointmentModal) {
+            if(window.closeModalAndPopState) window.closeModalAndPopState(appointmentModal);
+            else appointmentModal.classList.remove('show');
+        }
     });
 }
 
@@ -279,7 +302,8 @@ if (appointmentForm) {
             }
             await loadAppointments();
             updateDashboardStats(); // Update stats
-            appointmentModal.classList.remove('show');
+            if(window.closeModalAndPopState) window.closeModalAndPopState(appointmentModal);
+            else appointmentModal.classList.remove('show');
         } catch (e) {
             console.error("Error saving appointment: ", e);
             alert("Error saving appointment.");
