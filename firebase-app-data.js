@@ -221,6 +221,12 @@ window.editTreatment = function(id) {
     if (t) {
         document.getElementById('treatmentId').value = t.id;
         document.getElementById('treatmentPatientName').value = t.patientName;
+
+        // Ensure timeline refreshes by setting data-target-id if it exists
+        if (t.patientId) {
+            document.getElementById('treatmentPatientName').setAttribute('data-target-id', t.patientId);
+        }
+
         document.getElementById('treatmentType').value = t.type;
         document.getElementById('treatmentCost').value = t.cost;
         document.getElementById('treatmentStatus').value = t.status;
@@ -231,10 +237,21 @@ window.editTreatment = function(id) {
 window.deleteTreatment = async function(id) {
     if (confirm('Are you sure you want to delete this treatment plan?')) {
         try {
-            await deleteDoc(doc(db, "users", currentUserUid, "treatments", id));
+            // Find the treatment before deleting to get its patientId
+            const tRef = doc(db, "users", currentUserUid, "treatments", id);
+            const tDoc = await getDoc(tRef);
+            let pId = null;
+            if (tDoc.exists()) pId = tDoc.data().patientId;
+
+            await deleteDoc(tRef);
             await loadTreatments();
             updateDashboardStats(); // Update dashboard stats (revenue/overdue)
             initChart();
+
+            // Refresh timeline if it exists
+            if (pId && typeof window.loadPatientTimeline === 'function') {
+                window.loadPatientTimeline(pId);
+            }
         } catch (e) {
             console.error("Error deleting treatment: ", e);
         }

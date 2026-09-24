@@ -322,7 +322,10 @@
                         👤
                     </div>
                     <div>
-                        <h1 id="profilePatientName" style="margin: 0 0 0.5rem 0;">Patient Name</h1>
+                        <div style="display: flex; align-items: center; gap: 1rem; margin: 0 0 0.5rem 0;">
+                            <h1 id="profilePatientName" style="margin: 0;">Patient Name</h1>
+                            <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.9rem; border: none; background: transparent; color: var(--brand-primary); cursor: pointer;" onclick="window.editPatient(currentProfilePatientId)" title="Edit Patient">✏️</button>
+                        </div>
                         <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.9rem; color: var(--text-muted);">
                             <div><strong>ID:</strong> <span id="profilePatientId"></span></div>
                             <div><strong>Age:</strong> <span id="profilePatientAge"></span></div>
@@ -576,6 +579,7 @@
         <div class="modal-content">
             <h3 data-ar="إضافة دفعة مالية" data-en="Add Payment">Add Payment</h3>
             <form id="paymentForm">
+                <input type="hidden" id="paymentId">
                 <input type="hidden" id="paymentTreatmentId">
                 <input type="hidden" id="paymentPatientId">
                 <input type="hidden" id="paymentPatientName">
@@ -610,6 +614,7 @@
         <div class="modal-content">
             <h3 data-ar="إضافة روشتة" data-en="Add Prescription">Add Prescription</h3>
             <form id="prescriptionForm">
+                <input type="hidden" id="prescriptionId">
                 <div class="input-group">
                     <label for="prescMeds" data-ar="الأدوية (افصل بينها بفاصلة):" data-en="Medications (Comma separated):">Medications (Comma separated):</label>
                     <textarea id="prescMeds" rows="4" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);"></textarea>
@@ -662,6 +667,7 @@
         <div class="modal-content" style="max-width: 600px;">
             <h3 data-ar="إضافة كشف/زيارة" data-en="Add Clinical Visit">Add Clinical Visit</h3>
             <form id="visitForm">
+                <input type="hidden" id="visitId">
                 <div class="input-group">
                     <label for="visitChiefComplaint" data-ar="الشكوى الأساسية (Chief Complaint):" data-en="Chief Complaint:">Chief Complaint:</label>
                     <input type="text" id="visitChiefComplaint" required>
