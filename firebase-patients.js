@@ -15,13 +15,15 @@ if (openModalBtn) {
         patientForm.reset();
         document.getElementById('patientId').value = '';
         patientModal.classList.add('show');
+        history.pushState({ modal: 'patient' }, '', window.location.hash);
     });
 }
 
 // Close modal
 if (cancelBtn) {
     cancelBtn.addEventListener('click', () => {
-        patientModal.classList.remove('show');
+        if(window.closeModalAndPopState) window.closeModalAndPopState(patientModal);
+        else patientModal.classList.remove('show');
     });
 }
 
@@ -29,7 +31,8 @@ if (cancelBtn) {
 if (patientModal) {
     window.addEventListener('click', (event) => {
         if (event.target === patientModal) {
-            patientModal.classList.remove('show');
+            if(window.closeModalAndPopState) window.closeModalAndPopState(patientModal);
+            else patientModal.classList.remove('show');
         }
     });
 }
@@ -151,7 +154,8 @@ if (patientForm) {
                 window.updateDashboardStats();
             }
 
-            patientModal.classList.remove('show');
+            if(window.closeModalAndPopState) window.closeModalAndPopState(patientModal);
+            else patientModal.classList.remove('show');
         } catch (e) {
             console.error("Error saving patient: ", e);
             alert("Error saving patient data. Please try again.");
