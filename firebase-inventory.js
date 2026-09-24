@@ -1,13 +1,4 @@
-import { auth, db } from './firebase-config.js';
-import {
-    collection,
-    addDoc,
-    getDocs,
-    doc,
-    updateDoc,
-    deleteDoc,
-    onSnapshot
-} from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+import { auth, db, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot } from './firebase-config.js';
 
 // DOM Elements
 const inventoryModal = document.getElementById('inventoryModal');

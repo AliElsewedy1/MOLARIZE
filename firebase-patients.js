@@ -381,9 +381,6 @@ async function loadOdontogram(patientId) {
 
     try {
         const docRef = doc(db, 'users', user.uid, 'patients', patientId, 'records', 'odontogram');
-        const docSnap = await getDocs(collection(db, 'users', user.uid, 'patients', patientId, 'records')); // Actually, directly get doc
-
-        // Use modular getDoc
 
         const oDoc = await getDoc(docRef);
 
