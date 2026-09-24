@@ -510,12 +510,18 @@ document.getElementById('prescriptionForm').addEventListener('submit', async (e)
 
     const meds = document.getElementById('prescMeds').value;
 
+    const pId = document.getElementById('prescriptionId').value;
     try {
-        const ref = collection(db, 'users', user.uid, 'patients', currentProfilePatientId, 'prescriptions');
-        await addDoc(ref, {
-            medications: meds,
-            date: new Date().toISOString()
-        });
+        if (pId) {
+            const ref = doc(db, 'users', user.uid, 'patients', currentProfilePatientId, 'prescriptions', pId);
+            await updateDoc(ref, { medications: meds });
+        } else {
+            const ref = collection(db, 'users', user.uid, 'patients', currentProfilePatientId, 'prescriptions');
+            await addDoc(ref, {
+                medications: meds,
+                date: new Date().toISOString()
+            });
+        }
         window.closeModalAndPopState(prescriptionModal);
     } catch(err) {
         console.error(err);
@@ -557,13 +563,19 @@ document.getElementById('visitForm').addEventListener('submit', async (e) => {
     const complaint = document.getElementById('visitChiefComplaint').value;
     const notes = document.getElementById('visitNotes').value;
 
+    const vId = document.getElementById('visitId').value;
     try {
-        const ref = collection(db, 'users', user.uid, 'patients', currentProfilePatientId, 'visits');
-        await addDoc(ref, {
-            complaint,
-            notes,
-            timestamp: new Date().toISOString()
-        });
+        if (vId) {
+            const ref = doc(db, 'users', user.uid, 'patients', currentProfilePatientId, 'visits', vId);
+            await updateDoc(ref, { complaint, notes });
+        } else {
+            const ref = collection(db, 'users', user.uid, 'patients', currentProfilePatientId, 'visits');
+            await addDoc(ref, {
+                complaint,
+                notes,
+                timestamp: new Date().toISOString()
+            });
+        }
         window.closeModalAndPopState(document.getElementById('visitModal'));
         loadPatientTimeline(currentProfilePatientId);
     } catch(err) {
@@ -657,6 +669,10 @@ function renderTimeline(filter = 'all') {
             details = `
                 <p><strong>Chief Complaint:</strong> ${escapeHtml(event.data.complaint)}</p>
                 <p style="white-space: pre-wrap;"><strong>Notes:</strong><br>${escapeHtml(event.data.notes)}</p>
+                <div style="margin-top: 1rem;">
+                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.editVisit('${event.id}')">Edit</button>
+                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; color: var(--status-error); border-color: var(--status-error);" onclick="window.deleteVisit('${event.id}')">Delete</button>
+                </div>
             `;
         } else if (event.type === 'treatment') {
             icon = '🟣';
@@ -676,6 +692,8 @@ function renderTimeline(filter = 'all') {
                 <div>
                     ${rem > 0 ? `<button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.openPaymentModal('${event.id}', '${currentProfilePatientId}', '${document.getElementById('profilePatientName').innerText}', '${typeStr}')">Pay Now</button>` : ''}
                     <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.printInvoice('${event.id}', '${currentProfilePatientId}')">Print Invoice</button>
+                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.editTreatment('${event.id}')">Edit</button>
+                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; color: var(--status-error); border-color: var(--status-error);" onclick="window.deleteTreatment('${event.id}')">Delete</button>
                 </div>
             `;
         } else if (event.type === 'payment') {
@@ -685,12 +703,20 @@ function renderTimeline(filter = 'all') {
                 <p><strong>Amount:</strong> <span style="color: var(--status-completed); font-weight: bold;">${event.data.amount}</span></p>
                 <p><strong>Method:</strong> ${event.data.method}</p>
                 <p><strong>For Treatment:</strong> ${event.data.treatmentName}</p>
+                <div style="margin-top: 1rem;">
+                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.editPayment('${event.id}')">Edit</button>
+                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; color: var(--status-error); border-color: var(--status-error);" onclick="window.deletePayment('${event.id}', '${event.data.treatmentId}', ${parseFloat(event.data.amount) || 0})">Delete</button>
+                </div>
             `;
         } else if (event.type === 'prescription') {
             icon = '💊';
             title = 'Prescription';
             details = `
                 <p style="white-space: pre-wrap;"><strong>Medications:</strong><br>${escapeHtml(event.data.medications)}</p>
+                <div style="margin-top: 1rem;">
+                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.editPrescription('${event.id}')">Edit</button>
+                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; color: var(--status-error); border-color: var(--status-error);" onclick="window.deletePrescription('${event.id}')">Delete</button>
+                </div>
             `;
         }
 
@@ -739,49 +765,109 @@ if (cancelPaymentBtn) {
 
 const paymentForm = document.getElementById('paymentForm');
 if (paymentForm) {
+    // Store original amount when editing so we can adjust the treatment paidAmount correctly
+    let originalPaymentAmount = 0;
+
     paymentForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const user = auth.currentUser;
         if (!user) return;
 
+        const payId = document.getElementById('paymentId').value;
         const tId = document.getElementById('paymentTreatmentId').value;
         const pId = document.getElementById('paymentPatientId').value;
         const pName = document.getElementById('paymentPatientName').value || document.getElementById('profilePatientName').innerText;
         const tName = document.getElementById('paymentTreatmentName').value;
-        const amount = parseFloat(document.getElementById('paymentAmount').value);
+        const amount = parseFloat(document.getElementById('paymentAmount').value) || 0;
         const method = document.getElementById('paymentMethod').value;
         const date = document.getElementById('paymentDate').value;
 
         try {
-            // 1. Add to global payments ledger
-            const paymentsRef = collection(db, 'users', user.uid, 'payments');
-            await addDoc(paymentsRef, {
-                treatmentId: tId,
-                patientId: pId,
-                patientName: pName,
-                treatmentName: tName,
-                amount: amount,
-                method: method,
-                date: date,
-                createdAt: new Date().toISOString()
-            });
+            if (payId) {
+                // UPDATE EXISTING PAYMENT
+                const payRef = doc(db, 'users', user.uid, 'payments', payId);
+                await updateDoc(payRef, { amount, method, date });
 
-            // 2. Update paidAmount on global treatment document
-            const tRef = doc(db, 'users', user.uid, 'treatments', tId);
-            const tDoc = await getDoc(tRef);
-            if (tDoc.exists()) {
-                const currentPaid = parseFloat(tDoc.data().paidAmount) || 0;
-                await updateDoc(tRef, { paidAmount: currentPaid + amount });
+                // Adjust parent treatment paidAmount (subtract old, add new)
+                const tRef = doc(db, 'users', user.uid, 'treatments', tId);
+                const tDoc = await getDoc(tRef);
+                if (tDoc.exists()) {
+                    const currentPaid = parseFloat(tDoc.data().paidAmount) || 0;
+                    const newPaid = (currentPaid - originalPaymentAmount) + amount;
+                    await updateDoc(tRef, { paidAmount: newPaid });
+                }
+                alert('Payment updated successfully');
+            } else {
+                // CREATE NEW PAYMENT
+                const paymentsRef = collection(db, 'users', user.uid, 'payments');
+                await addDoc(paymentsRef, {
+                    treatmentId: tId,
+                    patientId: pId,
+                    patientName: pName,
+                    treatmentName: tName,
+                    amount: amount,
+                    method: method,
+                    date: date,
+                    createdAt: new Date().toISOString()
+                });
+
+                // Update paidAmount on global treatment document
+                const tRef = doc(db, 'users', user.uid, 'treatments', tId);
+                const tDoc = await getDoc(tRef);
+                if (tDoc.exists()) {
+                    const currentPaid = parseFloat(tDoc.data().paidAmount) || 0;
+                    await updateDoc(tRef, { paidAmount: currentPaid + amount });
+                }
+                alert('Payment added successfully');
             }
 
             window.closeModalAndPopState(document.getElementById('paymentModal'));
-            alert('Payment added successfully');
             loadPatientTimeline(pId);
         } catch (error) {
             console.error("Error saving payment", error);
             alert("Error saving payment.");
         }
     });
+
+    window.editPayment = function(id) {
+        const event = currentTimelineEvents.find(e => e.id === id && e.type === 'payment');
+        if (!event) return;
+
+        document.getElementById('paymentId').value = event.id;
+        document.getElementById('paymentTreatmentId').value = event.data.treatmentId;
+        document.getElementById('paymentPatientId').value = event.data.patientId;
+        document.getElementById('paymentAmount').value = event.data.amount;
+        document.getElementById('paymentMethod').value = event.data.method;
+        document.getElementById('paymentDate').value = event.data.date;
+
+        originalPaymentAmount = parseFloat(event.data.amount) || 0;
+
+        const paymentModal = document.getElementById('paymentModal');
+        paymentModal.classList.add('show');
+        history.pushState({ modal: 'payment' }, '', window.location.hash);
+    };
+
+    window.deletePayment = async function(payId, tId, amount) {
+        if (!confirm('Are you sure you want to delete this payment?')) return;
+        const user = auth.currentUser;
+        if (!user) return;
+
+        try {
+            // Delete payment
+            await deleteDoc(doc(db, 'users', user.uid, 'payments', payId));
+
+            // Adjust treatment paidAmount
+            const tRef = doc(db, 'users', user.uid, 'treatments', tId);
+            const tDoc = await getDoc(tRef);
+            if (tDoc.exists()) {
+                const currentPaid = parseFloat(tDoc.data().paidAmount) || 0;
+                await updateDoc(tRef, { paidAmount: Math.max(0, currentPaid - amount) });
+            }
+
+            loadPatientTimeline(currentProfilePatientId);
+        } catch(e) { console.error(e); }
+    };
+
 }
 
 // Print Invoice Logic
@@ -837,3 +923,51 @@ window.printInvoice = async function(tId, pId) {
         console.error("Error generating invoice", e);
     }
 };
+
+
+window.editVisit = function(id) {
+    const event = currentTimelineEvents.find(e => e.id === id && e.type === 'visit');
+    if (!event) return;
+    document.getElementById('visitId').value = event.id;
+    document.getElementById('visitChiefComplaint').value = event.data.complaint;
+    document.getElementById('visitNotes').value = event.data.notes;
+
+    const visitModal = document.getElementById('visitModal');
+    visitModal.classList.add('show');
+    history.pushState({ modal: 'visit' }, '', window.location.hash);
+};
+
+window.deleteVisit = async function(id) {
+    if (!confirm('Are you sure you want to delete this visit?')) return;
+    const user = auth.currentUser;
+    if (!user) return;
+    try {
+        await deleteDoc(doc(db, 'users', user.uid, 'patients', currentProfilePatientId, 'visits', id));
+        loadPatientTimeline(currentProfilePatientId);
+    } catch(e) { console.error(e); }
+};
+
+window.editPrescription = function(id) {
+    const event = currentTimelineEvents.find(e => e.id === id && e.type === 'prescription');
+    if (!event) return;
+    document.getElementById('prescriptionId').value = event.id;
+    document.getElementById('prescMeds').value = event.data.medications;
+
+    const pModal = document.getElementById('prescriptionModal');
+    pModal.classList.add('show');
+    history.pushState({ modal: 'prescription' }, '', window.location.hash);
+};
+
+window.deletePrescription = async function(id) {
+    if (!confirm('Are you sure you want to delete this prescription?')) return;
+    const user = auth.currentUser;
+    if (!user) return;
+    try {
+        await deleteDoc(doc(db, 'users', user.uid, 'patients', currentProfilePatientId, 'prescriptions', id));
+        loadPatientTimeline(currentProfilePatientId);
+    } catch(e) { console.error(e); }
+};
+
+;
+
+}
