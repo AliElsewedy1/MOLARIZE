@@ -1,0 +1,8 @@
+{
+  "name": "MOLARIZE",
+  "description": "Comprehensive dental clinic management system featuring patient records, appointment scheduling, treatment plans, odontogram, inventory tracking, and billing.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

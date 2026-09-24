@@ -3,7 +3,7 @@ import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, s
 import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-storage.js";
 
-const firebaseConfig = {
+let firebaseConfig = {
     apiKey: "AIzaSyDD3ouvrsyqwxorPWlQdKPgZACjUO5TiWs",
     authDomain: "ali-elsewedy-media.firebaseapp.com",
     projectId: "ali-elsewedy-media",
@@ -12,6 +12,18 @@ const firebaseConfig = {
     appId: "1:721258793080:web:968f77abee49198fa3c58d",
     measurementId: "G-1CNDBSB0P4"
 };
+
+try {
+    const res = await fetch('/api/firebase-config');
+    if (res.ok) {
+        const serverConfig = await res.json();
+        if (serverConfig && serverConfig.apiKey) {
+            firebaseConfig = serverConfig;
+        }
+    }
+} catch (err) {
+    // Keep fallback config
+}
 
 export const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);

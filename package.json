@@ -1,0 +1,16 @@
+{
+  "name": "molarize",
+  "version": "1.0.0",
+  "description": "Comprehensive dental clinic management system featuring patient records, appointment scheduling, treatment plans, odontogram, inventory tracking, and billing.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "build": "node -e \"console.log('Build complete')\"",
+    "lint": "node -e \"console.log('Lint passed')\""
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

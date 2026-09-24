@@ -1,3 +1,38 @@
+// Safe replacement for window.alert in iframe environments
+window.alert = function(message) {
+    console.warn("[MOLARIZE Alert]", message);
+    let toast = document.getElementById('molarize-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'molarize-toast';
+        toast.style.position = 'fixed';
+        toast.style.bottom = '24px';
+        toast.style.right = '24px';
+        toast.style.zIndex = '99999';
+        toast.style.padding = '12px 20px';
+        toast.style.borderRadius = '8px';
+        toast.style.backgroundColor = '#1e293b';
+        toast.style.color = '#f8fafc';
+        toast.style.border = '1px solid rgba(45, 212, 191, 0.4)';
+        toast.style.boxShadow = '0 10px 25px rgba(0,0,0,0.3)';
+        toast.style.fontFamily = "'Tajawal', sans-serif";
+        toast.style.fontSize = '14px';
+        toast.style.maxWidth = '360px';
+        toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+    clearTimeout(window._toastTimeout);
+    window._toastTimeout = setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+    }, 4000);
+};
+
 const themeToggle = document.getElementById('themeToggle');
 const htmlElement = document.documentElement;
 

@@ -967,7 +967,3 @@ window.deletePrescription = async function(id) {
         loadPatientTimeline(currentProfilePatientId);
     } catch(e) { console.error(e); }
 };
-
-;
-
-}
