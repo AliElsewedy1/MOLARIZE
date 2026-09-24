@@ -304,108 +304,107 @@
 
         <!-- Patient Profile Section -->
         <section id="patient-profile-section" class="app-section" style="display: none;">
-            <div class="table-header" style="margin-top:0;">
+            <div class="table-header" style="margin-top:0; margin-bottom: 1rem;">
                 <div>
                     <button class="btn-outline" id="backToPatientsBtn" data-ar="&larr; عودة للمرضى" data-en="&larr; Back to Patients">&larr; Back to Patients</button>
-                    <h1 id="profilePatientName" style="display: inline-block; margin-left: 1rem;">Patient Name</h1>
+                </div>
+                <div class="quick-actions">
+                    <button class="btn-primary" onclick="window.openVisitModal()" data-ar="+ زيارة جديدة" data-en="+ New Visit">+ New Visit</button>
+
                 </div>
             </div>
 
-            <div class="patient-info-card" style="background: var(--bg-surface); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid var(--border-color); display: flex; gap: 2rem; flex-wrap: wrap;">
-                <div><strong><span data-ar="رقم الملف:" data-en="ID:">ID:</span></strong> <span id="profilePatientId"></span></div>
-                <div><strong><span data-ar="العمر:" data-en="Age:">Age:</span></strong> <span id="profilePatientAge"></span></div>
-                <div><strong><span data-ar="النوع:" data-en="Gender:">Gender:</span></strong> <span id="profilePatientGender"></span></div>
-                <div><strong><span data-ar="الهاتف:" data-en="Phone:">Phone:</span></strong> <span id="profilePatientPhone"></span></div>
-            </div>
-
-            <!-- Profile Tabs -->
-            <div class="profile-tabs" style="display: flex; gap: 1rem; border-bottom: 2px solid var(--border-color); margin-bottom: 1.5rem;">
-                <button class="tab-btn active" data-tab="tab-odontogram" style="background: none; border: none; padding: 0.5rem 1rem; color: var(--text-primary); cursor: pointer; border-bottom: 3px solid transparent;" data-ar="مخطط الأسنان" data-en="Odontogram">Odontogram</button>
-                <button class="tab-btn" data-tab="tab-treatments" style="background: none; border: none; padding: 0.5rem 1rem; color: var(--text-primary); cursor: pointer; border-bottom: 3px solid transparent;" data-ar="خطط العلاج" data-en="Treatments">Treatments</button>
-                <button class="tab-btn" data-tab="tab-prescriptions" style="background: none; border: none; padding: 0.5rem 1rem; color: var(--text-primary); cursor: pointer; border-bottom: 3px solid transparent;" data-ar="الروشتات" data-en="Prescriptions">Prescriptions</button>
-            </div>
-
-            <div class="tab-content" id="tab-odontogram" style="display: block;">
-                <h3 data-ar="مخطط الأسنان" data-en="Interactive Odontogram">Interactive Odontogram</h3>
-                <div class="odontogram-container" style="display: flex; justify-content: center; margin-top: 2rem;">
-                    <!-- Upper Teeth -->
-                    <div style="display: flex; gap: 0.2rem; flex-wrap: wrap; justify-content: center;" id="upper-teeth">
-                        <!-- Teeth 18 to 28 -->
+            <!-- Glassmorphism Patient Info Card -->
+            <div class="patient-info-card glass-card" style="margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start;">
+                <div style="display: flex; gap: 1.5rem; align-items: center;">
+                    <div class="patient-avatar" style="width: 80px; height: 80px; background: var(--brand-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: #fff;">
+                        👤
                     </div>
-                </div>
-                <div class="odontogram-container" style="display: flex; justify-content: center; margin-top: 1rem; margin-bottom: 2rem;">
-                    <!-- Lower Teeth -->
-                    <div style="display: flex; gap: 0.2rem; flex-wrap: wrap; justify-content: center;" id="lower-teeth">
-                         <!-- Teeth 48 to 38 -->
+                    <div>
+                        <h1 id="profilePatientName" style="margin: 0 0 0.5rem 0;">Patient Name</h1>
+                        <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.9rem; color: var(--text-muted);">
+                            <div><strong>ID:</strong> <span id="profilePatientId"></span></div>
+                            <div><strong>Age:</strong> <span id="profilePatientAge"></span></div>
+                            <div><strong>Gender:</strong> <span id="profilePatientGender"></span></div>
+                            <div><strong>Phone:</strong> <span id="profilePatientPhone"></span></div>
+                        </div>
                     </div>
                 </div>
 
-                <div style="display: flex; gap: 1rem; justify-content: center; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <input type="radio" name="toothCondition" id="cond-normal" value="normal" checked>
-                        <label for="cond-normal" data-ar="سليم" data-en="Normal">Normal</label>
+                <div style="display: flex; flex-direction: column; gap: 1rem; align-items: flex-end;">
+                    <div class="alert-box" id="profileMedicalAlertsBox" style="display: none; background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--status-error); padding: 0.5rem 1rem; border-radius: 4px;">
+                        <strong style="color: var(--status-error);" data-ar="⚠️ تحذير طبي:" data-en="⚠️ Medical Alert:">⚠️ Medical Alert:</strong>
+                        <span id="profileMedicalAlerts" style="color: var(--text-primary); margin-left: 0.5rem;"></span>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <input type="radio" name="toothCondition" id="cond-decay" value="decay">
-                        <label for="cond-decay" data-ar="تسوس" data-en="Decay" style="color: #ef4444;">Decay</label>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <input type="radio" name="toothCondition" id="cond-filled" value="filled">
-                        <label for="cond-filled" data-ar="حشو" data-en="Filled" style="color: #3b82f6;">Filled</label>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <input type="radio" name="toothCondition" id="cond-missing" value="missing">
-                        <label for="cond-missing" data-ar="مخلوع" data-en="Missing" style="color: #6b7280;">Missing</label>
-                    </div>
-                </div>
-
-                <div style="text-align: center;">
-                    <button class="btn-primary" id="saveOdontogramBtn" data-ar="حفظ المخطط" data-en="Save Odontogram">Save Odontogram</button>
                 </div>
             </div>
 
-            <div class="tab-content" id="tab-treatments" style="display: none;">
-                <div class="table-header">
-                    <h3 data-ar="خطط العلاج" data-en="Treatment Plans">Treatment Plans</h3>
-                    <button class="btn-primary" id="addProfileTreatmentBtn" data-ar="+ إضافة علاج" data-en="+ Add Treatment">+ Add Treatment</button>
-                </div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th data-ar="النوع" data-en="Type">Type</th>
-                                <th data-ar="الإجمالي" data-en="Total Cost">Total Cost</th>
-                                <th data-ar="المدفوع" data-en="Paid">Paid</th>
-                                <th data-ar="المتبقي" data-en="Remaining">Remaining</th>
-                                <th data-ar="الحالة" data-en="Status">Status</th>
-                                <th data-ar="الإجراءات" data-en="Actions">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="profile-treatments-body"></tbody>
-                    </table>
+            <!-- Collapsible Odontogram -->
+            <div class="collapsible-section" style="margin-bottom: 1.5rem;">
+                <button class="collapsible-btn" id="toggleOdontogramBtn" style="width: 100%; text-align: left; background: var(--bg-surface); border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px; font-weight: bold; color: var(--text-primary); cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                    <span data-ar="🦷 مخطط الأسنان (Odontogram)" data-en="🦷 Odontogram">🦷 Odontogram</span>
+                    <span id="odontogramIcon">▼</span>
+                </button>
+                <div class="collapsible-content" id="odontogramContent" style="display: none; padding: 1rem; background: var(--bg-surface); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 8px 8px;">
+                    <div class="odontogram-container" style="display: flex; justify-content: center; margin-top: 1rem;">
+                        <div style="display: flex; gap: 0.2rem; flex-wrap: wrap; justify-content: center;" id="upper-teeth"></div>
+                    </div>
+                    <div class="odontogram-container" style="display: flex; justify-content: center; margin-top: 1rem; margin-bottom: 2rem;">
+                        <div style="display: flex; gap: 0.2rem; flex-wrap: wrap; justify-content: center;" id="lower-teeth"></div>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; justify-content: center; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="radio" name="toothCondition" id="cond-normal" value="normal" checked>
+                            <label for="cond-normal" data-ar="سليم" data-en="Normal">Normal</label>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="radio" name="toothCondition" id="cond-decay" value="decay">
+                            <label for="cond-decay" data-ar="تسوس" data-en="Decay" style="color: #ef4444;">Decay</label>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="radio" name="toothCondition" id="cond-filled" value="filled">
+                            <label for="cond-filled" data-ar="حشو" data-en="Filled" style="color: #3b82f6;">Filled</label>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="radio" name="toothCondition" id="cond-missing" value="missing">
+                            <label for="cond-missing" data-ar="مخلوع" data-en="Missing" style="color: #6b7280;">Missing</label>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <button class="btn-primary" id="saveOdontogramBtn" data-ar="حفظ المخطط" data-en="Save Odontogram">Save Odontogram</button>
+                    </div>
                 </div>
             </div>
 
-            <div class="tab-content" id="tab-prescriptions" style="display: none;">
-                <div class="table-header">
-                    <h3 data-ar="الروشتات" data-en="Prescriptions">Prescriptions</h3>
-                    <button class="btn-primary" id="addProfilePrescriptionBtn" data-ar="+ إضافة روشتة" data-en="+ Add Prescription">+ Add Prescription</button>
+            <!-- Interactive Timeline Section -->
+            <div class="timeline-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+                <h2 data-ar="المسار الزمني (Timeline)" data-en="Patient Timeline">Patient Timeline</h2>
+
+                <div class="filter-chips" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button class="chip active" data-filter="all" data-ar="الكل" data-en="All">All</button>
+                    <button class="chip" data-filter="visit" data-ar="🔵 الزيارات" data-en="🔵 Visits">🔵 Visits</button>
+
+                    <button class="chip" data-filter="treatment" data-ar="🟣 العلاجات" data-en="🟣 Treatments">🟣 Treatments</button>
+                    <button class="chip" data-filter="payment" data-ar="🟢 المدفوعات" data-en="🟢 Payments">🟢 Payments</button>
                 </div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th data-ar="التاريخ" data-en="Date">Date</th>
-                                <th data-ar="الأدوية" data-en="Medications">Medications</th>
-                            </tr>
-                        </thead>
-                        <tbody id="profile-prescriptions-body"></tbody>
-                    </table>
-                </div>
+            </div>
+
+            <div class="patient-timeline-container" id="patientTimelineContainer">
+                <!-- Timeline items injected via JS -->
+                <div style="text-align: center; color: var(--text-muted); padding: 2rem;">Loading timeline...</div>
+            </div>
+
+            <!-- Legacy Tabs (Hidden but kept for data logic structure if needed, or we just rely on timeline) -->
+            <div style="display: none;">
+                <button id="addProfileTreatmentBtn"></button>
+                <button id="addProfilePrescriptionBtn"></button>
+                <tbody id="profile-treatments-body"></tbody>
+                <tbody id="profile-prescriptions-body"></tbody>
             </div>
 
         </section>
-
         <!-- Settings Section -->
         <section id="settings-section" class="app-section" style="display: none;">
             <h1 data-ar="الإعدادات" data-en="Settings">Settings</h1>
@@ -459,6 +458,12 @@
                         </select>
                     </div>
                 </div>
+
+                <div class="input-group">
+                    <label for="medicalAlerts" data-ar="التحذيرات الطبية (سيولة، سكر، حساسية...):" data-en="Medical Alerts (Bleeding, Diabetes...):">Medical Alerts (Bleeding, Diabetes...):</label>
+                    <textarea id="medicalAlerts" rows="2" style="width: 100%; padding: 0.75rem; border: 1px solid var(--status-error); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);"></textarea>
+                </div>
+
                 <div class="input-group">
                     <label for="lastVisit" data-ar="آخر زيارة:" data-en="Last Visit:">Last Visit:</label>
                     <input type="date" id="lastVisit" required>
@@ -623,6 +628,30 @@
     <script type="module" src="firebase-app-data.js"></script>
     <script type="module" src="firebase-patients.js"></script>
     <script type="module" src="firebase-inventory.js"></script>
+
+
+    <!-- Modal for Visits -->
+    <div id="visitModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <h3 data-ar="إضافة كشف/زيارة" data-en="Add Clinical Visit">Add Clinical Visit</h3>
+            <form id="visitForm">
+                <div class="input-group">
+                    <label for="visitChiefComplaint" data-ar="الشكوى الأساسية (Chief Complaint):" data-en="Chief Complaint:">Chief Complaint:</label>
+                    <input type="text" id="visitChiefComplaint" required>
+                </div>
+                <div class="input-group">
+                    <label for="visitNotes" data-ar="التشخيص والملاحظات (Clinical Notes):" data-en="Diagnosis & Notes:">Diagnosis & Notes:</label>
+                    <textarea id="visitNotes" rows="4" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);" required></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="window.closeModalAndPopState(document.getElementById('visitModal'))" data-ar="إلغاء" data-en="Cancel">Cancel</button>
+                    <button type="submit" class="btn-primary" id="saveVisitBtn" data-ar="حفظ الزيارة" data-en="Save Visit">Save Visit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
 
     <!-- Hidden Printable Invoice -->
     <div id="print-invoice-container" style="display: none;">

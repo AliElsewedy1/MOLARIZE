@@ -210,6 +210,24 @@ document.addEventListener('DOMContentLoaded', () => {
         lowerTeethContainer.innerHTML = lowerTeethHTML;
     }
 
+
+    // Odontogram Collapse Logic
+    const toggleOdontogramBtn = document.getElementById('toggleOdontogramBtn');
+    const odontogramContent = document.getElementById('odontogramContent');
+    const odontogramIcon = document.getElementById('odontogramIcon');
+
+    if (toggleOdontogramBtn && odontogramContent) {
+        toggleOdontogramBtn.addEventListener('click', () => {
+            if (odontogramContent.style.display === 'none') {
+                odontogramContent.style.display = 'block';
+                odontogramIcon.innerText = '▲';
+            } else {
+                odontogramContent.style.display = 'none';
+                odontogramIcon.innerText = '▼';
+            }
+        });
+    }
+
     // Tab Switching Logic
     const tabBtns = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
