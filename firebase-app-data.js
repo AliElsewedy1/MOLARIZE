@@ -888,6 +888,8 @@ function initChart() {
 
 
 // --- Ledger Logic ---
+let globalPaymentsList = [];
+
 function setupGlobalLedger() {
     const user = auth.currentUser;
     if (!user) return;
@@ -904,9 +906,9 @@ function setupGlobalLedger() {
         const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
         const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
 
-        const sorted = snapshot.docs.map(d => d.data()).sort((a,b) => new Date(b.date) - new Date(a.date));
+        globalPaymentsList = snapshot.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => new Date(b.date) - new Date(a.date));
 
-        sorted.forEach(data => {
+        globalPaymentsList.forEach(data => {
             const amount = parseFloat(data.amount) || 0;
             const dateIso = new Date(data.date).toISOString();
 
@@ -928,5 +930,198 @@ function setupGlobalLedger() {
             document.getElementById('ledger-today-revenue').innerText = todayRev;
             document.getElementById('ledger-month-revenue').innerText = monthRev;
         }
+
+        renderOutstandingBalancesTable();
     });
 }
+
+// Render Outstanding balances table
+function renderOutstandingBalancesTable() {
+    const tbody = document.getElementById('outstanding-balances-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const isAr = document.documentElement.lang === 'ar';
+    let totalOutstanding = 0;
+    const pendingWithBalance = currentTreatments.filter(t => {
+        const cost = parseFloat(t.cost) || 0;
+        const paid = parseFloat(t.paidAmount) || 0;
+        return (cost - paid) > 0;
+    });
+
+    if (pendingWithBalance.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">${isAr ? 'لا توجد مبالغ متبقية، كل الحسابات مسددة بالكامل 🎉' : 'No outstanding balances found! All paid in full 🎉'}</td></tr>`;
+        return;
+    }
+
+    pendingWithBalance.forEach(t => {
+        const cost = parseFloat(t.cost) || 0;
+        const paid = parseFloat(t.paidAmount) || 0;
+        const rem = cost - paid;
+        totalOutstanding += rem;
+
+        tbody.innerHTML += `
+            <tr>
+                <td style="font-weight: 600; color: var(--brand-primary); cursor: pointer;" onclick="if(window.openPatientProfile && '${t.patientId}') window.openPatientProfile('${t.patientId}')">${t.patientName}</td>
+                <td>${t.treatmentType || t.type}</td>
+                <td>${cost}</td>
+                <td style="color: var(--status-completed);">${paid}</td>
+                <td style="color: var(--status-error); font-weight: bold;">${rem}</td>
+                <td>
+                    <button class="btn-primary" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;" onclick="if(window.openPaymentModal) window.openPaymentModal('${t.id}', '${t.patientId || ''}', '${t.patientName}', '${t.treatmentType || t.type}')">${isAr ? 'تحصيل الآن' : 'Pay Now'}</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    const outDisplay = document.getElementById('ledger-outstanding');
+    if (outDisplay) outDisplay.innerText = totalOutstanding;
+}
+
+// Payments Ledger & Outstanding Tabs Toggle
+const tabLedgerAll = document.getElementById('tabLedgerAll');
+const tabLedgerBalances = document.getElementById('tabLedgerBalances');
+const ledgerMainTable = document.getElementById('ledgerMainTable');
+const outstandingBalancesTable = document.getElementById('outstandingBalancesTable');
+
+if (tabLedgerAll && tabLedgerBalances) {
+    tabLedgerAll.addEventListener('click', () => {
+        tabLedgerAll.classList.add('active');
+        tabLedgerBalances.classList.remove('active');
+        ledgerMainTable.style.display = 'table';
+        outstandingBalancesTable.style.display = 'none';
+    });
+
+    tabLedgerBalances.addEventListener('click', () => {
+        tabLedgerBalances.classList.add('active');
+        tabLedgerAll.classList.remove('active');
+        ledgerMainTable.style.display = 'none';
+        outstandingBalancesTable.style.display = 'table';
+        renderOutstandingBalancesTable();
+    });
+}
+
+// Export Ledger CSV
+const exportLedgerCsvBtn = document.getElementById('exportLedgerCsvBtn');
+if (exportLedgerCsvBtn) {
+    exportLedgerCsvBtn.addEventListener('click', () => {
+        if (!globalPaymentsList || globalPaymentsList.length === 0) {
+            const isAr = document.documentElement.lang === 'ar';
+            if (window.showToast) window.showToast(isAr ? 'لا توجد معاملات مالية للتصدير' : 'No transactions to export', 'warning');
+            return;
+        }
+
+        const headers = ['Date', 'Patient Name', 'Treatment', 'Amount', 'Method'];
+        const rows = globalPaymentsList.map(p => [
+            `"${(p.date || '')}"`,
+            `"${(p.patientName || '').replace(/"/g, '""')}"`,
+            `"${(p.treatmentName || '').replace(/"/g, '""')}"`,
+            `"${(p.amount || 0)}"`,
+            `"${(p.method || '')}"`
+        ]);
+
+        const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Molarize_Ledger_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    });
+}
+
+// --- Schedule Filter Toolbar & Day List Logic with WhatsApp Reminder ---
+const filterCalAll = document.getElementById('filterCalAll');
+const filterCalToday = document.getElementById('filterCalToday');
+const filterCalTomorrow = document.getElementById('filterCalTomorrow');
+const dayAppointmentsListView = document.getElementById('dayAppointmentsListView');
+const mainCalendarWrapper = document.getElementById('mainCalendarWrapper');
+const dayAppointmentsTableBody = document.getElementById('dayAppointmentsTableBody');
+const dayListTitle = document.getElementById('dayListTitle');
+
+function renderFocusedDayList(targetDateIso, titleText) {
+    if (!dayAppointmentsTableBody) return;
+    dayAppointmentsTableBody.innerHTML = '';
+    if (dayListTitle) dayListTitle.innerText = titleText;
+
+    const filtered = currentAppointments
+        .filter(a => a.date === targetDateIso)
+        .sort((a,b) => (a.time || '').localeCompare(b.time || ''));
+
+    const isAr = document.documentElement.lang === 'ar';
+
+    if (filtered.length === 0) {
+        dayAppointmentsTableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">${isAr ? 'لا توجد مواعيد مسجلة لهذا اليوم' : 'No appointments scheduled for this day.'}</td></tr>`;
+        return;
+    }
+
+    filtered.forEach(appt => {
+        // Find patient phone
+        const patient = (window.currentPatients || []).find(p => p.id === appt.patientId || p.name === appt.patientName);
+        const phone = patient ? (patient.phone || '-') : '-';
+        const cleanPhone = String(phone).replace(/\D/g, '');
+        const waPhone = cleanPhone.startsWith('0') ? '2' + cleanPhone : '20' + cleanPhone;
+
+        const reminderMsg = isAr ? 
+            `مرحباً ${appt.patientName}، نذكرك بموعدك في عيادة الأسنان اليوم في تمام الساعة ${appt.time}. نتمنى لك دوام الصحة والعافية.` :
+            `Hello ${appt.patientName}, this is a gentle reminder of your dental appointment today at ${appt.time}. See you soon!`;
+
+        const waLink = cleanPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(reminderMsg)}` : '#';
+
+        dayAppointmentsTableBody.innerHTML += `
+            <tr>
+                <td style="font-weight: 700; color: var(--brand-primary);">${appt.time}</td>
+                <td style="font-weight: 600; cursor: pointer;" onclick="if(window.openPatientProfile && '${appt.patientId || ''}') window.openPatientProfile('${appt.patientId}')">${appt.patientName}</td>
+                <td>${phone}</td>
+                <td>
+                    ${cleanPhone ? `
+                    <a href="${waLink}" target="_blank" class="btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; text-decoration: none; color: #25D366; border-color: rgba(37, 211, 102, 0.4); display: inline-flex; align-items: center; gap: 4px;">
+                        💬 ${isAr ? 'إرسال تذكير واتساب' : 'Send WA Reminder'}
+                    </a>` : `<span style="color: var(--text-muted); font-size: 0.8rem;">-</span>`}
+                </td>
+                <td>
+                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; color: var(--status-error); border-color: var(--status-error);" onclick="window.deleteAppointmentFromCalendar('${appt.id}')">${isAr ? 'إلغاء الموعد' : 'Cancel'}</button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+if (filterCalAll && filterCalToday && filterCalTomorrow) {
+    filterCalAll.addEventListener('click', () => {
+        filterCalAll.classList.add('active');
+        filterCalToday.classList.remove('active');
+        filterCalTomorrow.classList.remove('active');
+        if (dayAppointmentsListView) dayAppointmentsListView.style.display = 'none';
+        if (mainCalendarWrapper) mainCalendarWrapper.style.display = 'block';
+        if (calendarInstance) calendarInstance.render();
+    });
+
+    filterCalToday.addEventListener('click', () => {
+        filterCalToday.classList.add('active');
+        filterCalAll.classList.remove('active');
+        filterCalTomorrow.classList.remove('active');
+        if (mainCalendarWrapper) mainCalendarWrapper.style.display = 'none';
+        if (dayAppointmentsListView) dayAppointmentsListView.style.display = 'block';
+        const todayIso = new Date().toISOString().split('T')[0];
+        const isAr = document.documentElement.lang === 'ar';
+        renderFocusedDayList(todayIso, isAr ? 'مواعيد اليوم (مع تذكير الواتساب)' : "Today's Appointments (with WhatsApp Reminder)");
+    });
+
+    filterCalTomorrow.addEventListener('click', () => {
+        filterCalTomorrow.classList.add('active');
+        filterCalAll.classList.remove('active');
+        filterCalToday.classList.remove('active');
+        if (mainCalendarWrapper) mainCalendarWrapper.style.display = 'none';
+        if (dayAppointmentsListView) dayAppointmentsListView.style.display = 'block';
+        const tmrw = new Date();
+        tmrw.setDate(tmrw.getDate() + 1);
+        const tomorrowIso = tmrw.toISOString().split('T')[0];
+        const isAr = document.documentElement.lang === 'ar';
+        renderFocusedDayList(tomorrowIso, isAr ? 'مواعيد الغد (مع تذكير الواتساب)' : "Tomorrow's Appointments (with WhatsApp Reminder)");
+    });
+}
+

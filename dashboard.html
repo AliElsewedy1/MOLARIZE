@@ -239,7 +239,10 @@
         <section id="patients-section" class="app-section" style="display: none;">
             <div class="table-header" style="margin-top:0;">
                 <h1 data-ar="إدارة المرضى" data-en="Patient Management">Patient Management</h1>
-                <button class="btn-primary" id="openModalBtn" data-ar="+ إضافة مريض جديد" data-en="+ Add New Patient">+ Add New Patient</button>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button class="btn-outline" id="exportPatientsCsvBtn" style="display: inline-flex; align-items: center; gap: 5px;" data-ar="📥 تصدير Excel/CSV" data-en="📥 Export CSV">📥 Export CSV</button>
+                    <button class="btn-primary" id="openModalBtn" data-ar="+ إضافة مريض جديد" data-en="+ Add New Patient">+ Add New Patient</button>
+                </div>
             </div>
             <p data-ar="هنا يمكنك عرض وتعديل بيانات المرضى المسجلين بالعيادة." data-en="Here you can view and edit registered patients' data.">Here you can view and edit registered patients' data.</p>
 
@@ -275,10 +278,45 @@
         <section id="schedule-section" class="app-section" style="display: none;">
             <div class="table-header" style="margin-top:0;">
                 <h1 data-ar="المواعيد" data-en="Appointments">Appointments</h1>
-                <button class="btn-primary" id="openAppointmentModalBtn" data-ar="+ إضافة موعد" data-en="+ Add Appointment">+ Add Appointment</button>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button class="btn-primary" id="openAppointmentModalBtn" data-ar="+ إضافة موعد" data-en="+ Add Appointment">+ Add Appointment</button>
+                </div>
             </div>
 
-            <div class="calendar-container">
+            <!-- Schedule Filter Toolbar -->
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                <div class="filter-chips" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button class="chip active" id="filterCalAll" data-ar="التقويم الكامل" data-en="Full Calendar">Full Calendar</button>
+                    <button class="chip" id="filterCalToday" data-ar="مواعيد اليوم" data-en="Today's List">Today's List</button>
+                    <button class="chip" id="filterCalTomorrow" data-ar="مواعيد الغد" data-en="Tomorrow's List">Tomorrow's List</button>
+                </div>
+                <div id="quickTodayCountBadge" style="font-size: 0.85rem; color: var(--brand-primary); font-weight: 600;"></div>
+            </div>
+
+            <!-- Focused Day List View (for Today / Tomorrow with WhatsApp Reminder) -->
+            <div id="dayAppointmentsListView" style="display: none; margin-bottom: 1.5rem;">
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 id="dayListTitle" data-ar="قائمة المواعيد" data-en="Appointments List">Appointments List</h3>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th data-ar="الوقت" data-en="Time">Time</th>
+                                <th data-ar="المريض" data-en="Patient">Patient</th>
+                                <th data-ar="رقم الهاتف" data-en="Phone">Phone</th>
+                                <th data-ar="تذكير واتساب" data-en="WhatsApp Reminder">WhatsApp Reminder</th>
+                                <th data-ar="الإجراءات" data-en="Actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dayAppointmentsTableBody">
+                            <!-- Injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="calendar-container" id="mainCalendarWrapper">
                 <div id="calendar"></div>
             </div>
         </section>
@@ -305,10 +343,16 @@
             </div>
 
             <div class="table-container" style="margin-top: 2rem;">
-                <div class="table-header">
-                    <h3 data-ar="سجل المعاملات المالي" data-en="Transaction Ledger">Transaction Ledger</h3>
+                <div class="table-header" style="flex-wrap: wrap; gap: 1rem;">
+                    <div class="filter-chips" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="chip active" id="tabLedgerAll" data-ar="سجل المدفوعات" data-en="Payment Transactions">Payment Transactions</button>
+                        <button class="chip" id="tabLedgerBalances" data-ar="⚠️ مبالغ متبقية على المرضى" data-en="⚠️ Outstanding Balances">⚠️ Outstanding Balances</button>
+                    </div>
+                    <button class="btn-outline" id="exportLedgerCsvBtn" style="font-size: 0.85rem;" data-ar="📥 تصدير السجل CSV" data-en="📥 Export Ledger CSV">📥 Export Ledger CSV</button>
                 </div>
-                <table>
+
+                <!-- Payments Ledger Table -->
+                <table id="ledgerMainTable">
                     <thead>
                         <tr>
                             <th data-ar="التاريخ" data-en="Date">Date</th>
@@ -319,6 +363,22 @@
                         </tr>
                     </thead>
                     <tbody id="ledger-table-body">
+                    </tbody>
+                </table>
+
+                <!-- Outstanding Balances Table -->
+                <table id="outstandingBalancesTable" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th data-ar="المريض" data-en="Patient">Patient</th>
+                            <th data-ar="العلاج" data-en="Treatment">Treatment</th>
+                            <th data-ar="إجمالي التكلفة" data-en="Total Cost">Total Cost</th>
+                            <th data-ar="المدفوع" data-en="Paid">Paid</th>
+                            <th data-ar="المتبقي" data-en="Remaining Balance">Remaining Balance</th>
+                            <th data-ar="تحصيل" data-en="Action">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="outstanding-balances-table-body">
                     </tbody>
                 </table>
             </div>
@@ -333,7 +393,10 @@
         <section id="inventory-section" class="app-section" style="display: none;">
             <div class="table-header" style="margin-top:0;">
                 <h1 data-ar="إدارة المخزون" data-en="Inventory Management">Inventory Management</h1>
-                <button class="btn-primary" id="openInventoryModalBtn" data-ar="+ إضافة مادة" data-en="+ Add Item">+ Add Item</button>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button class="btn-outline" id="exportInventoryCsvBtn" style="display: inline-flex; align-items: center; gap: 5px;" data-ar="📥 تصدير المخزون CSV" data-en="📥 Export Inventory">📥 Export Inventory</button>
+                    <button class="btn-primary" id="openInventoryModalBtn" data-ar="+ إضافة مادة" data-en="+ Add Item">+ Add Item</button>
+                </div>
             </div>
             <p data-ar="تتبع كميات المواد والأدوات الطبية وتنبيهات النواقص." data-en="Track medical supplies, materials, and low-stock alerts.">Track medical supplies, materials, and low-stock alerts.</p>
 
@@ -408,7 +471,7 @@
                         </div>
                         <!-- Compact Medical Alert under patient details -->
                         <div class="alert-box profile-alert-compact" id="profileMedicalAlertsBox" style="display: none; margin-top: 0.6rem; background: rgba(239, 68, 68, 0.1); border-left: 3px solid var(--status-error); padding: 0.3rem 0.65rem; border-radius: 6px; font-size: 0.82rem; align-items: center; width: fit-content; max-width: 100%;">
-                            <strong style="color: var(--status-error); font-size: 0.82rem;" data-ar="⚠️ تنبيه طبي:" data-en="⚠️ Alert:">⚠️ تنبيه طبي:</strong>
+                            <strong style="color: var(--status-error); font-size: 0.82rem;" data-ar="⚠️ تنبيه طبي:" data-en="⚠️ Medical Alert:">⚠️ Medical Alert:</strong>
                             <span id="profileMedicalAlerts" style="color: var(--text-primary); margin-inline-start: 0.35rem; font-size: 0.82rem; font-weight: 500;"></span>
                         </div>
                     </div>
@@ -453,6 +516,28 @@
 
                     <div style="text-align: center;">
                         <button class="btn-primary" id="saveOdontogramBtn" data-ar="حفظ المخطط" data-en="Save Odontogram">Save Odontogram</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Collapsible Clinical Photos & X-Rays Gallery -->
+            <div class="collapsible-section" style="margin-bottom: 1.5rem;">
+                <button class="collapsible-btn" id="toggleGalleryBtn" style="width: 100%; text-align: left; background: var(--bg-surface); border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px; font-weight: bold; color: var(--text-primary); cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                    <span data-ar="🖼️ صور الأشعة ومستندات الحالة (X-Rays & Gallery)" data-en="🖼️ X-Rays & Clinical Photos">🖼️ X-Rays & Clinical Photos</span>
+                    <span id="galleryIcon">▼</span>
+                </button>
+                <div class="collapsible-content" id="galleryContent" style="display: none; padding: 1rem; background: var(--bg-surface); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 8px 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+                        <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted);" data-ar="يمكنك رفع صور الأشعة البانورامية (OPG) أو صور قبل/بعد العلاج." data-en="Upload panoramic X-Rays (OPG), periapical films, or before/after photos.">Upload panoramic X-Rays (OPG), periapical films, or before/after photos.</p>
+                        <div>
+                            <input type="file" id="patientImageFileInput" accept="image/*" style="display: none;">
+                            <button type="button" class="btn-primary" id="triggerUploadImageBtn" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;" data-ar="📷 + رفع صورة / أشعة" data-en="📷 + Upload Image">📷 + Upload Image</button>
+                        </div>
+                    </div>
+                    
+                    <div id="patientGalleryGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem;">
+                        <!-- Injected by JS -->
+                        <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 1rem;" data-ar="لا توجد صور مرفوعة لهذا المريض بعد" data-en="No photos or X-Rays uploaded yet">No photos or X-Rays uploaded yet</div>
                     </div>
                 </div>
             </div>
@@ -595,6 +680,15 @@
                 <div class="input-group">
                     <label for="treatmentType" data-ar="نوع العلاج:" data-en="Treatment Type:">Treatment Type:</label>
                     <input type="text" id="treatmentType" required>
+                    <!-- Quick Treatment Templates -->
+                    <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.4rem;">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); width: 100%;" data-ar="قوالب سريعة:" data-en="Quick templates:">Quick templates:</span>
+                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Composite Filling (حشو تجميلي)" data-cost="500">حشو تجميلي</button>
+                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Root Canal Treatment (علاج عصب)" data-cost="1200">علاج عصب</button>
+                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Teeth Scaling & Polishing (تنظيف وتلميع)" data-cost="400">تنظيف وتلميع</button>
+                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Simple Extraction (خلع بسيط)" data-cost="350">خلع بسيط</button>
+                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Zirconia Crown (طربوش زيركون)" data-cost="1800">طربوش زيركون</button>
+                    </div>
                 </div>
                 <div class="input-group">
                     <label for="treatmentCost" data-ar="التكلفة:" data-en="Cost:">Cost:</label>
@@ -688,10 +782,31 @@
     <div id="prescriptionModal" class="modal">
         <div class="modal-content">
             <h3 data-ar="إضافة روشتة" data-en="Add Prescription">Add Prescription</h3>
+
+            <!-- Drug Allergies Warning Banner -->
+            <div id="prescAllergyWarning" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid var(--status-error); border-radius: 8px; padding: 0.6rem 0.8rem; margin-bottom: 1rem; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.2rem;">⚠️</span>
+                <div>
+                    <strong style="color: var(--status-error); font-size: 0.85rem;" data-ar="تحذير حساسية أدوية:" data-en="Drug Allergy Warning:">Drug Allergy Warning:</strong>
+                    <div id="prescAllergyText" style="font-size: 0.82rem; color: var(--text-primary); font-weight: 600;"></div>
+                </div>
+            </div>
+
             <form id="prescriptionForm">
                 <input type="hidden" id="prescriptionId">
                 <div class="input-group">
-                    <label for="prescMeds" data-ar="الأدوية (افصل بينها بفاصلة):" data-en="Medications (Comma separated):">Medications (Comma separated):</label>
+                    <label for="prescMeds" data-ar="الأدوية (افصل بينها بفاصلة أو سطر جديد):" data-en="Medications (Comma separated):">Medications (Comma separated):</label>
+                    
+                    <!-- Quick Medication Templates -->
+                    <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); width: 100%;" data-ar="أدوية شائعة بنقرة واحدة:" data-en="Quick common meds:">Quick common meds:</span>
+                        <button type="button" class="btn-outline quick-med-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-med="Augmentin 1g tab (1 tab every 12 hrs)">أوجمنتين 1 جم</button>
+                        <button type="button" class="btn-outline quick-med-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-med="Cataflam 50mg tab (1 tab after meals TID)">كتافلام 50 مجم</button>
+                        <button type="button" class="btn-outline quick-med-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-med="Panadol Extra (1-2 tab when needed)">بانادول إكسترا</button>
+                        <button type="button" class="btn-outline quick-med-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-med="Flagyl 500mg tab (1 tab TID)">فلاجيل 500 مجم</button>
+                        <button type="button" class="btn-outline quick-med-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-med="Chlorhexidine 0.12% Mouthwash (Rinse BID)">غسول كلورهيكسيدين</button>
+                    </div>
+
                     <textarea id="prescMeds" rows="4" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);"></textarea>
                 </div>
                 <div class="modal-actions">
@@ -746,10 +861,21 @@
                 <input type="hidden" id="visitId">
                 <div class="input-group">
                     <label for="visitChiefComplaint" data-ar="الشكوى الأساسية (Chief Complaint):" data-en="Chief Complaint:">Chief Complaint:</label>
+                    <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.4rem;">
+                        <button type="button" class="btn-outline quick-complaint-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Severe toothache with cold & hot drinks (ألم شديد مع المشروبات الباردة والساخنة)">ألم شديد بالسن</button>
+                        <button type="button" class="btn-outline quick-complaint-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Bleeding gums & calculus buildup (نزيف اللثة وتراكم الجير)">نزيف لثة وتراكم جير</button>
+                        <button type="button" class="btn-outline quick-complaint-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Broken tooth / lost filling (كسر بالسن أو سقوط حشوة قديمة)">كسر بالسن / حشوة</button>
+                        <button type="button" class="btn-outline quick-complaint-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Routine dental checkup (كشف دوري واطمئنان)">فحص دوري</button>
+                    </div>
                     <input type="text" id="visitChiefComplaint" required>
                 </div>
                 <div class="input-group">
                     <label for="visitNotes" data-ar="التشخيص والملاحظات (Clinical Notes):" data-en="Diagnosis & Notes:">Diagnosis & Notes:</label>
+                    <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.4rem;">
+                        <button type="button" class="btn-outline quick-notes-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Irreversible pulpitis. Indicated for root canal treatment.">عصب غير رجعي (RCT)</button>
+                        <button type="button" class="btn-outline quick-notes-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Class II dental caries. Cavity prepped and composite restoration done.">تسوس عميق (حشو تجميلي)</button>
+                        <button type="button" class="btn-outline quick-notes-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Generalized marginal gingivitis. Full ultrasonic scaling performed.">تنظيف جير بالموجات فوق الصوتية</button>
+                    </div>
                     <textarea id="visitNotes" rows="4" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);" required></textarea>
                 </div>
                 <div class="modal-actions">

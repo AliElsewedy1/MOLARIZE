@@ -148,3 +148,38 @@ inventorySearchInput.addEventListener('input', (e) => {
     );
     renderInventoryTable(filtered);
 });
+
+// Export Inventory to CSV
+const exportInventoryCsvBtn = document.getElementById('exportInventoryCsvBtn');
+if (exportInventoryCsvBtn) {
+    exportInventoryCsvBtn.addEventListener('click', () => {
+        if (!currentInventory || currentInventory.length === 0) {
+            const isAr = document.documentElement.lang === 'ar';
+            if (window.showToast) window.showToast(isAr ? 'لا توجد مواد في المخزون للتصدير' : 'No inventory items to export', 'warning');
+            return;
+        }
+
+        const headers = ['Item Name', 'Category', 'Current Stock', 'Low Stock Alert Limit', 'Status'];
+        const rows = currentInventory.map(item => {
+            const isLow = parseInt(item.stock) <= parseInt(item.alertLimit);
+            return [
+                `"${(item.itemName || '').replace(/"/g, '""')}"`,
+                `"${(item.category || '').replace(/"/g, '""')}"`,
+                `"${item.stock}"`,
+                `"${item.alertLimit}"`,
+                `"${isLow ? 'Low Stock' : 'Sufficient'}"`
+            ];
+        });
+
+        const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Molarize_Inventory_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    });
+}

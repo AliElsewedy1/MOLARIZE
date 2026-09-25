@@ -463,6 +463,11 @@ window.openPatientProfile = function(patientId) {
     const alertsText = document.getElementById('profileMedicalAlerts');
     if (patient.medicalAlerts && patient.medicalAlerts.trim() !== '') {
         alertsText.innerText = patient.medicalAlerts;
+        const alertLabel = alertsBox.querySelector('strong');
+        if (alertLabel) {
+            const isArabic = document.documentElement.getAttribute('lang') === 'ar';
+            alertLabel.innerText = isArabic ? alertLabel.getAttribute('data-ar') || '⚠️ تنبيه طبي:' : alertLabel.getAttribute('data-en') || '⚠️ Medical Alert:';
+        }
         alertsBox.style.display = 'flex';
     } else {
         alertsBox.style.display = 'none';
@@ -500,6 +505,7 @@ window.openPatientProfile = function(patientId) {
     // Load Patient Data
     loadOdontogram(patientId);
     loadPatientTimeline(patientId);
+    loadPatientGallery(patientId);
 };
 
 window.printPatientSummary = function() {
@@ -639,8 +645,69 @@ saveOdontogramBtn.addEventListener('click', async () => {
 const prescriptionModal = document.getElementById('prescriptionModal');
 document.getElementById('addProfilePrescriptionBtn').addEventListener('click', () => {
     document.getElementById('prescriptionForm').reset();
+    
+    // Check patient's medical alerts / drug allergies
+    const patient = currentPatients.find(p => p.id === currentProfilePatientId);
+    const allergyWarning = document.getElementById('prescAllergyWarning');
+    const allergyText = document.getElementById('prescAllergyText');
+    if (patient && patient.medicalAlerts && patient.medicalAlerts.trim() !== '') {
+        if (allergyText) allergyText.innerText = patient.medicalAlerts;
+        if (allergyWarning) allergyWarning.style.display = 'flex';
+    } else {
+        if (allergyWarning) allergyWarning.style.display = 'none';
+    }
+
     prescriptionModal.classList.add('show');
     history.pushState({ modal: 'prescription' }, '', '#patient-profile-section');
+});
+
+// Quick medication buttons handler
+document.querySelectorAll('.quick-med-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const med = btn.getAttribute('data-med');
+        const textarea = document.getElementById('prescMeds');
+        if (!textarea) return;
+        if (textarea.value.trim() === '') {
+            textarea.value = med;
+        } else {
+            textarea.value = textarea.value.trim() + '\n' + med;
+        }
+    });
+});
+
+// Quick clinical complaint buttons
+document.querySelectorAll('.quick-complaint-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const text = btn.getAttribute('data-text');
+        const input = document.getElementById('visitChiefComplaint');
+        if (input) input.value = text;
+    });
+});
+
+// Quick clinical notes buttons
+document.querySelectorAll('.quick-notes-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const text = btn.getAttribute('data-text');
+        const textarea = document.getElementById('visitNotes');
+        if (!textarea) return;
+        if (textarea.value.trim() === '') {
+            textarea.value = text;
+        } else {
+            textarea.value = textarea.value.trim() + '\n' + text;
+        }
+    });
+});
+
+// Quick treatment plan buttons
+document.querySelectorAll('.quick-fill-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const type = btn.getAttribute('data-val');
+        const cost = btn.getAttribute('data-cost');
+        const typeInput = document.getElementById('treatmentType');
+        const costInput = document.getElementById('treatmentCost');
+        if (typeInput) typeInput.value = type;
+        if (costInput && (!costInput.value || costInput.value === '0')) costInput.value = cost;
+    });
 });
 
 document.getElementById('cancelPrescBtn').addEventListener('click', () => {
@@ -1112,3 +1179,194 @@ window.deletePrescription = async function(id) {
         loadPatientTimeline(currentProfilePatientId);
     } catch(e) { console.error(e); }
 };
+
+// --- Patient X-Rays & Photos Gallery Logic ---
+const toggleGalleryBtn = document.getElementById('toggleGalleryBtn');
+const galleryContent = document.getElementById('galleryContent');
+const galleryIcon = document.getElementById('galleryIcon');
+const triggerUploadImageBtn = document.getElementById('triggerUploadImageBtn');
+const patientImageFileInput = document.getElementById('patientImageFileInput');
+const patientGalleryGrid = document.getElementById('patientGalleryGrid');
+
+if (toggleGalleryBtn) {
+    toggleGalleryBtn.addEventListener('click', () => {
+        const isHidden = galleryContent.style.display === 'none';
+        galleryContent.style.display = isHidden ? 'block' : 'none';
+        if (galleryIcon) galleryIcon.innerText = isHidden ? '▲' : '▼';
+    });
+}
+
+if (triggerUploadImageBtn && patientImageFileInput) {
+    triggerUploadImageBtn.addEventListener('click', () => {
+        patientImageFileInput.click();
+    });
+
+    patientImageFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file || !currentProfilePatientId) return;
+
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const isAr = document.documentElement.lang === 'ar';
+        if (window.showToast) window.showToast(isAr ? 'جاري معالجة ورفع الصورة...' : 'Processing and uploading photo...', 'info', 3000);
+
+        try {
+            // Compress image using canvas for quick storage
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const img = new Image();
+                img.onload = async () => {
+                    const canvas = document.createElement('canvas');
+                    const maxDim = 1200;
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > height && width > maxDim) {
+                        height = Math.round((height * maxDim) / width);
+                        width = maxDim;
+                    } else if (height > maxDim) {
+                        width = Math.round((width * maxDim) / height);
+                        height = maxDim;
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+
+                    const photoRef = collection(db, 'users', user.uid, 'patients', currentProfilePatientId, 'photos');
+                    await addDoc(photoRef, {
+                        imageData: dataUrl,
+                        name: file.name,
+                        createdAt: new Date().toISOString()
+                    });
+
+                    if (window.showToast) window.showToast(isAr ? 'تم رفع الصورة بنجاح!' : 'Photo uploaded successfully!', 'success');
+                    loadPatientGallery(currentProfilePatientId);
+                    patientImageFileInput.value = '';
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        } catch (err) {
+            console.error('Error uploading photo', err);
+            if (window.showToast) window.showToast(isAr ? 'فشل رفع الصورة' : 'Failed to upload photo', 'error');
+        }
+    });
+}
+
+window.loadPatientGallery = async function(patientId) {
+    if (!patientGalleryGrid) return;
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const isAr = document.documentElement.lang === 'ar';
+    patientGalleryGrid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 1rem;">${isAr ? 'جاري تحميل المعرض...' : 'Loading gallery...'}</div>`;
+
+    try {
+        const photosRef = collection(db, 'users', user.uid, 'patients', patientId, 'photos');
+        const snap = await getDocs(photosRef);
+        patientGalleryGrid.innerHTML = '';
+
+        if (snap.empty) {
+            patientGalleryGrid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 1rem;">${isAr ? 'لا توجد صور أو أشعة مرفوعة بعد' : 'No photos or X-Rays uploaded yet'}</div>`;
+            return;
+        }
+
+        snap.forEach(d => {
+            const data = d.data();
+            const dateStr = data.createdAt ? new Date(data.createdAt).toLocaleDateString() : '';
+            const card = document.createElement('div');
+            card.style.cssText = 'position: relative; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); background: var(--bg-surface); aspect-ratio: 1; box-shadow: var(--shadow-sm); cursor: pointer; group;';
+            card.innerHTML = `
+                <img src="${data.imageData}" alt="X-Ray" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.65); color: #fff; font-size: 0.72rem; padding: 4px 6px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>${dateStr}</span>
+                    <button class="delete-photo-btn" data-id="${d.id}" style="background: none; border: none; color: #ef4444; font-weight: bold; cursor: pointer; padding: 0 4px; font-size: 0.9rem;" title="Delete">✕</button>
+                </div>
+            `;
+
+            // Open full view in simple lightbox modal
+            card.querySelector('img').addEventListener('click', () => {
+                window.openImageLightbox(data.imageData, dateStr);
+            });
+
+            // Delete photo
+            card.querySelector('.delete-photo-btn').addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (!confirm(isAr ? 'هل تريد حذف هذه الصورة؟' : 'Delete this image?')) return;
+                try {
+                    await deleteDoc(doc(db, 'users', user.uid, 'patients', currentProfilePatientId, 'photos', d.id));
+                    loadPatientGallery(currentProfilePatientId);
+                } catch (delErr) {
+                    console.error(delErr);
+                }
+            });
+
+            patientGalleryGrid.appendChild(card);
+        });
+    } catch (e) {
+        console.error('Error loading gallery', e);
+        patientGalleryGrid.innerHTML = `<div style="grid-column: 1 / -1; color: var(--status-error); text-align: center;">Error loading images.</div>`;
+    }
+};
+
+window.openImageLightbox = function(src, caption) {
+    let lb = document.getElementById('imageLightboxModal');
+    if (!lb) {
+        lb = document.createElement('div');
+        lb.id = 'imageLightboxModal';
+        lb.className = 'modal';
+        lb.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem; cursor: pointer;';
+        lb.innerHTML = `
+            <div style="max-width: 90vw; max-height: 85vh; position: relative; cursor: default;" onclick="event.stopPropagation()">
+                <img id="lbImg" src="" style="max-width: 100%; max-height: 80vh; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); object-fit: contain;">
+                <div id="lbCaption" style="color: #fff; text-align: center; margin-top: 0.5rem; font-size: 0.9rem;"></div>
+                <button id="lbCloseBtn" style="position: absolute; top: -15px; right: -15px; background: #fff; border: none; border-radius: 50%; width: 32px; height: 32px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4);">✕</button>
+            </div>
+        `;
+        document.body.appendChild(lb);
+        lb.addEventListener('click', () => { lb.style.display = 'none'; });
+        lb.querySelector('#lbCloseBtn').addEventListener('click', () => { lb.style.display = 'none'; });
+    }
+    lb.querySelector('#lbImg').src = src;
+    lb.querySelector('#lbCaption').innerText = caption || '';
+    lb.style.display = 'flex';
+};
+
+// --- Export Patients to CSV ---
+const exportPatientsCsvBtn = document.getElementById('exportPatientsCsvBtn');
+if (exportPatientsCsvBtn) {
+    exportPatientsCsvBtn.addEventListener('click', () => {
+        if (!currentPatients || currentPatients.length === 0) {
+            const isAr = document.documentElement.lang === 'ar';
+            if (window.showToast) window.showToast(isAr ? 'لا توجد بيانات مرضى للتصدير' : 'No patients to export', 'warning');
+            return;
+        }
+
+        const headers = ['Display ID', 'Name', 'Gender', 'Age', 'Phone', 'Phone 2', 'Medical Alerts', 'Last Visit', 'Notes'];
+        const rows = currentPatients.map(p => [
+            `"${(p.displayId || '').replace(/"/g, '""')}"`,
+            `"${(p.name || '').replace(/"/g, '""')}"`,
+            `"${(p.gender || '').replace(/"/g, '""')}"`,
+            `"${(p.age || '')}"`,
+            `"${(p.phone || '').replace(/"/g, '""')}"`,
+            `"${(p.phone2 || '').replace(/"/g, '""')}"`,
+            `"${(p.medicalAlerts || '').replace(/"/g, '""')}"`,
+            `"${(p.lastVisit || '')}"`,
+            `"${(p.notes || '').replace(/"/g, '""')}"`
+        ]);
+
+        const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Molarize_Patients_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    });
+}
