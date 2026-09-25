@@ -1487,10 +1487,6 @@ function renderTodayAppointments() {
         btnAddTmrw.onclick = () => window.openNewAppointmentModal(tomorrowIso);
     }
 
-    // Mini Timelines
-    renderTimelineEvents(homeTimelineEvents, todayIso);
-    renderTimelineEvents(tomorrowTimelineEvents, tomorrowIso);
-
     // Rich Lists
     const homeTodayList = document.getElementById('homeTodayApptsList');
     const homeTomorrowList = document.getElementById('homeTomorrowApptsList');
