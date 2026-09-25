@@ -776,15 +776,74 @@ window.openAppointmentActionModal = async function(apptOrId) {
 
     if (actionModalPatientName) actionModalPatientName.innerText = appt.patientName || '-';
     if (actionModalDate) actionModalDate.innerText = appt.date || '-';
-    if (actionModalTime) actionModalTime.innerText = appt.time || '-';
+    if (actionModalTime) actionModalTime.innerText = window.formatTime ? window.formatTime(appt.time) : (appt.time || '-');
+
+    const actionModalEditDate = document.getElementById('actionModalEditDate');
+    const actionModalEditTime = document.getElementById('actionModalEditTime');
+    if (actionModalEditDate) actionModalEditDate.value = appt.date || '';
+    if (actionModalEditTime) actionModalEditTime.value = appt.time || '';
 
     // Find patient phone if available
     const patient = (window.currentPatients || []).find(p => p.id === appt.patientId || p.name === appt.patientName);
-    if (patient && patient.phone && actionModalPhone && actionModalPhoneWrapper) {
-        actionModalPhone.innerText = patient.phone;
+    const actionModalPhone2 = document.getElementById('actionModalPhone2');
+    const actionModalPhone2Wrapper = document.getElementById('actionModalPhone2Wrapper');
+    const actionModalPhoneActions = document.getElementById('actionModalPhoneActions');
+    const actionModalPhone2Actions = document.getElementById('actionModalPhone2Actions');
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+
+    const p1 = patient ? (patient.phone || appt.patientPhone) : appt.patientPhone;
+    const p2 = (patient && patient.phone2) ? patient.phone2 : null;
+
+    const callPref = (patient && patient.callPref) ? patient.callPref : 'phone1';
+    const waPref = (patient && patient.waPref) ? patient.waPref : 'phone1';
+
+    const targetCallPhone = (callPref === 'phone2' && p2) ? p2 : p1;
+    const cleanCallPhone = String(targetCallPhone || '').replace(/\D/g, '');
+
+    const targetWaPhone = (waPref === 'phone2' && p2) ? p2 : p1;
+    const cleanWaPhone = String(targetWaPhone || '').replace(/\D/g, '');
+    const waLink = cleanWaPhone ? (cleanWaPhone.startsWith('0') ? '2' + cleanWaPhone : '20' + cleanWaPhone) : '';
+
+    const formattedTime = window.formatTime ? window.formatTime(appt.time) : (appt.time || '--:--');
+    const waReminderMsg = encodeURIComponent(
+        isAr ? `مرحباً ${appt.patientName || 'يا فندم'}، نود تذكيركم بموعدكم يوم ${appt.date} الساعة ${formattedTime} في عيادة MOLARIZE للأسنان.` :
+        `Hello ${appt.patientName || ''}, this is a reminder for your appointment on ${appt.date} at ${formattedTime} at MOLARIZE Dental Clinic.`
+    );
+
+    if (p1 && actionModalPhone && actionModalPhoneWrapper) {
+        let p1Badge = '';
+        if (p2) {
+            if (callPref === 'phone1' && waPref === 'phone1') p1Badge = ` <span class="pref-tag pref-tag-both">⭐ ${isAr ? 'مفضل للاتصال والواتساب' : 'Preferred'}</span>`;
+            else if (callPref === 'phone1') p1Badge = ` <span class="pref-tag pref-tag-call">📞 ${isAr ? 'مفضل للاتصال' : 'Preferred Call'}</span>`;
+            else if (waPref === 'phone1') p1Badge = ` <span class="pref-tag pref-tag-wa">💬 ${isAr ? 'مفضل للواتساب' : 'Preferred WA'}</span>`;
+        }
+        actionModalPhone.innerHTML = `${p1}${p1Badge}`;
         actionModalPhoneWrapper.style.display = 'block';
+
+        if (actionModalPhoneActions) {
+            actionModalPhoneActions.innerHTML = `
+                ${cleanCallPhone ? `<a href="tel:${cleanCallPhone}" class="agenda-action-btn agenda-action-call" style="padding: 2px 8px; font-size: 0.78rem;" title="${isAr ? `اتصال بالرقم المحدد في الملف (${targetCallPhone})` : `Call preferred (${targetCallPhone})`}">📞 ${isAr ? 'اتصال' : 'Call'}</a>` : ''}
+                ${cleanWaPhone ? `<a href="https://wa.me/${waLink}?text=${waReminderMsg}" target="_blank" class="agenda-action-btn agenda-action-wa" style="padding: 2px 8px; font-size: 0.78rem;" title="${isAr ? `واتساب للرقم المحدد في الملف (${targetWaPhone})` : `WhatsApp preferred (${targetWaPhone})`}">💬 ${isAr ? 'واتساب' : 'WhatsApp'}</a>` : ''}
+            `;
+        }
     } else if (actionModalPhoneWrapper) {
         actionModalPhoneWrapper.style.display = 'none';
+    }
+
+    if (p2 && actionModalPhone2 && actionModalPhone2Wrapper) {
+        let p2Badge = '';
+        if (callPref === 'phone2' && waPref === 'phone2') p2Badge = ` <span class="pref-tag pref-tag-both">⭐ ${isAr ? 'مفضل للاتصال والواتساب' : 'Preferred'}</span>`;
+        else if (callPref === 'phone2') p2Badge = ` <span class="pref-tag pref-tag-call">📞 ${isAr ? 'مفضل للاتصال' : 'Preferred Call'}</span>`;
+        else if (waPref === 'phone2') p2Badge = ` <span class="pref-tag pref-tag-wa">💬 ${isAr ? 'مفضل للواتساب' : 'Preferred WA'}</span>`;
+
+        actionModalPhone2.innerHTML = `${p2}${p2Badge}`;
+        actionModalPhone2Wrapper.style.display = 'block';
+
+        if (actionModalPhone2Actions) {
+            actionModalPhone2Actions.innerHTML = '';
+        }
+    } else if (actionModalPhone2Wrapper) {
+        actionModalPhone2Wrapper.style.display = 'none';
     }
 
     if (appointmentActionModal) {
@@ -796,6 +855,88 @@ window.openAppointmentActionModal = async function(apptOrId) {
 window.deleteAppointmentFromCalendar = function(id) {
     window.openAppointmentActionModal(id);
 };
+
+// Reschedule Appointment Handler
+const btnRescheduleAppt = document.getElementById('btnRescheduleAppt');
+if (btnRescheduleAppt) {
+    btnRescheduleAppt.addEventListener('click', async () => {
+        if (!activeAppointmentToDelete) return;
+        const apptId = activeAppointmentToDelete.id;
+        const uid = currentUserUid || (auth.currentUser ? auth.currentUser.uid : null);
+        const isAr = (document.documentElement.lang || 'en') === 'ar';
+
+        if (!uid) {
+            if (window.showToast) window.showToast(isAr ? 'المستخدم غير مسجل دخول' : 'User not authenticated', 'error');
+            return;
+        }
+
+        const actionModalEditDate = document.getElementById('actionModalEditDate');
+        const actionModalEditTime = document.getElementById('actionModalEditTime');
+        const newDate = actionModalEditDate ? actionModalEditDate.value : '';
+        const newTime = actionModalEditTime ? actionModalEditTime.value : '';
+
+        if (!newDate || !newTime) {
+            if (window.showToast) window.showToast(isAr ? 'يرجى تحديد التاريخ والوقت الجديدين' : 'Please select a new date and time', 'warning');
+            return;
+        }
+
+        btnRescheduleAppt.disabled = true;
+        const prevText = btnRescheduleAppt.innerText;
+        btnRescheduleAppt.innerText = isAr ? '... جاري الحفظ' : 'Saving...';
+
+        try {
+            const apptRef = doc(db, "users", uid, "appointments", apptId);
+            await updateDoc(apptRef, {
+                date: newDate,
+                time: newTime,
+                updatedAt: new Date().toISOString()
+            });
+
+            // Update local array
+            const foundIdx = currentAppointments.findIndex(a => a.id === apptId);
+            if (foundIdx !== -1) {
+                currentAppointments[foundIdx].date = newDate;
+                currentAppointments[foundIdx].time = newTime;
+            }
+
+            // Close modal
+            if (window.closeModalAndPopState) window.closeModalAndPopState(appointmentActionModal);
+            else appointmentActionModal.classList.remove('show');
+
+            // Refresh FullCalendar
+            if (calendarInstance) {
+                calendarInstance.removeAllEvents();
+                calendarInstance.addEventSource(formatEventsForCalendar());
+            }
+
+            // Refresh timelines & stats
+            renderTodayAppointments();
+            updateDashboardStats();
+
+            // Refresh focused day list if visible
+            if (typeof window.refreshCurrentDayAppointmentsList === 'function') {
+                window.refreshCurrentDayAppointmentsList();
+            }
+
+            // Refresh patient profile timeline if open
+            if (typeof window.loadPatientTimeline === 'function' && window.currentProfilePatientId) {
+                window.loadPatientTimeline(window.currentProfilePatientId);
+            }
+
+            if (window.showToast) {
+                window.showToast(isAr ? 'تم تعديل وتغيير موعد الحجز بنجاح' : 'Appointment rescheduled successfully', 'success');
+            }
+        } catch (e) {
+            console.error("Error rescheduling appointment: ", e);
+            if (window.showToast) {
+                window.showToast(isAr ? 'حدث خطأ أثناء تغيير الموعد' : 'Error rescheduling appointment', 'error');
+            }
+        } finally {
+            btnRescheduleAppt.disabled = false;
+            btnRescheduleAppt.innerText = prevText;
+        }
+    });
+}
 
 if (closeApptActionModalBtn) {
     closeApptActionModalBtn.addEventListener('click', () => {
@@ -1155,28 +1296,63 @@ function renderAgendaItemsList(containerElement, appointments, targetDateIso, is
 
     appointments.forEach(appt => {
         const patient = (window.currentPatients || []).find(p => p.id === appt.patientId || p.name === appt.patientName);
-        const callTargetPhone = (patient && patient.callPref === 'phone2' && patient.phone2) ? patient.phone2 : (patient ? patient.phone : appt.patientPhone);
-        const cleanCallPhone = String(callTargetPhone || '').replace(/\D/g, '');
+        
+        // Primary and Secondary phones
+        const p1 = patient ? (patient.phone || appt.patientPhone) : (appt.patientPhone || '');
+        const p2 = (patient && patient.phone2) ? patient.phone2 : null;
 
-        const waTargetPhone = (patient && patient.waPref === 'phone2' && patient.phone2) ? patient.phone2 : (patient ? patient.phone : appt.patientPhone);
-        const cleanWaPhone = String(waTargetPhone || '').replace(/\D/g, '');
-        const waLinkPhone = cleanWaPhone.startsWith('0') ? '2' + cleanWaPhone : '20' + cleanWaPhone;
+        // Preferred phone settings from patient profile
+        const callPref = (patient && patient.callPref) ? patient.callPref : 'phone1';
+        const waPref = (patient && patient.waPref) ? patient.waPref : 'phone1';
+
+        // Preferred target for Call
+        const targetCallPhone = (callPref === 'phone2' && p2) ? p2 : p1;
+        const cleanCallPhone = String(targetCallPhone || '').replace(/\D/g, '');
+
+        // Preferred target for WhatsApp
+        const targetWaPhone = (waPref === 'phone2' && p2) ? p2 : p1;
+        const cleanWaPhone = String(targetWaPhone || '').replace(/\D/g, '');
+        const waLinkPhone = cleanWaPhone ? (cleanWaPhone.startsWith('0') ? '2' + cleanWaPhone : '20' + cleanWaPhone) : '';
 
         const formattedTime = window.formatTime ? window.formatTime(appt.time) : (appt.time || '--:--');
         const dayWord = isToday ? (isAr ? 'اليوم' : 'today') : (isAr ? 'غداً' : 'tomorrow');
+        
         const waMsg = encodeURIComponent(
             isAr ? `مرحباً ${appt.patientName || 'يا فندم'}، نود تذكيركم بموعدكم ${dayWord} الساعة ${formattedTime} في عيادة MOLARIZE للأسنان.` :
             `Hello ${appt.patientName || ''}, this is a reminder for your appointment ${dayWord} at ${formattedTime} at MOLARIZE Dental Clinic.`
         );
 
-        const ageText = (patient && patient.age) ? `• ${patient.age} ${isAr ? 'سنة' : 'yrs'}` : '';
+        const ageText = (patient && patient.age) ? `${patient.age} ${isAr ? 'سنة' : 'yrs'}` : '';
+        const genderText = (patient && patient.gender) ? (patient.gender === 'Female' ? (isAr ? 'أنثى' : 'Female') : (isAr ? 'ذكر' : 'Male')) : '';
+        const patientMetaInfo = [genderText, ageText].filter(Boolean).join(' • ');
+
         const translatedAlerts = (patient && patient.medicalAlerts && window.translateMedicalAlerts) ? 
             window.translateMedicalAlerts(patient.medicalAlerts, isAr) : (patient ? patient.medicalAlerts : '');
         const alertBadge = (translatedAlerts && translatedAlerts.trim()) ? 
-            `<span class="status-badge status-error" style="font-size: 0.7rem; padding: 1px 5px;">⚠️ ${translatedAlerts}</span>` : '';
+            `<span class="status-badge status-error" style="font-size: 0.72rem; padding: 2px 7px; font-weight: 600;">⚠️ ${translatedAlerts}</span>` : '';
 
-        const displayPhone = patient ? (patient.phone || '-') : (appt.patientPhone || '');
         const displayId = (patient && patient.displayId) ? patient.displayId : '-';
+
+        // Build preferred badges for phone numbers if secondary phone exists
+        let p1Badge = '';
+        let p2Badge = '';
+        if (p2) {
+            if (callPref === 'phone1' && waPref === 'phone1') {
+                p1Badge = `<span class="pref-tag pref-tag-both" title="${isAr ? 'المفضل للاتصال والواتساب' : 'Preferred for Call & WhatsApp'}">⭐ ${isAr ? 'مفضل لاتصال وواتساب' : 'Preferred'}</span>`;
+            } else if (callPref === 'phone1') {
+                p1Badge = `<span class="pref-tag pref-tag-call" title="${isAr ? 'المفضل للاتصال' : 'Preferred for Calls'}">📞 ${isAr ? 'مفضل للاتصال' : 'Preferred Call'}</span>`;
+            } else if (waPref === 'phone1') {
+                p1Badge = `<span class="pref-tag pref-tag-wa" title="${isAr ? 'المفضل للواتساب' : 'Preferred for WhatsApp'}">💬 ${isAr ? 'مفضل للواتساب' : 'Preferred WA'}</span>`;
+            }
+
+            if (callPref === 'phone2' && waPref === 'phone2') {
+                p2Badge = `<span class="pref-tag pref-tag-both" title="${isAr ? 'المفضل للاتصال والواتساب' : 'Preferred for Call & WhatsApp'}">⭐ ${isAr ? 'مفضل لاتصال وواتساب' : 'Preferred'}</span>`;
+            } else if (callPref === 'phone2') {
+                p2Badge = `<span class="pref-tag pref-tag-call" title="${isAr ? 'المفضل للاتصال' : 'Preferred for Calls'}">📞 ${isAr ? 'مفضل للاتصال' : 'Preferred Call'}</span>`;
+            } else if (waPref === 'phone2') {
+                p2Badge = `<span class="pref-tag pref-tag-wa" title="${isAr ? 'المفضل للواتساب' : 'Preferred for WhatsApp'}">💬 ${isAr ? 'مفضل للواتساب' : 'Preferred WA'}</span>`;
+            }
+        }
 
         const itemCard = document.createElement('div');
         itemCard.className = 'agenda-item-card';
@@ -1190,29 +1366,48 @@ function renderAgendaItemsList(containerElement, appointments, targetDateIso, is
                     <span>${formattedTime}</span>
                 </div>
                 <div class="agenda-item-info">
-                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                        <span class="agenda-item-patient-name" onclick="event.stopPropagation(); if('${appt.patientId}' && window.openPatientProfile) window.openPatientProfile('${appt.patientId}')" style="cursor: pointer;" title="${isAr ? 'عرض ملف المريض' : 'View Patient Profile'}">${appt.patientName || (isAr ? 'غير محدد' : 'Unknown')}</span>
-                        <span class="status-badge" style="background-color: rgba(45, 212, 191, 0.15); color: var(--brand-primary); font-size: 0.72rem; padding: 1px 6px; font-weight: 700;">#${displayId}</span>
-                        <span style="font-size: 0.78rem; color: var(--text-muted);">${ageText}</span>
+                    <div style="display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;">
+                        <span class="agenda-item-patient-name" onclick="event.stopPropagation(); if('${appt.patientId}' && window.openPatientProfile) window.openPatientProfile('${appt.patientId}')" title="${isAr ? 'عرض ملف المريض الكامل' : 'View Patient Profile'}">${appt.patientName || (isAr ? 'غير محدد' : 'Unknown')}</span>
+                        <span class="status-badge" style="background-color: rgba(45, 212, 191, 0.15); color: var(--brand-primary); font-size: 0.74rem; padding: 1px 7px; font-weight: 700; border-radius: 4px;">#${displayId}</span>
+                    </div>
+
+                    <div class="agenda-item-badges">
+                        ${patientMetaInfo ? `<span style="font-size: 0.78rem; color: var(--text-muted);">${patientMetaInfo}</span>` : ''}
                         ${alertBadge}
                     </div>
-                    <div class="agenda-item-meta">
-                        ${displayPhone ? `<span>📞 ${displayPhone}</span>` : ''}
-                        <span class="status-badge status-inprogress" style="font-size: 0.68rem; padding: 1px 6px;">${isAr ? 'مؤكد' : 'Confirmed'}</span>
+
+                    <div class="agenda-item-phones-wrap">
+                        ${p1 ? `
+                        <div class="agenda-phone-entry">
+                            <span class="agenda-phone-label">${isAr ? '📞 الهاتف:' : '📞 Phone:'}</span>
+                            <span class="agenda-phone-num">${p1}</span>
+                            ${p1Badge}
+                        </div>` : ''}
+                        ${p2 ? `
+                        <div class="agenda-phone-entry agenda-phone-secondary">
+                            <span class="agenda-phone-label">${isAr ? '📱 هاتف إضافي:' : '📱 Secondary:'}</span>
+                            <span class="agenda-phone-num">${p2}</span>
+                            ${p2Badge}
+                        </div>` : ''}
                     </div>
                 </div>
             </div>
+
             <div class="agenda-item-actions" onclick="event.stopPropagation();">
                 ${cleanCallPhone ? `
-                <a href="tel:${cleanCallPhone}" class="agenda-action-btn" title="${isAr ? 'اتصال هاتفياً' : 'Call'}">
+                <a href="tel:${cleanCallPhone}" class="agenda-action-btn agenda-action-call" title="${isAr ? `اتصال بالرقم المحدد في الملف (${targetCallPhone})` : `Call preferred number (${targetCallPhone})`}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                    <span>${isAr ? 'اتصال' : 'Call'}</span>
                 </a>` : ''}
+
                 ${cleanWaPhone ? `
-                <a href="https://wa.me/${waLinkPhone}?text=${waMsg}" target="_blank" class="agenda-action-btn agenda-action-wa" title="${isAr ? 'إرسال تذكير واتساب' : 'WhatsApp Reminder'}">
+                <a href="https://wa.me/${waLinkPhone}?text=${waMsg}" target="_blank" class="agenda-action-btn agenda-action-wa" title="${isAr ? `إرسال تذكير واتساب للرقم المحدد في الملف (${targetWaPhone})` : `WhatsApp preferred number (${targetWaPhone})`}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+                    <span>${isAr ? 'واتساب' : 'WhatsApp'}</span>
                 </a>` : ''}
-                <button type="button" class="agenda-action-btn" onclick="window.openAppointmentActionModal('${appt.id || appt}')" title="${isAr ? 'إدارة الموعد والتفاصيل' : 'Manage Appointment'}">
-                    ⚙️
+
+                <button type="button" class="agenda-action-btn" style="color: var(--status-error); border-color: rgba(239, 68, 68, 0.35);" onclick="window.openAppointmentActionModal('${appt.id || appt}')" title="${isAr ? 'تغيير الموعد أو مسحه' : 'Reschedule or Delete Appointment'}">
+                    🗑️
                 </button>
             </div>
         `;
@@ -1615,30 +1810,73 @@ function renderFocusedDayList(targetDateIso, titleText) {
     filtered.forEach(appt => {
         // Find patient phone
         const patient = (window.currentPatients || []).find(p => p.id === appt.patientId || p.name === appt.patientName);
-        const phone = patient ? (patient.phone || '-') : '-';
-        const cleanPhone = String(phone).replace(/\D/g, '');
-        const waPhone = cleanPhone.startsWith('0') ? '2' + cleanPhone : '20' + cleanPhone;
+        const p1 = patient ? (patient.phone || appt.patientPhone) : (appt.patientPhone || '-');
+        const p2 = (patient && patient.phone2) ? patient.phone2 : null;
 
-        const reminderMsg = isAr ? 
-            `مرحباً ${appt.patientName}، نذكرك بموعدك في عيادة الأسنان اليوم في تمام الساعة ${appt.time}. نتمنى لك دوام الصحة والعافية.` :
-            `Hello ${appt.patientName}, this is a gentle reminder of your dental appointment today at ${appt.time}. See you soon!`;
+        const callPref = (patient && patient.callPref) ? patient.callPref : 'phone1';
+        const waPref = (patient && patient.waPref) ? patient.waPref : 'phone1';
 
-        const waLink = cleanPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(reminderMsg)}` : '#';
+        const targetCallPhone = (callPref === 'phone2' && p2) ? p2 : p1;
+        const cleanCallPhone = String(targetCallPhone || '').replace(/\D/g, '');
+
+        const targetWaPhone = (waPref === 'phone2' && p2) ? p2 : p1;
+        const cleanWaPhone = String(targetWaPhone || '').replace(/\D/g, '');
+        const waLink = cleanWaPhone ? (cleanWaPhone.startsWith('0') ? '2' + cleanWaPhone : '20' + cleanWaPhone) : '';
 
         const formattedTime = window.formatTime ? window.formatTime(appt.time) : appt.time;
+        const reminderMsg = isAr ? 
+            `مرحباً ${appt.patientName || 'يا فندم'}، نذكرك بموعدك في عيادة MOLARIZE للأسنان في تمام الساعة ${formattedTime}. نتمنى لك دوام الصحة والعافية.` :
+            `Hello ${appt.patientName || ''}, this is a gentle reminder of your dental appointment at MOLARIZE Dental Clinic at ${formattedTime}. See you soon!`;
+
+        let p1Badge = '';
+        let p2Badge = '';
+        if (p2) {
+            if (callPref === 'phone1' && waPref === 'phone1') p1Badge = ` <span class="pref-tag pref-tag-both">⭐ ${isAr ? 'مفضل لاتصال وواتساب' : 'Preferred'}</span>`;
+            else if (callPref === 'phone1') p1Badge = ` <span class="pref-tag pref-tag-call">📞 ${isAr ? 'مفضل للاتصال' : 'Preferred Call'}</span>`;
+            else if (waPref === 'phone1') p1Badge = ` <span class="pref-tag pref-tag-wa">💬 ${isAr ? 'مفضل للواتساب' : 'Preferred WA'}</span>`;
+
+            if (callPref === 'phone2' && waPref === 'phone2') p2Badge = ` <span class="pref-tag pref-tag-both">⭐ ${isAr ? 'مفضل لاتصال وواتساب' : 'Preferred'}</span>`;
+            else if (callPref === 'phone2') p2Badge = ` <span class="pref-tag pref-tag-call">📞 ${isAr ? 'مفضل للاتصال' : 'Preferred Call'}</span>`;
+            else if (waPref === 'phone2') p2Badge = ` <span class="pref-tag pref-tag-wa">💬 ${isAr ? 'مفضل للواتساب' : 'Preferred WA'}</span>`;
+        }
+
+        let phonesHtml = `<div style="display: flex; flex-direction: column; gap: 3px;">`;
+        if (p1 && p1 !== '-') {
+            phonesHtml += `<span style="font-weight: 600; font-size: 0.86rem;">📞 ${p1}${p1Badge}</span>`;
+        }
+        if (p2) {
+            phonesHtml += `<span style="color: var(--brand-primary); font-size: 0.84rem; font-weight: 600;">📱 ${p2} <small style="opacity:0.8;">(${isAr ? 'إضافي' : 'Secondary'})</small>${p2Badge}</span>`;
+        }
+        if (!p1 && !p2) {
+            phonesHtml += `<span style="color: var(--text-muted);">-</span>`;
+        }
+        phonesHtml += `</div>`;
+
+        let waButtonsHtml = `<div style="display: flex; gap: 4px; flex-wrap: wrap;">`;
+        if (cleanWaPhone) {
+            waButtonsHtml += `
+                <a href="https://wa.me/${waLink}?text=${encodeURIComponent(reminderMsg)}" target="_blank" class="btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.78rem; text-decoration: none; color: #25D366; border-color: rgba(37, 211, 102, 0.4); display: inline-flex; align-items: center; gap: 3px;" title="${isAr ? `إرسال تذكير واتساب للرقم المحدد في الملف (${targetWaPhone})` : `Send WhatsApp to preferred number (${targetWaPhone})`}">
+                    💬 <span>${isAr ? 'إرسال تذكير واتساب' : 'Send WA Reminder'}</span>
+                </a>`;
+        } else {
+            waButtonsHtml += `<span style="color: var(--text-muted); font-size: 0.8rem;">-</span>`;
+        }
+        waButtonsHtml += `</div>`;
+
         dayAppointmentsTableBody.innerHTML += `
             <tr>
-                <td style="font-weight: 700; color: var(--brand-primary);">${formattedTime}</td>
-                <td style="font-weight: 600; cursor: pointer;" onclick="if(window.openPatientProfile && '${appt.patientId || ''}') window.openPatientProfile('${appt.patientId}')">${appt.patientName}</td>
-                <td>${phone}</td>
+                <td style="font-weight: 700; color: var(--brand-primary); white-space: nowrap;">${formattedTime}</td>
+                <td style="font-weight: 700; cursor: pointer; word-break: break-word;" onclick="if(window.openPatientProfile && '${appt.patientId || ''}') window.openPatientProfile('${appt.patientId}')" title="${isAr ? 'فتح ملف المريض' : 'Open Profile'}">${appt.patientName}</td>
+                <td>${phonesHtml}</td>
+                <td>${waButtonsHtml}</td>
                 <td>
-                    ${cleanPhone ? `
-                    <a href="${waLink}" target="_blank" class="btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; text-decoration: none; color: #25D366; border-color: rgba(37, 211, 102, 0.4); display: inline-flex; align-items: center; gap: 4px;">
-                        💬 ${isAr ? 'إرسال تذكير واتساب' : 'Send WA Reminder'}
-                    </a>` : `<span style="color: var(--text-muted); font-size: 0.8rem;">-</span>`}
-                </td>
-                <td>
-                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; color: var(--status-error); border-color: var(--status-error);" onclick="window.openAppointmentActionModal('${appt.id}')">${isAr ? 'إلغاء الموعد' : 'Cancel'}</button>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        ${cleanCallPhone ? `
+                        <a href="tel:${cleanCallPhone}" class="btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;" title="${isAr ? `اتصال (${targetCallPhone})` : `Call (${targetCallPhone})`}">
+                            📞 ${isAr ? 'اتصال' : 'Call'}
+                        </a>` : ''}
+                        <button type="button" class="btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; color: var(--status-error); border-color: var(--status-error);" onclick="window.openAppointmentActionModal('${appt.id}')">${isAr ? 'إلغاء' : 'Cancel'}</button>
+                    </div>
                 </td>
             </tr>
         `;

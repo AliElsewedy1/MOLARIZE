@@ -1009,30 +1009,65 @@
 
 
 
-    <!-- Modal for Appointment Details & Cancellation -->
+    <!-- Modal for Appointment Details, Rescheduling & Cancellation -->
     <div id="appointmentActionModal" class="modal">
-        <div class="modal-content" style="max-width: 440px; text-align: start;">
+        <div class="modal-content" style="max-width: 460px; text-align: start;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;" data-ar="📅 تفاصيل وإلغاء الموعد" data-en="📅 Appointment Details & Cancel">📅 Appointment Details & Cancel</h3>
+                <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;" data-ar="🗓️ إدارة أو تغيير أو مسح الموعد" data-en="🗓️ Manage, Reschedule or Delete">🗓️ Manage, Reschedule or Delete</h3>
                 <button type="button" id="closeApptActionModalBtn" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-muted);">&times;</button>
             </div>
             
-            <div style="background: var(--bg-secondary); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem; border: 1px solid var(--border-color);">
-                <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem;" id="actionModalPatientName">-</div>
-                <div style="display: flex; flex-direction: column; gap: 0.4rem; color: var(--text-muted); font-size: 0.9rem;">
-                    <div>📅 <strong style="color: var(--text-primary);" data-ar="التاريخ:" data-en="Date:">Date:</strong> <span id="actionModalDate">-</span></div>
-                    <div>🕒 <strong style="color: var(--text-primary);" data-ar="الوقت:" data-en="Time:">Time:</strong> <span id="actionModalTime">-</span></div>
-                    <div id="actionModalPhoneWrapper" style="display: none;">📱 <strong style="color: var(--text-primary);" data-ar="الهاتف:" data-en="Phone:">Phone:</strong> <span id="actionModalPhone">-</span></div>
+            <!-- Patient Info Header -->
+            <div style="background: var(--bg-secondary); border-radius: 8px; padding: 0.9rem; margin-bottom: 1rem; border: 1px solid var(--border-color);">
+                <div style="font-size: 1.12rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.4rem; word-break: break-word;" id="actionModalPatientName">-</div>
+                <div style="display: flex; flex-direction: column; gap: 0.4rem; color: var(--text-muted); font-size: 0.88rem;">
+                    <div>📅 <strong style="color: var(--text-primary);" data-ar="الموعد الحالي:" data-en="Current:">Current:</strong> <span id="actionModalDate" style="font-weight: 600; color: var(--brand-primary);">-</span> | <span id="actionModalTime" style="font-weight: 600; color: var(--brand-primary);">-</span></div>
+                    
+                    <div id="actionModalPhoneWrapper" style="display: none; padding-top: 4px; border-top: 1px dashed var(--border-color);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
+                            <div>📞 <strong style="color: var(--text-primary);" data-ar="الهاتف:" data-en="Phone:">Phone:</strong> <span id="actionModalPhone" style="font-weight: 600; color: var(--text-primary);">-</span></div>
+                            <div id="actionModalPhoneActions" style="display: flex; gap: 4px;"></div>
+                        </div>
+                    </div>
+
+                    <div id="actionModalPhone2Wrapper" style="display: none; padding-top: 4px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
+                            <div>📱 <strong style="color: var(--brand-primary);" data-ar="الهاتف الإضافي:" data-en="Secondary:">Secondary:</strong> <span id="actionModalPhone2" style="font-weight: 600; color: var(--brand-primary);">-</span></div>
+                            <div id="actionModalPhone2Actions" style="display: flex; gap: 4px;"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div style="background: rgba(239, 68, 68, 0.1); border-right: 4px solid var(--status-error); padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1.25rem; font-size: 0.88rem; color: var(--text-primary);" data-ar="هل أنت متأكد من رغبتك في إلغاء وحذف هذا الموعد نهائياً؟" data-en="Are you sure you want to cancel and delete this appointment?">
-                Are you sure you want to cancel and delete this appointment?
+            <!-- Reschedule / Change Date & Time Section -->
+            <div style="background: rgba(45, 212, 191, 0.05); border: 1px solid rgba(45, 212, 191, 0.25); border-radius: 8px; padding: 0.9rem; margin-bottom: 1rem;">
+                <h4 style="margin: 0 0 0.6rem; font-size: 0.95rem; font-weight: 700; color: var(--brand-primary); display: flex; align-items: center; gap: 5px;">
+                    <span>🕒</span> <span data-ar="تغيير الموعد إلى ميعاد آخر:" data-en="Reschedule Appointment:">Reschedule Appointment:</span>
+                </h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.65rem;">
+                    <div>
+                        <label for="actionModalEditDate" style="display: block; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 3px;" data-ar="التاريخ الجديد:" data-en="New Date:">New Date:</label>
+                        <input type="date" id="actionModalEditDate" style="width: 100%; padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary); font-size: 0.85rem;">
+                    </div>
+                    <div>
+                        <label for="actionModalEditTime" style="display: block; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 3px;" data-ar="الوقت الجديد:" data-en="New Time:">New Time:</label>
+                        <input type="time" id="actionModalEditTime" style="width: 100%; padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary); font-size: 0.85rem;">
+                    </div>
+                </div>
+                <button type="button" id="btnRescheduleAppt" class="btn-primary" style="width: 100%; padding: 0.45rem; font-size: 0.85rem; display: flex; justify-content: center; align-items: center; gap: 6px;" data-ar="💾 حفظ الميعاد الجديد" data-en="💾 Save New Schedule">
+                    💾 Save New Schedule
+                </button>
             </div>
 
-            <div class="modal-actions" style="display: flex; gap: 0.75rem;">
-                <button type="button" class="btn-secondary" id="cancelApptActionDismissBtn" style="flex: 1;" data-ar="إبقاء الموعد" data-en="Keep Appointment">Keep Appointment</button>
-                <button type="button" id="confirmDeleteApptBtn" class="btn-primary" style="flex: 1; background: var(--status-error); border-color: var(--status-error);" data-ar="🗑️ إلغاء الموعد نهائياً" data-en="🗑️ Cancel Appointment">🗑️ Cancel Appointment</button>
+            <!-- Delete / Cancel Section -->
+            <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 8px; padding: 0.75rem 0.9rem; margin-bottom: 1rem;">
+                <div style="font-size: 0.85rem; color: var(--text-primary); margin-bottom: 0.5rem;" data-ar="أو يمكنك مسح الموعد نهائياً من الجدول:" data-en="Or permanently delete this appointment:">
+                    Or permanently delete this appointment:
+                </div>
+                <div class="modal-actions" style="display: flex; gap: 0.6rem;">
+                    <button type="button" class="btn-secondary" id="cancelApptActionDismissBtn" style="flex: 1; padding: 0.45rem;" data-ar="إلغاء وإغلاق" data-en="Close">Close</button>
+                    <button type="button" id="confirmDeleteApptBtn" class="btn-primary" style="flex: 1.2; background: var(--status-error); border-color: var(--status-error); padding: 0.45rem;" data-ar="🗑️ مسح الموعد" data-en="🗑️ Delete Appointment">🗑️ Delete Appointment</button>
+                </div>
             </div>
         </div>
     </div>
