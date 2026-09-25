@@ -49,6 +49,9 @@ themeToggle.addEventListener('click', () => {
 const langToggle = document.getElementById('langToggle');
 
 window.formatCurrency = function(amount) {
+    if (window.settingsStore && typeof window.settingsStore.formatCurrency === 'function') {
+        return window.settingsStore.formatCurrency(amount);
+    }
     const isEn = (document.documentElement.lang || 'en') === 'en';
     const val = Number(amount) || 0;
     if (isEn) {

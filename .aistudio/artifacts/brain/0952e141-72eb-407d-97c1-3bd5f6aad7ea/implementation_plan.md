@@ -1,97 +1,267 @@
-# تعريب وتأصيل اللغة الإنجليزية بالكامل في النظام (Full English Localization & Currency/Dates)
+# MOLARIZE - Enterprise Clinic Settings & Configuration Hub (Production Specification)
 
-تحويل نظام إدارة العيادة بالكامل لدعم اللغة الإنجليزية بنسبة 100% عند تفعيلها؛ بما يشمل كافة عناصر واجهة المستخدم، الجداول الديناميكية، النوافذ المنبثقة، حالات المواعيد، الشرائح الطبية، التنبيهات وإشعارات النظام (Toasts)، مع عرض العملة بصيغة EGP والأرقام والتواريخ بالإنجليزية.
+Enterprise-grade production architecture and specification for the **Clinic Settings & Configuration Hub** in MOLARIZE Dental Practice Management SaaS. Designed for scalable multi-tenancy, granular Role-Based Access Control (RBAC), historical financial data immutability, clinical safety rules, comprehensive branding, and full audit logging.
 
 ---
 
-### User Review & Critical Decisions
+## User Review & Critical Architecture Decisions
 
 > [!IMPORTANT]
-> **القرارات المؤكدة بناءً على إجاباتك في المرحلة الأولى:**
-> - **نطاق الشمولية بالإنجليزية**: تغطية كاملة وشاملة 100% تشمل واجهة المستخدم، القوائم الجانبية، رؤوس وخلايا الجداول (المرضى، المواعيد، الخدمات، المخزن، المستحقات)، إشعارات النظام ورسائل النجاح والخطأ، النوافذ المنبثقة (بما فيها نافذة إلغاء الموعد)، الشرائح الطبية للأمراض المزمنة، وحالات المواعيد.
-> - **العملة والتواريخ**: اعتماد رمز العملة الإنجليزية `EGP` بدلاً من `ج.م`، مع تنسيق أوقات المواعيد (AM/PM) والأرقام والتواريخ بالإنجليزية القياسية عند التحويل للوضع الإنجليزي.
-> - **إلغاء المواعيد**: فحص ومعالجة آلية إلغاء الموعد لتعمل بسلاسة تامة وتظهر بالإنجليزية الكاملة داخل نافذة التأكيد وإشعار الإلغاء.
+> This production specification directly integrates the architectural requirements:
+> 1. **Multi-Tenant Data Isolation**: Explicit `clinics/{clinicId}` tenant scope across Firestore models.
+> 2. **RBAC & Granular Permissions**: Distinct operational matrix (Owner, Admin, Dentist, Assistant) with price-editing guards.
+> 3. **Historical Data Immutability & Price Versioning**: Snapshot isolation ensuring price and currency updates never mutate past invoices or patient records.
+> 4. **Clinical Safety & Prescription Templates**: Decoupled medication templates with allergy conflict warning, doctor override reason, and audit logging.
+> 5. **Expanded Financial Suite**: Currency, Tax (VAT), payment channels (Cash, Cards, InstaPay/Wallets, Insurance), deposit rules, and preset discounts.
+> 6. **Comprehensive Branding**: Logo, clinic stamp, doctor signature, invoice headers, and printable templates.
+> 7. **Tamper-Evident Audit Log**: Structured activity trail for price revisions, profile changes, and clinical overrides.
 
 ---
 
-### 1. Overview & Core Concept
+## 1. Overview & Core Concept
 
-- **What It Does**: يمنح المستخدم تجربة متكاملة ثنائية اللغة (Arabic / English)؛ فعند النقر على زر تبديل اللغة، تنتقل كافة تفاصيل التطبيق فوراً وبدون أي نصوص متبقية بالعربية إلى لغة إنجليزية احترافية ودقيقة طبياً، مع تغيير اتجاه الصفحة تلقائياً (LTR)، ومحاذاة الجداول والقوائم، وتنسيق العملات والتواريخ.
-- **Target Audience / Persona**: أطباء ومساعدو العيادات ومسؤولو الاستقبال الذين يفضلون استخدام الأنظمة الطبية والمصطلحات السريرية باللغة الإنجليزية، أو في بيئات العمل متعددة الجنسيات.
-- **Key Value**: القضاء التام على الازدواجية اللغوية غير المكتملة (Mixed language / Language leaks)، وتقديم تجربة استخدام عالمية المستوى تدعم سير العمل الإداري والطبي دون أي عوائق لغوية.
-
----
-
-### 2. User Experience & Visual Design
-
-- **Key User Flows**:
-  1. **التبديل الفوري للغة**: يضغط المستخدم على زر `English / عربي` في أعلى لوحة التحكم. يتحول اتجاه الشاشة إلى LTR، وتتغير نصوص القائمة الجانبية، الإحصائيات العلوية، الجداول، وأزرار الإجراءات في الحال.
-  2. **تصفح الجداول والبيانات**: تظهر أعمدة جدول المواعيد وحالاتها (`Upcoming`, `Completed`, `Cancelled`)، وجدول المرضى بشرائح الحالات الطبية (`Hypertension`, `Diabetes`, `Bleeding`, `Heart Disease`, `Allergy`, `Pregnancy`) باللغة الإنجليزية النقية مع الحفاظ على الألوان الدلالية المريحة للعين.
-  3. **إدارة وإلغاء المواعيد**: فتح نافذة تفاصيل وإلغاء الموعد يعرض الحقول بوضوح بالإنجليزية (`Appointment Details & Cancel`, `Patient Name`, `Date`, `Time`, `Cancel Appointment`)، مع ظهور إشعار Toast أخضر بالإنجليزية عند الإلغاء (`Appointment cancelled successfully`).
-  4. **المبالغ والماليات**: تظهر المبالغ بصيغة `EGP 450.00` بدلاً من `450 ج.م` مع أرقام غربية قياسية.
-
-- **Visual Identity & Theme**:
-  - **Aesthetic Direction**: تصميم طبي مؤسسي دقيق يتبع إرشادات `saas_dashboard`؛ أسطح مسطحة ونظيفة مع فواصل دقيقة وتوزيع ألوان صارم (60% خلفية ناصعة/داكنة، 30% أسطح كروت وهياكل، 10% أزرار وإبرازات هادفة).
-  - **Typography**: استخدام خط إنجليزي متناسق وعالي الوضوح (`Plus Jakarta Sans` أو `Inter`) في وضع الإنجليزية، مع أرقام جدولية مصفوفة بدقة (`tabular-nums`) في الجداول المالية وقوائم المواعيد.
-  - **Single-Line Controls & Badges**: نصوص أزرار الإلغاء والحفظ والشرائح الطبية غير مجزأة على سطرين (`whitespace-nowrap`).
+- **What It Does**: Provides clinic owners and dental teams with an enterprise configuration center that governs clinical procedures, medication templates, tax/currency policies, billing rules, branding assets, user permissions, and compliance audit logs.
+- **Target Audience**: Clinic Owners, Medical Directors, Associate Dentists, and Clinic Receptionists/Assistants.
+- **Key Value**: Replaces hardcoded values with a reactive, multi-tenant settings engine that enforces financial integrity, protects historical ledgers, and streamlines clinical workflow during patient visits.
 
 ---
 
-### 3. Key Product Decisions & Trade-Offs
+## 2. User Experience & Visual Design
 
-- **Decision 1: Centralized Localization Helper (`window.t` and Data Dictionaries)**
-  - *Chosen Approach*: إنشاء دالة موحدة وسريعة `window.t(ar, en)` ومصفوفة ترجمات دلالية لحالات المواعيد، الشرائح الطبية، والمصطلحات المالية في `script.js` يتم استدعاؤها في كافة ملفات العرض الديناميكي (`firebase-app-data.js`, `firebase-patients.js`, `firebase-inventory.js`, `firebase-treatments.js`).
-  - *Why*: يضمن منع أي تسريب لنصوص عربية في المستقبل عند إضافة أي ميزة، ويسهل إدارة الترجمات في نقطة مرجعية واحدة.
-  - *Alternatives Considered*: الاعتماد فقط على سمات `data-en` الثابتة في HTML؛ تم استبعاد الاكتفاء بها لأن المحتوى الذي يُبنى بالجافاسكريبت (كالجداول، الرسائل، الشرائح) يتطلب توليداً ديناميكياً بحسب لغة الجلسة الحالية.
-
-- **Decision 2: Dynamic Currency & Date Formatter**
-  - *Chosen Approach*: دمج دالتين مساعدتين `window.formatCurrency(amount)` و `window.formatTime(timeStr)` تراعيان لغة الواجهة الحالية تلقائياً.
-  - *Why*: توحيد ظهور العملة `EGP` في جميع أرجاء النظام (الإحصائيات، جدول الخدمات، كروت المواعيد، جدول المستحقات) بدون تكرار الشروط البرمجية في كل دالة.
-
----
-
-### 4. Technical Architecture & Data Strategy
-
-#### Architecture & Component Diagram
+### Information Architecture & Layout (Clean Tabs + Quick-Toggle Cards)
 
 ```
-┌────────────────────────────────────────────────────────┐
-│                   Global State                         │
-│   localStorage.getItem('preferredLang') → 'en' | 'ar'   │
-└───────────────────────────┬────────────────────────────┘
-                            │ triggers
-┌───────────────────────────▼────────────────────────────┐
-│              window.applyLanguage(lang)                │
-│  - Sets <html lang="..." dir="ltr|rtl">               │
-│  - Translates DOM elements with data-en/data-ar        │
-│  - Re-executes dynamic renderers                       │
-└─────┬──────────────────┬───────────────────┬───────────┘
-      │                  │                   │
-      ▼                  ▼                   ▼
-┌──────────────┐   ┌──────────────┐    ┌──────────────┐
-│ Appointments │   │   Patients   │    │  Financials  │
-│  & Actions   │   │  & Med Chips │    │  & Inventory │
-│ - Statuses   │   │ - Gender     │    │ - EGP Format │
-│ - Cancel Btn │   │ - Medical    │    │ - In/Out of  │
-│ - Date/Time  │   │   History    │    │   Stock      │
-│ - Toasts     │   │ - Toasts     │    │ - Toasts     │
-└──────────────┘   └──────────────┘    └──────────────┘
+┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ ⚙️ Clinic Settings & Operations Hub                                [Clinic: Downtown Dental Center] │
+├───────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ [ 🩺 Services & Pricing ]  [ 💊 Drugs & Templates ]  [ 💳 Financial & Tax ]  [ 🏥 Clinic Branding ] │
+│ [ 🛡️ Staff & Permissions ] [ 📜 Audit Trail ]                                                     │
+└───────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### Component & State Mapping
+### Tab 1: 🩺 Medical Services, Procedures & Price Versioning
+- **Quick-Toggle Cards**:
+  - *Enforce Price Editing Permissions* (Requires Owner/Admin authorization to discount at point-of-sale).
+  - *Dynamic Quick-Fill Buttons* (Show top procedures in patient treatment charts).
+- **Procedures Catalog Data Table**:
+  - Columns: Service Name (AR/EN), Category (Restorative, Endodontics, Surgery, Orthodontics, Hygiene, Prosthodontics), Effective Price, Active Currency, Effective Date, Status (Active/Archived), Actions.
+  - `+ Add New Service` modal with procedure codes, default duration, category, and initial price.
+  - Price revision history modal tracking date-stamped adjustments.
 
-1. **`dashboard.html`**:
-   - تدقيق وتحديث كافة وسوم القوائم، رؤوس الجداول، ونوافذ الإلغاء والإضافة بإضافة سمات `data-en` و `data-en-placeholder` المفقودة.
-   - نافذة إلغاء الموعد (`appointmentActionModal`): ضمان وجود الترجمة الإنجليزية لكافة أزرارها وتفاصيل الموعد المعروضة.
-2. **`script.js`**:
-   - تزويد النظام بدالة `window.t(ar, en)` و `window.formatCurrency(val)` و `window.getMedConditionLabel(key)`.
-   - عند استدعاء `applyLanguage`، إعادة بناء جميع الجداول ومؤشرات الحالة فوراً.
-3. **`firebase-app-data.js`**:
-   - ترجمة حالات المواعيد (`Upcoming`, `Completed`, `Cancelled`).
-   - فحص كود إلغاء الموعد وضمان عدم وجود أخطاء تمنع الحذف أو الإلغاء وتوفير نصوص إنجليزية كاملة لرسائل التأكيد وإشعارات النجاح.
-   - ترجمة كروت إحصائيات الصفحة الرئيسية، وعداد المواعيد بجانب كلمة "غداً" و "اليوم" باللغة الإنجليزية (`Today (X)`, `Tomorrow (Y)`).
-4. **`firebase-patients.js`**:
-   - ترجمة حقول الجنس (`Male` / `Female`)، وتسميات التاريخ المرضي في الجدول والمودال والملف الشخصي.
-   - ترجمة نصوص البحث والترقيم والرسائل التنبيهية بالإنجليزية.
-5. **`firebase-inventory.js` & `firebase-treatments.js`**:
-   - ترجمة حالات المخزون ووحدات القياس وأسعار الخدمات إلى صيغة `EGP`.
+### Tab 2: 💊 Prescription Templates & Clinical Safety Rules
+- **Clinical Safety Toggles**:
+  - *Strict Drug Allergy Conflict Interception* (Blocks prescription until doctor confirms override reason).
+  - *Auto-append Digital Signature & License Number on PDF Prescriptions*.
+- **Medication Favorites & Templates Catalog**:
+  - Columns: Medication Name, Form & Strength, Standard Frequency & Route, Duration, Instructions (e.g., after meals), Category (Antibiotic, Analgesic, Anti-inflammatory, Antiseptic, Mouthwash), Actions.
+  - Inline template editor for fast dosage adjustments without modifying patient history.
+
+### Tab 3: 💳 Financial, Currency, Taxation & Payment Channels
+- **Currency & Localization Card**:
+  - Primary Currency selector (`EGP`, `USD`, `SAR`, `AED`, `EUR`, `KWD`) with symbol placement formatting (`prefix` / `suffix`).
+  - *Rule*: Currency changes apply strictly to future invoices; historical transactions remain locked in their issued currency.
+- **Taxation (VAT) Configuration**:
+  - VAT Enable/Disable switch, Tax Rate % (e.g. 14% or 15%), Tax Registration Number, and Tax display on receipts.
+- **Payment Methods Matrix**:
+  - Cash (`كاش`) [Active/Inactive Toggle]
+  - Credit/Debit Card (`بطاقة ائتمان`) [Active/Inactive Toggle]
+  - Electronic Wallets & InstaPay (`محافظ إلكترونية / إنستاباي`) [Active/Inactive Toggle + Payment phone/link note]
+  - Health Insurance Providers (`تأمين صحي`) [Active/Inactive Toggle + Policy claim field toggle]
+- **Preset Discount & Deposit Rules**:
+  - Configurable discount quick-buttons (e.g. 5%, 10%, 15%, 20%, Family Plan).
+  - Minimum advance deposit policy for long multi-session treatments.
+
+### Tab 4: 🏥 Clinic Profile, Branding & Printable Assets
+- **Clinic Identity**: Official Clinic Name, Medical Director/Doctor Name, Specialty & Credentials, Medical License Number.
+- **Contact & Location**: Phone 1, Phone 2 (WhatsApp enabled), Email, Website, Clinic Address with Google Maps link.
+- **Digital Assets**:
+  - Clinic Logo upload & preview.
+  - Official Stamp & Doctor Signature upload (for automated receipt and prescription stamping).
+  - Invoice Header & Footer custom notes (e.g., warranties, return policy, emergency instructions).
+
+### Tab 5: 🛡️ Staff Roles & Granular Permissions (RBAC)
+- **Role Permissions Matrix Table**:
+  - Owner: Full access (All clinical, financial, pricing, settings, and audit logs).
+  - Admin: Full management (Clinical, financial, inventory, settings without deleting logs).
+  - Dentist: Clinical records, patient charts, prescriptions, treatment creation (View prices, restricted price modifications).
+  - Assistant: Appointment booking, patient intake, inventory view, receipt collection (View only for clinical/pricing).
+
+### Tab 6: 📜 Activity Audit Trail & Compliance Log
+- Live searchable audit table capturing: Timestamp, User Name, Role, Action Type (`PRICE_UPDATED`, `SERVICE_ADDED`, `CURRENCY_CHANGED`, `ALLERGY_OVERRIDE`, `MEDICATION_UPDATED`), Old Value, New Value, Reason/Notes.
+
+---
+
+## 3. Key Product Decisions & Trade-Offs
+
+- **Multi-Tenant Schema with Sub-Collections vs. Single Mega-Doc**:
+  - *Chosen Approach*: `clinics/{clinicId}/settings/config` for global flags + dedicated sub-collections `clinics/{clinicId}/services` and `clinics/{clinicId}/medication_templates`.
+  - *Why*: Supports limitless scaling, prevents Firestore document size limits (1MB), avoids write contention, and enables granular document security rules.
+- **Immutable Financial & Clinical Snapshots**:
+  - *Chosen Approach*: When a treatment or invoice is created, it captures an immutable snapshot: `{ serviceId, serviceName, chargedAmount, currency: "EGP", taxAmount, timestamp }`.
+  - *Why*: Modifying service prices or changing clinic currency in Settings never retroactively distorts past financial books or invoices.
+- **Decoupled Medication Templates**:
+  - *Chosen Approach*: The medication settings catalog acts purely as reusable templates. When added to a patient chart, a discrete prescription record is created.
+  - *Why*: Updating dosage templates never alters existing clinical patient charts.
+
+---
+
+## 4. Technical Architecture & Data Strategy
+
+```
+                                  MOLARIZE
+                                      │
+                         Enterprise Settings Engine
+                                      │
+         ┌────────────────────────────┼────────────────────────────┐
+         │                            │                            │
+  Clinical Engine              Financial Engine             Branding & Security
+         │                            │                            │
+   • Services & Pricing         • Currency & Formatting      • Clinic Logo & Stamp
+   • Price Versioning           • Tax / VAT Policies         • Doctor Signature
+   • Medication Templates       • Payment Channels Matrix    • RBAC Matrix
+   • Allergy Safety Intercept   • Preset Discounts Rules     • Audit Trail Engine
+         │                            │                            │
+         └────────────────────────────┼────────────────────────────┘
+                                      │
+                                      ▼
+                        Reactive Central Settings Store
+                         (`window.SettingsManager`)
+                                      │
+         ┌────────────────────────────┼────────────────────────────┐
+         ▼                            ▼                            ▼
+  Treatment Modal             Prescription Modal            Billing & Reports
+(Dynamic Procedures)         (Dynamic Drug Chips)        (Currency & Tax Rules)
+         │                            │                            │
+         └────────────────────────────┼────────────────────────────┘
+                                      │
+                                      ▼
+                      Multi-Tenant Firestore Cloud Store
+                    `clinics/{clinicId}/settings/config`
+                    `clinics/{clinicId}/services/{id}`
+                    `clinics/{clinicId}/medications/{id}`
+                    `clinics/{clinicId}/audit_logs/{id}`
+```
+
+### Firestore Schema Specification
+
+```typescript
+// 1. Tenant Global Configuration: `clinics/{clinicId}/settings/config`
+interface ClinicSettingsConfig {
+  clinicId: string;
+  clinicName: string;
+  doctorName: string;
+  credentials: string;
+  licenseNumber: string;
+  phone: string;
+  phoneWhatsApp: string;
+  email: string;
+  address: string;
+  logoUrl?: string;
+  signatureUrl?: string;
+  stampUrl?: string;
+  
+  // Financial Configuration
+  financial: {
+    currencyCode: 'EGP' | 'USD' | 'SAR' | 'AED' | 'EUR' | 'KWD';
+    currencySymbol: string;
+    symbolPosition: 'prefix' | 'suffix';
+    taxEnabled: boolean;
+    taxRatePercentage: number;
+    taxRegistrationNumber: string;
+    paymentMethods: {
+      cash: boolean;
+      card: boolean;
+      instapay: boolean;
+      insurance: boolean;
+    };
+    discountPresets: number[]; // [5, 10, 15, 20]
+    depositRequired: boolean;
+    minimumDepositPercentage: number;
+  };
+
+  // Clinical Safety Rules
+  clinicalRules: {
+    enableAllergyWarning: boolean;
+    requireOverrideReason: boolean;
+    autoSignatureOnPrescription: boolean;
+  };
+
+  updatedAt: string;
+  updatedBy: string;
+}
+
+// 2. Services & Procedures Collection: `clinics/{clinicId}/services/{serviceId}`
+interface ClinicServiceItem {
+  id: string;
+  clinicId: string;
+  code?: string;
+  nameAr: string;
+  nameEn: string;
+  category: 'restorative' | 'surgery' | 'endodontics' | 'orthodontics' | 'hygiene' | 'prosthodontics' | 'general';
+  currentPrice: number;
+  currency: string;
+  durationMinutes: number;
+  isActive: boolean;
+  priceHistory: Array<{
+    price: number;
+    currency: string;
+    effectiveDate: string;
+    updatedBy: string;
+  }>;
+}
+
+// 3. Medication Templates Collection: `clinics/{clinicId}/medications/{medicationId}`
+interface MedicationTemplate {
+  id: string;
+  clinicId: string;
+  name: string;
+  dosageStrength: string;
+  route: 'Oral' | 'Topical' | 'Injection' | 'Sublingual' | 'Rinse';
+  frequency: string;       // e.g. "Every 12 hours" / "TID"
+  duration: string;        // e.g. "5 days"
+  instructionsAr: string;  // e.g. "قرص بعد الأكل كل 12 ساعة"
+  instructionsEn: string;  // e.g. "1 tablet after meals every 12 hrs"
+  category: 'Antibiotic' | 'Analgesic' | 'Anti-inflammatory' | 'Antiseptic' | 'Mouthwash' | 'Other';
+  contraindications: string[]; // ["Penicillin", "Aspirin"]
+  isActive: boolean;
+}
+
+// 4. Audit Log Collection: `clinics/{clinicId}/audit_logs/{logId}`
+interface ClinicAuditLog {
+  id: string;
+  clinicId: string;
+  timestamp: string;
+  userId: string;
+  userName: string;
+  userRole: 'Owner' | 'Admin' | 'Dentist' | 'Assistant';
+  action: 'PRICE_UPDATED' | 'SERVICE_ADDED' | 'SERVICE_DELETED' | 'MEDICATION_ADDED' | 'MEDICATION_UPDATED' | 'CURRENCY_CHANGED' | 'TAX_UPDATED' | 'PAYMENT_METHOD_TOGGLED' | 'PROFILE_UPDATED' | 'ALLERGY_OVERRIDE';
+  targetEntity: string;
+  details: {
+    oldValue?: any;
+    newValue?: any;
+    reason?: string;
+  };
+}
+```
+
+---
+
+## 5. Implementation & Rollout Stages
+
+1. **Stage 1: Multi-Tenant Settings Controller & Store (`firebase-settings.js`)**:
+   - Initialize `SettingsManager` with reactive event dispatching.
+   - Cache settings in memory on app boot with automatic Firestore real-time sync.
+2. **Stage 2: Responsive Settings UI in `dashboard.html`**:
+   - Tab bar with 6 functional views: Services & Pricing, Medication Templates, Financial & Tax, Branding & Assets, Permissions, and Audit Trail.
+   - Quick-toggle switch cards with immediate feedback.
+3. **Stage 3: Procedure & Drug Catalog Management Modals**:
+   - Add/Edit Procedure modal with price version logging.
+   - Add/Edit Medication Template modal with allergy contraindication tags.
+4. **Stage 4: Dynamic Synchronization across Clinical Views**:
+   - Automatically populate Treatment modal quick-fill procedure chips from active services.
+   - Automatically populate Prescription modal quick-medication chips from active medication templates.
+   - Integrate allergy conflict modal when a prescribed drug matches patient allergies.
+5. **Stage 5: Verification & Safety Testing**:
+   - Verify historical transactions and past invoices remain immutable when changing active prices or currencies.
+   - Verify non-admin role restrictions and audit trail logging.
+   - Run compilation and linting suites.

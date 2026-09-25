@@ -643,8 +643,425 @@
         </section>
         <!-- Settings Section -->
         <section id="settings-section" class="app-section" style="display: none;">
-            <h1 data-ar="الإعدادات" data-en="Settings">Settings</h1>
-            <p data-ar="قريباً..." data-en="Coming soon...">Coming soon...</p>
+            <!-- Settings Header Banner -->
+            <div class="settings-header-banner">
+                <div>
+                    <h1 data-ar="مركز إعدادات وإدارة العيادة" data-en="Clinic Settings & Operations Hub" style="margin: 0; font-size: 1.6rem; font-weight: 700;">Clinic Settings & Operations Hub</h1>
+                    <p class="text-muted" data-ar="التحكم الشامل في أسعار الخدمات، قوالب الروشتات، الضرائب والعملة، وهوية العيادة." data-en="Enterprise control over service pricing, medication templates, currency, tax, and clinic branding." style="margin: 0.35rem 0 0 0; font-size: 0.88rem;">Enterprise control over service pricing, medication templates, currency, tax, and clinic branding.</p>
+                </div>
+                <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                    <!-- Export Full Settings JSON -->
+                    <button type="button" class="btn-outline" id="exportFullConfigJsonBtn" style="font-size: 0.82rem; padding: 0.4rem 0.8rem; display: inline-flex; align-items: center; gap: 5px;" data-ar="📥 نسخ احتياطي للإعدادات" data-en="📥 Export Settings JSON">
+                        📥 Export Settings JSON
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sub-Tabs Navigation Bar -->
+            <div class="settings-nav-tabs">
+                <button type="button" class="settings-nav-tab active" data-tab="tab-settings-services" data-ar="🩺 الخدمات والأسعار" data-en="🩺 Services & Pricing">
+                    🩺 Services & Pricing
+                </button>
+                <button type="button" class="settings-nav-tab" data-tab="tab-settings-medications" data-ar="💊 قوالب الأدوية والروشتات" data-en="💊 Prescription Templates">
+                    💊 Prescription Templates
+                </button>
+                <button type="button" class="settings-nav-tab" data-tab="tab-settings-financial" data-ar="💳 الماليات والعملة والضرائب" data-en="💳 Financial & Currency">
+                    💳 Financial & Currency
+                </button>
+                <button type="button" class="settings-nav-tab" data-tab="tab-settings-branding" data-ar="🏥 بيانات العيادة والطباعة" data-en="🏥 Clinic Profile & Branding">
+                    🏥 Clinic Profile & Branding
+                </button>
+                <button type="button" class="settings-nav-tab" data-tab="tab-settings-audit" data-ar="📜 سجل التتبع والعمليات" data-en="📜 Audit Trail">
+                    📜 Audit Trail
+                </button>
+            </div>
+
+            <!-- TAB 1: Services & Pricing -->
+            <div id="tab-settings-services" class="settings-tab-pane" style="display: block;">
+                <!-- Quick Toggles -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <h3 data-ar="قواعد تسعير الخدمات الطبية" data-en="Clinical Procedure Pricing & Rules">Clinical Procedure Pricing & Rules</h3>
+                        <button type="button" class="btn-primary" id="btnAddNewService" style="font-size: 0.85rem; padding: 0.4rem 0.85rem;" data-ar="+ إضافة خدمة جديدة" data-en="+ Add New Service">+ Add New Service</button>
+                    </div>
+
+                    <div class="settings-grid-2" style="margin-bottom: 1.5rem;">
+                        <div class="toggle-switch-card">
+                            <div class="toggle-switch-info">
+                                <h4 data-ar="سماح للطبيب بتعديل السعر أثناء الزيارة" data-en="Allow Dentists to Adjust Prices">Allow Dentists to Adjust Prices</h4>
+                                <p data-ar="تفعيل إمكانية الخصم أو تعديل السعر للطبيب المعالج بدون طلب صلاحية المدير." data-en="Allow treating dentists to adjust procedure prices during patient visits without admin approval.">Allow treating dentists to adjust procedure prices during patient visits without admin approval.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="settingAllowDentistPriceEdit" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="toggle-switch-card">
+                            <div class="toggle-switch-info">
+                                <h4 data-ar="قفل الأسعار التاريخية بالفواتير" data-en="Lock Historical Invoice Pricing">Lock Historical Invoice Pricing</h4>
+                                <p data-ar="تغيير سعر الخدمة هنا لا يغير قيمة المعاملات أو الفواتير المسجلة مسبقاً للمرضى." data-en="Changing procedure prices here strictly protects and locks all past patient bills and treatments.">Changing procedure prices here strictly protects and locks all past patient bills and treatments.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" checked disabled>
+                                <span class="slider" style="opacity: 0.7;"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Search & Category Filters for Services -->
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; margin-top: 1rem; margin-bottom: 0.75rem;">
+                        <div style="position: relative; flex: 1; min-width: 240px; max-width: 450px;">
+                            <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 0.85rem; opacity: 0.6; pointer-events: none;">🔍</span>
+                            <input type="text" id="servicesSearchInput" class="search-input" 
+                                placeholder="Search procedure by name, code or category..." 
+                                data-ar="ابحث عن خدمة بالاسم، الكود، أو الفئة..." 
+                                data-en="Search procedure by name, code or category..."
+                                data-ar-placeholder="ابحث عن خدمة بالاسم، الكود، أو الفئة..."
+                                data-en-placeholder="Search procedure by name, code or category..."
+                                style="padding-left: 32px; padding-right: 12px; font-size: 0.85rem; border-radius: 8px; width: 100%;">
+                        </div>
+                        <div class="filter-chips" id="servicesCategoryChips" style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                            <button type="button" class="chip active" data-filter="all" data-ar="الكل" data-en="All">All</button>
+                            <button type="button" class="chip" data-filter="restorative" data-ar="🦷 حشو وتجميل" data-en="🦷 Restorative">🦷 Restorative</button>
+                            <button type="button" class="chip" data-filter="endodontics" data-ar="⚡ علاج عصب" data-en="⚡ Endo">⚡ Endo</button>
+                            <button type="button" class="chip" data-filter="surgery" data-ar="🔪 جراحة وخلع" data-en="🔪 Surgery">🔪 Surgery</button>
+                            <button type="button" class="chip" data-filter="orthodontics" data-ar="📐 تقويم" data-en="📐 Ortho">📐 Ortho</button>
+                            <button type="button" class="chip" data-filter="hygiene" data-ar="✨ تنظيف وتبييض" data-en="✨ Hygiene">✨ Hygiene</button>
+                            <button type="button" class="chip" data-filter="prosthodontics" data-ar="👑 تركيبات وزراعة" data-en="👑 Prostho">👑 Prostho</button>
+                        </div>
+                    </div>
+
+                    <!-- Services Data Table -->
+                    <div class="table-container" style="margin-top: 0.5rem;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th data-ar="الكود" data-en="Code">Code</th>
+                                    <th data-ar="اسم الخدمة / الإجراء" data-en="Procedure Name">Procedure Name</th>
+                                    <th data-ar="الفئة" data-en="Category">Category</th>
+                                    <th data-ar="السعر الحالي (تعديل فوري)" data-en="Current Price (Instant Edit)">Current Price (Instant Edit)</th>
+                                    <th data-ar="المدة" data-en="Duration">Duration</th>
+                                    <th data-ar="الحالة" data-en="Status">Status</th>
+                                    <th data-ar="الإجراءات" data-en="Actions">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="settingsServicesTableBody">
+                                <!-- Injected by firebase-settings.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: Medications & Prescriptions -->
+            <div id="tab-settings-medications" class="settings-tab-pane" style="display: none;">
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <h3 data-ar="قوالب الأدوية وقواعد السلامة الطبية" data-en="Medication Templates & Safety Rules">Medication Templates & Safety Rules</h3>
+                        <button type="button" class="btn-primary" id="btnAddNewMedication" style="font-size: 0.85rem; padding: 0.4rem 0.85rem;" data-ar="+ إضافة قالب دواء" data-en="+ Add Medication Template">+ Add Medication Template</button>
+                    </div>
+
+                    <div class="settings-grid-2" style="margin-bottom: 1.5rem;">
+                        <div class="toggle-switch-card">
+                            <div class="toggle-switch-info">
+                                <h4 data-ar="تنبيه واعتراض حساسية الأدوية للمريض" data-en="Strict Allergy Interception">Strict Allergy Interception</h4>
+                                <p data-ar="إيقاف الطبيب وطلب سبب التجاوز إذا كان المريض يعاني من حساسية تجاه مادة الدواء." data-en="Intercepts prescription and prompts doctor for a documented override reason if drug conflicts with patient allergies.">Intercepts prescription and prompts doctor for a documented override reason if drug conflicts with patient allergies.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="settingEnableAllergyWarning" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="toggle-switch-card">
+                            <div class="toggle-switch-info">
+                                <h4 data-ar="إلزام كتابة سبب التجاوز في سجل التدقيق" data-en="Require Override Reason">Require Override Reason</h4>
+                                <p data-ar="تسجيل سبب الطبيب في سجل الأمان (Audit Trail) عند تجاوز تحذير الحساسية." data-en="Mandates doctor documentation for clinical audit compliance when overriding drug allergies.">Mandates doctor documentation for clinical audit compliance when overriding drug allergies.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="settingRequireOverrideReason" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Search & Category Filters for Medications -->
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; margin-top: 1rem; margin-bottom: 0.75rem;">
+                        <div style="position: relative; flex: 1; min-width: 240px; max-width: 450px;">
+                            <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 0.85rem; opacity: 0.6; pointer-events: none;">🔍</span>
+                            <input type="text" id="medicationsSearchInput" class="search-input" 
+                                placeholder="Search medication by name, dose or substance..." 
+                                data-ar="ابحث باسم الدواء، الجرعة، أو المادة الفعالة..." 
+                                data-en="Search medication by name, dose or substance..."
+                                data-ar-placeholder="ابحث باسم الدواء، الجرعة، أو المادة الفعالة..."
+                                data-en-placeholder="Search medication by name, dose or substance..."
+                                style="padding-left: 32px; padding-right: 12px; font-size: 0.85rem; border-radius: 8px; width: 100%;">
+                        </div>
+                        <div class="filter-chips" id="medsCategoryChips" style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                            <button type="button" class="chip active" data-filter="all" data-ar="الكل" data-en="All">All</button>
+                            <button type="button" class="chip" data-filter="antibiotic" data-ar="💊 مضادات حيوية" data-en="💊 Antibiotics">💊 Antibiotics</button>
+                            <button type="button" class="chip" data-filter="analgesic" data-ar="💉 مسكنات" data-en="💉 Analgesics">💉 Analgesics</button>
+                            <button type="button" class="chip" data-filter="anti-inflammatory" data-ar="🧊 مضادات التهاب" data-en="🧊 Anti-inflam">🧊 Anti-inflam</button>
+                            <button type="button" class="chip" data-filter="antiseptic" data-ar="🧴 مطهرات وغسول" data-en="🧴 Antiseptic">🧴 Antiseptic</button>
+                        </div>
+                    </div>
+
+                    <!-- Medications Data Table -->
+                    <div class="table-container" style="margin-top: 0.5rem;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th data-ar="اسم الدواء والشكل" data-en="Medication & Strength">Medication & Strength</th>
+                                    <th data-ar="التصنيف" data-en="Category">Category</th>
+                                    <th data-ar="الجرعة الافتراضية والمدة" data-en="Default Dosage & Duration">Default Dosage & Duration</th>
+                                    <th data-ar="موانع الاستخدام والحساسية" data-en="Contraindications / Allergies">Contraindications / Allergies</th>
+                                    <th data-ar="الإجراءات" data-en="Actions">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="settingsMedsTableBody">
+                                <!-- Injected by firebase-settings.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: Financial & Currency -->
+            <div id="tab-settings-financial" class="settings-tab-pane" style="display: none;">
+                <form id="financialSettingsForm">
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <h3 data-ar="إعدادات العملة والضرائب وطرق الدفع" data-en="Currency, Taxation & Payment Channels">Currency, Taxation & Payment Channels</h3>
+                            <button type="submit" class="btn-primary" style="font-size: 0.85rem; padding: 0.45rem 1rem;" data-ar="💾 حفظ الإعدادات المالية" data-en="💾 Save Financial Settings">💾 Save Financial Settings</button>
+                        </div>
+
+                        <div class="settings-grid-2">
+                            <!-- Currency Settings -->
+                            <div class="input-group">
+                                <label for="settingCurrencySelect" data-ar="العملة الرسمية للعيادة:" data-en="Clinic Primary Currency:">Clinic Primary Currency:</label>
+                                <select id="settingCurrencySelect" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);">
+                                    <option value="EGP">EGP (Egyptian Pound / جنيه مصري)</option>
+                                    <option value="SAR">SAR (Saudi Riyal / ريال سعودي)</option>
+                                    <option value="AED">AED (UAE Dirham / درهم إماراتي)</option>
+                                    <option value="USD">USD (US Dollar / دولار أمريكي)</option>
+                                    <option value="EUR">EUR (Euro / يورو)</option>
+                                    <option value="KWD">KWD (Kuwaiti Dinar / دينار كويتي)</option>
+                                </select>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="settingCurrencySymbol" data-ar="رمز العملة المعروض:" data-en="Display Currency Symbol:">Display Currency Symbol:</label>
+                                <input type="text" id="settingCurrencySymbol" placeholder="e.g. ج.م or $">
+                            </div>
+
+                            <!-- Taxation (VAT) Settings -->
+                            <div class="input-group" style="grid-column: 1 / -1;">
+                                <div class="toggle-switch-card">
+                                    <div class="toggle-switch-info">
+                                        <h4 data-ar="تفعيل ضريبة القيمة المضافة (VAT)" data-en="Enable Value Added Tax (VAT)">Enable Value Added Tax (VAT)</h4>
+                                        <p data-ar="احتساب الضريبة وإظهار الرقم الضريبي في فواتير وسندات القبض." data-en="Automatically calculates tax percentage and prints official tax registration number on invoices.">Automatically calculates tax percentage and prints official tax registration number on invoices.</p>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" id="settingTaxEnabled">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="settingTaxRate" data-ar="نسبة الضريبة (%):" data-en="Tax Rate (%):">Tax Rate (%):</label>
+                                <input type="number" id="settingTaxRate" placeholder="14" min="0" max="100" step="0.1">
+                            </div>
+
+                            <div class="input-group">
+                                <label for="settingTaxNumber" data-ar="الرقم الضريبي للعيادة:" data-en="Tax Registration Number:">Tax Registration Number:</label>
+                                <input type="text" id="settingTaxNumber" placeholder="e.g. TR-894-320-11">
+                            </div>
+
+                            <!-- Payment Methods Channels -->
+                            <div class="input-group" style="grid-column: 1 / -1;">
+                                <label data-ar="طرق الدفع المتاحة بالعيادة:" data-en="Enabled Payment Channels:">Enabled Payment Channels:</label>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; margin-top: 0.5rem;">
+                                    <label class="toggle-switch-card" style="margin-bottom: 0;">
+                                        <div class="toggle-switch-info">
+                                            <h4 data-ar="💵 الدفع النقدي (Cash)" data-en="💵 Cash">💵 Cash</h4>
+                                        </div>
+                                        <label class="switch">
+                                            <input type="checkbox" id="settingPmCash" checked>
+                                            <span class="slider"></span>
+                                        </label>
+                                    </label>
+
+                                    <label class="toggle-switch-card" style="margin-bottom: 0;">
+                                        <div class="toggle-switch-info">
+                                            <h4 data-ar="💳 بطاقة ائتمان (Credit/Debit)" data-en="💳 Credit/Debit Card">💳 Credit/Debit Card</h4>
+                                        </div>
+                                        <label class="switch">
+                                            <input type="checkbox" id="settingPmCard" checked>
+                                            <span class="slider"></span>
+                                        </label>
+                                    </label>
+
+                                    <label class="toggle-switch-card" style="margin-bottom: 0;">
+                                        <div class="toggle-switch-info">
+                                            <h4 data-ar="📱 إنستاباي ومحافظ (InstaPay)" data-en="📱 InstaPay / Wallets">📱 InstaPay / Wallets</h4>
+                                        </div>
+                                        <label class="switch">
+                                            <input type="checkbox" id="settingPmInstapay" checked>
+                                            <span class="slider"></span>
+                                        </label>
+                                    </label>
+
+                                    <label class="toggle-switch-card" style="margin-bottom: 0;">
+                                        <div class="toggle-switch-info">
+                                            <h4 data-ar="🏥 تأمين صحي (Insurance)" data-en="🏥 Health Insurance">🏥 Health Insurance</h4>
+                                        </div>
+                                        <label class="switch">
+                                            <input type="checkbox" id="settingPmInsurance" checked>
+                                            <span class="slider"></span>
+                                        </label>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Discount Presets -->
+                            <div class="input-group" style="grid-column: 1 / -1;">
+                                <label for="settingDiscountPresets" data-ar="نسب الخصم الجاهزة بنقرة واحدة (%):" data-en="Preset Discount Quick Rates (%):">Preset Discount Quick Rates (%):</label>
+                                <input type="text" id="settingDiscountPresets" placeholder="5, 10, 15, 20, 25">
+                                <small style="color: var(--text-muted); margin-top: 4px;" data-ar="افصل بين النسب بفاصلة (مثال: 5, 10, 15, 20)" data-en="Comma-separated percentages (e.g. 5, 10, 15, 20)">Comma-separated percentages (e.g. 5, 10, 15, 20)</small>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- TAB 4: Clinic Profile & Branding -->
+            <div id="tab-settings-branding" class="settings-tab-pane" style="display: none;">
+                <form id="brandingSettingsForm">
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <h3 data-ar="بيانات وهوية العيادة والطباعة الرسمية" data-en="Clinic Profile, Branding & Printable Stationery">Clinic Profile, Branding & Printable Stationery</h3>
+                            <button type="submit" class="btn-primary" style="font-size: 0.85rem; padding: 0.45rem 1rem;" data-ar="💾 حفظ هوية العيادة" data-en="💾 Save Clinic Profile">💾 Save Clinic Profile</button>
+                        </div>
+
+                        <div class="settings-grid-2">
+                            <div class="input-group">
+                                <label for="settingClinicName" data-ar="اسم العيادة / المركز الطبي:" data-en="Clinic Official Name:">Clinic Official Name:</label>
+                                <input type="text" id="settingClinicName" required>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="settingDoctorName" data-ar="اسم الطبيب المسؤول:" data-en="Medical Director / Doctor Name:">Medical Director / Doctor Name:</label>
+                                <input type="text" id="settingDoctorName" required>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="settingCredentials" data-ar="الدرجة العلمية والتخصص:" data-en="Doctor Credentials & Specialty:">Doctor Credentials & Specialty:</label>
+                                <input type="text" id="settingCredentials" placeholder="e.g. BDS, MSc - Consultant Oral & Maxillofacial Surgeon">
+                            </div>
+
+                            <div class="input-group">
+                                <label for="settingLicenseNumber" data-ar="رقم ترخيص مزاولة المهنة:" data-en="Medical License Number:">Medical License Number:</label>
+                                <input type="text" id="settingLicenseNumber" placeholder="e.g. MOH-2026-9941">
+                            </div>
+
+                            <div class="input-group">
+                                <label for="settingPhone" data-ar="هاتف العيادة الأساسي:" data-en="Clinic Primary Phone:">Clinic Primary Phone:</label>
+                                <input type="tel" id="settingPhone" required>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="settingWhatsApp" data-ar="رقم الواتساب للتذكير والمتابعة:" data-en="WhatsApp Communication Phone:">WhatsApp Communication Phone:</label>
+                                <input type="tel" id="settingWhatsApp">
+                            </div>
+
+                            <div class="input-group">
+                                <label for="settingEmail" data-ar="البريد الإلكتروني:" data-en="Official Email:">Official Email:</label>
+                                <input type="email" id="settingEmail">
+                            </div>
+
+                            <div class="input-group">
+                                <label for="settingAddress" data-ar="عنوان العيادة بالتفصيل:" data-en="Clinic Detailed Address:">Clinic Detailed Address:</label>
+                                <input type="text" id="settingAddress">
+                            </div>
+
+                            <div class="input-group" style="grid-column: 1 / -1;">
+                                <label for="settingInvoiceHeader" data-ar="ترويسة الفواتير والروشتات (Header Note):" data-en="Printable Header Note:">Printable Header Note:</label>
+                                <input type="text" id="settingInvoiceHeader" placeholder="e.g. MOLARIZE Dental Care & Advanced Implantology Center">
+                            </div>
+
+                            <div class="input-group" style="grid-column: 1 / -1;">
+                                <label for="settingInvoiceFooter" data-ar="تذييل الفواتير والتعليمات (Footer / Terms Note):" data-en="Printable Footer / Emergency Instructions:">Printable Footer / Emergency Instructions:</label>
+                                <textarea id="settingInvoiceFooter" rows="2" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);"></textarea>
+                            </div>
+
+                            <div class="input-group" style="grid-column: 1 / -1;">
+                                <div class="toggle-switch-card">
+                                    <div class="toggle-switch-info">
+                                        <h4 data-ar="طباعة توقيع الطبيب الرقمي على الروشتة" data-en="Auto-attach Digital Signature & License on Print">Auto-attach Digital Signature & License on Print</h4>
+                                        <p data-ar="تضمين توقيع الطبيب وترخيص النقابة تلقائياً عند طباعة الروشتة أو تقرير الحالة." data-en="Automatically prints official signature seal and medical license number on medical prescriptions.">Automatically prints official signature seal and medical license number on medical prescriptions.</p>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" id="settingAutoSignature" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- TAB 5: Audit Trail & Compliance -->
+            <div id="tab-settings-audit" class="settings-tab-pane" style="display: none;">
+                <div class="settings-card">
+                    <div class="settings-card-header" style="flex-wrap: wrap; gap: 0.5rem;">
+                        <div>
+                            <h3 data-ar="سجل التتبع والعمليات الحساسة (Audit Trail)" data-en="Activity Audit Trail & Security Ledger">Activity Audit Trail & Security Ledger</h3>
+                            <span style="font-size: 0.8rem; color: var(--text-muted);" data-ar="تتبع تلقائي لتعديلات الأسعار، الأدوية، وحالات تجاوز الحساسية" data-en="Automatic audit trail for price revisions, drug edits, and allergy overrides">Automatic audit trail for price revisions, drug edits, and allergy overrides</span>
+                        </div>
+                    </div>
+
+                    <!-- Search & Filters for Audit -->
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; margin-top: 1rem; margin-bottom: 0.75rem;">
+                        <div style="position: relative; flex: 1; min-width: 240px; max-width: 450px;">
+                            <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 0.85rem; opacity: 0.6; pointer-events: none;">🔍</span>
+                            <input type="text" id="auditSearchInput" class="search-input" 
+                                placeholder="Search audit logs by action, target or user..." 
+                                data-ar="ابحث في السجل بنوع الإجراء، العنصر، أو المستخدم..." 
+                                data-en="Search audit logs by action, target or user..."
+                                data-ar-placeholder="ابحث في السجل بنوع الإجراء، العنصر، أو المستخدم..."
+                                data-en-placeholder="Search audit logs by action, target or user..."
+                                style="padding-left: 32px; padding-right: 12px; font-size: 0.85rem; border-radius: 8px; width: 100%;">
+                        </div>
+                        <div class="filter-chips" id="auditTypeChips" style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                            <button type="button" class="chip active" data-filter="all" data-ar="الكل" data-en="All">All</button>
+                            <button type="button" class="chip" data-filter="PRICE" data-ar="💰 أسعار" data-en="💰 Prices">💰 Prices</button>
+                            <button type="button" class="chip" data-filter="MEDICATION" data-ar="💊 أدوية" data-en="💊 Meds">💊 Meds</button>
+                            <button type="button" class="chip" data-filter="FINANCIAL" data-ar="💳 ماليات" data-en="💳 Financial">💳 Financial</button>
+                            <button type="button" class="chip" data-filter="ALLERGY" data-ar="⚠️ حساسية" data-en="⚠️ Allergy">⚠️ Allergy</button>
+                        </div>
+                    </div>
+
+                    <div class="table-container" style="margin-top: 0.5rem;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th data-ar="الوقت والتاريخ" data-en="Timestamp">Timestamp</th>
+                                    <th data-ar="المستخدم والدور" data-en="User & Role">User & Role</th>
+                                    <th data-ar="نوع الإجراء" data-en="Action Type">Action Type</th>
+                                    <th data-ar="العنصر المستهدف" data-en="Target Entity">Target Entity</th>
+                                    <th data-ar="التفاصيل والملاحظات" data-en="Details & Reason">Details & Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody id="settingsAuditLogsTableBody">
+                                <!-- Injected by firebase-settings.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </section>
 
     </main>
@@ -1182,10 +1599,170 @@
         </div>
     </div>
 
+    <!-- Modal for Adding/Editing Medical Service -->
+    <div id="serviceModal" class="modal">
+        <div class="modal-content" style="max-width: 550px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+                <div>
+                    <h3 id="serviceModalTitle" style="margin: 0; font-size: 1.2rem; text-align: start;" data-ar="🩺 إضافة / تعديل خدمة طبية" data-en="🩺 Add / Edit Clinical Service">🩺 Add / Edit Clinical Service</h3>
+                    <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: var(--text-muted);" data-ar="تحديد تفاصيل الإجراء الطبي وسعره والمدة المتوقعة" data-en="Configure procedure pricing, category and duration">Configure procedure pricing, category and duration</p>
+                </div>
+                <button type="button" class="close-modal-btn" onclick="document.getElementById('serviceModal').classList.remove('show')" style="background: none; border: none; font-size: 1.3rem; color: var(--text-muted); cursor: pointer; padding: 4px 8px; border-radius: 6px;">✕</button>
+            </div>
+            <form id="serviceForm">
+                <input type="hidden" id="serviceId">
+                <div class="input-group">
+                    <label for="serviceCode" data-ar="كود الإجراء الطبي (CDT/Code):" data-en="Procedure Code:">Procedure Code:</label>
+                    <input type="text" id="serviceCode" placeholder="e.g. D2391, D3330">
+                </div>
+                <div class="input-group">
+                    <label for="serviceNameAr" data-ar="اسم الخدمة (بالعربية):" data-en="Procedure Name (Arabic):">Procedure Name (Arabic):</label>
+                    <input type="text" id="serviceNameAr" placeholder="مثال: حشو تجميلي كومبوزيت" required>
+                </div>
+                <div class="input-group">
+                    <label for="serviceNameEn" data-ar="اسم الخدمة (بالإنجليزية):" data-en="Procedure Name (English):">Procedure Name (English):</label>
+                    <input type="text" id="serviceNameEn" placeholder="e.g. Composite Filling" required>
+                </div>
+                <div class="input-group">
+                    <label for="serviceCategory" data-ar="التصنيف الطبي:" data-en="Category:">Category:</label>
+                    <select id="serviceCategory" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);">
+                        <option value="restorative">Restorative (حشوات وعلاج تحفظي)</option>
+                        <option value="endodontics">Endodontics (علاج جذور وعصب)</option>
+                        <option value="hygiene">Hygiene & Periodontics (تنظيف ولثة)</option>
+                        <option value="surgery">Oral Surgery (خلع وجراحة)</option>
+                        <option value="prosthodontics">Prosthodontics (تركيبات وطربوش)</option>
+                        <option value="cosmetic">Cosmetic (تبييض وتجميل)</option>
+                        <option value="orthodontics">Orthodontics (تقويم أسنان)</option>
+                        <option value="implant">Implantology (زراعة أسنان)</option>
+                        <option value="general">General Consultation (كشف عام)</option>
+                    </select>
+                </div>
+                <div class="input-group" style="display: flex; gap: 1rem;">
+                    <div style="flex: 1;">
+                        <label for="servicePrice" data-ar="السعر الافتراضي:" data-en="Standard Price:">Standard Price:</label>
+                        <input type="number" id="servicePrice" min="0" step="1" required>
+                    </div>
+                    <div style="flex: 1;">
+                        <label for="serviceDuration" data-ar="المدة المتوقعة (بالدقائق):" data-en="Duration (Minutes):">Duration (Minutes):</label>
+                        <input type="number" id="serviceDuration" min="5" max="300" step="5" value="30" required>
+                    </div>
+                </div>
+                <div class="input-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
+                    <input type="checkbox" id="serviceIsActive" checked style="width: 18px; height: 18px;">
+                    <label for="serviceIsActive" style="margin: 0; cursor: pointer;" data-ar="الخدمة نشطة ومتاحة بالحجوزات والعلاج" data-en="Active & Available in clinic catalog">Active & Available in clinic catalog</label>
+                </div>
+                <div class="modal-actions" style="margin-top: 1.25rem;">
+                    <button type="button" class="btn-secondary" id="cancelServiceModalBtn" data-ar="إلغاء" data-en="Cancel">Cancel</button>
+                    <button type="submit" class="btn-primary" data-ar="💾 حفظ الخدمة" data-en="💾 Save Service">💾 Save Service</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Adding/Editing Medication Template -->
+    <div id="medicationModal" class="modal">
+        <div class="modal-content" style="max-width: 580px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+                <div>
+                    <h3 id="medicationModalTitle" style="margin: 0; font-size: 1.2rem; text-align: start;" data-ar="💊 إضافة / تعديل قالب دواء" data-en="💊 Add / Edit Medication Template">💊 Add / Edit Medication Template</h3>
+                    <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: var(--text-muted);" data-ar="تحديد اسم الدواء، الجرعة، طريقة الاستخدام، وموانع الاستخدام" data-en="Set drug name, strength, instructions and contraindications">Set drug name, strength, instructions and contraindications</p>
+                </div>
+                <button type="button" class="close-modal-btn" onclick="document.getElementById('medicationModal').classList.remove('show')" style="background: none; border: none; font-size: 1.3rem; color: var(--text-muted); cursor: pointer; padding: 4px 8px; border-radius: 6px;">✕</button>
+            </div>
+            <form id="medicationForm">
+                <input type="hidden" id="medicationId">
+                <div class="input-group">
+                    <label for="medName" data-ar="اسم الدواء التجاري والعلمي:" data-en="Drug Brand & Generic Name:">Drug Brand & Generic Name:</label>
+                    <input type="text" id="medName" placeholder="e.g. Augmentin 1g (Amoxicillin/Clavulanate)" required>
+                </div>
+                <div class="input-group" style="display: flex; gap: 1rem;">
+                    <div style="flex: 1;">
+                        <label for="medDosage" data-ar="التركيز والشكل:" data-en="Strength & Form:">Strength & Form:</label>
+                        <input type="text" id="medDosage" placeholder="e.g. 1g Tab, 500mg Cap" required>
+                    </div>
+                    <div style="flex: 1;">
+                        <label for="medRoute" data-ar="طريقة الاستعمال:" data-en="Route:">Route:</label>
+                        <select id="medRoute" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);">
+                            <option value="Oral">Oral (عن طريق الفم)</option>
+                            <option value="Rinse">Mouthwash / Rinse (مضمضة)</option>
+                            <option value="Topical">Topical Gel (دهان موضعي)</option>
+                            <option value="Injection">IM / IV Injection (حقن)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="input-group" style="display: flex; gap: 1rem;">
+                    <div style="flex: 1;">
+                        <label for="medCategory" data-ar="التصنيف الدوائي:" data-en="Category:">Category:</label>
+                        <select id="medCategory" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);">
+                            <option value="Antibiotic">Antibiotic (مضاد حيوي)</option>
+                            <option value="Analgesic">Analgesic (مسكن ألم)</option>
+                            <option value="Anti-inflammatory">Anti-inflammatory (مضاد التهاب)</option>
+                            <option value="Antiseptic">Antiseptic (مطهر)</option>
+                            <option value="Other">Other (أخرى)</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label for="medFrequency" data-ar="التكرار الافتراضي:" data-en="Frequency:">Frequency:</label>
+                        <input type="text" id="medFrequency" placeholder="e.g. Every 12 hours / TID">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="medDuration" data-ar="مدة العلاج الافتراضية:" data-en="Duration:">Duration:</label>
+                    <input type="text" id="medDuration" placeholder="e.g. 5-7 days">
+                </div>
+                <div class="input-group">
+                    <label for="medInstructionsAr" data-ar="التعليمات بالعربية (تطبع بالروشتة):" data-en="Instructions (Arabic):">Instructions (Arabic):</label>
+                    <input type="text" id="medInstructionsAr" placeholder="مثال: قرص بعد الأكل كل 12 ساعة لمدة أسبوع">
+                </div>
+                <div class="input-group">
+                    <label for="medInstructionsEn" data-ar="التعليمات بالإنجليزية:" data-en="Instructions (English):">Instructions (English):</label>
+                    <input type="text" id="medInstructionsEn" placeholder="e.g. 1 tablet every 12 hours after meals">
+                </div>
+                <div class="input-group">
+                    <label for="medContraindications" data-ar="موانع الاستخدام والحساسية المرتبطة (افصل بفاصلة):" data-en="Contraindications & Allergies (Comma separated):">Contraindications & Allergies (Comma separated):</label>
+                    <input type="text" id="medContraindications" placeholder="e.g. Penicillin, Amoxicillin, Bleeding, Pregnancy">
+                </div>
+                <div class="modal-actions" style="margin-top: 1.25rem;">
+                    <button type="button" class="btn-secondary" id="cancelMedicationModalBtn" data-ar="إلغاء" data-en="Cancel">Cancel</button>
+                    <button type="submit" class="btn-primary" data-ar="💾 حفظ القالب" data-en="💾 Save Template">💾 Save Template</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Allergy Interception & Doctor Override -->
+    <div id="allergyOverrideModal" class="modal" style="z-index: 100000;">
+        <div class="modal-content" style="max-width: 520px; border: 2px solid var(--status-error);">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                <span style="font-size: 2rem;">🛑</span>
+                <div>
+                    <h3 style="margin: 0; color: var(--status-error);" data-ar="تحذير أمان: تعارض حساسية أدوية!" data-en="Safety Alert: Drug Allergy Conflict!">Safety Alert: Drug Allergy Conflict!</h3>
+                    <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);" data-ar="نظام الرعاية السريرية وحماية المرضى" data-en="Clinical Safety & Patient Protection System">Clinical Safety & Patient Protection System</p>
+                </div>
+            </div>
+
+            <div id="allergyWarningDetails" style="background: rgba(239, 68, 68, 0.12); padding: 0.85rem; border-radius: 8px; font-size: 0.9rem; line-height: 1.4; margin-bottom: 1rem;">
+                <!-- Injected by JS -->
+            </div>
+
+            <div class="input-group">
+                <label for="allergyOverrideReason" style="font-weight: 700; color: var(--text-primary);" data-ar="سبب التجاوز الطبي الإلزامي (Clinical Justification):" data-en="Clinical Justification Reason (Required):">Clinical Justification Reason (Required):</label>
+                <textarea id="allergyOverrideReason" rows="3" placeholder="اكتب التبرير الإكلينيكي لتجاوز التحذير وكتابة الدواء..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);" required></textarea>
+                <small style="color: var(--text-muted); display: block; margin-top: 4px;" data-ar="سيتم حفظ هذا السبب مع اسم الطبيب وتاريخ اللحظة في سجل التدقيق Audit Trail." data-en="This reason will be permanently recorded with timestamp in the compliance Audit Trail.">This reason will be permanently recorded with timestamp in the compliance Audit Trail.</small>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 1.25rem; display: flex; gap: 0.5rem;">
+                <button type="button" class="btn-secondary" id="cancelAllergyOverrideBtn" style="flex: 1;" data-ar="إلغاء والتراجع" data-en="Cancel">Cancel</button>
+                <button type="button" class="btn-primary" id="confirmAllergyOverrideBtn" style="flex: 1.2; background: var(--status-error); border-color: var(--status-error);" data-ar="⚠️ تأكيد التجاوز والإضافة" data-en="⚠️ Override & Prescribe">⚠️ Override & Prescribe</button>
+            </div>
+        </div>
+    </div>
+
     <script src="toast.js"></script>
     <script src="script.js"></script>
     <script type="module" src="firebase-app-data.js"></script>
     <script type="module" src="firebase-patients.js"></script>
     <script type="module" src="firebase-inventory.js"></script>
+    <script type="module" src="firebase-settings.js"></script>
 </body>
 </html>

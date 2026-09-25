@@ -1,6 +1,6 @@
 {
-  "summary":  "خطة عمل شاملة لتعريب وتأصيل اللغة الإنجليزية بالكامل في لوحة تحكم العيادة الطبية، بحيث تظهر كافة الواجهات، الجداول، الإشعارات، الشرائح الطبية، حالات المواعيد، العملة (EGP)، وتنسيقات التواريخ بالإنجليزية الخالصة عند اختيار اللغة الإنجليزية.",
-  "updatedAt":  "2026-09-25T09:57:25.650314404Z",
+  "summary":  "Comprehensive Enterprise Production Architecture Specification for MOLARIZE Clinic Settings Hub. Incorporates Multi-Tenant Hierarchy, RBAC Permissions, Price Versioning & Historical Snapshot Protection, Medication Templates & Allergy Safety Checks, Comprehensive Financials & Tax Rules, Clinic Branding & Digital Signatures, Audit Log Ledger, and Reactive State Management.",
+  "updatedAt":  "2026-09-25T16:33:35.962692619Z",
   "requestFeedback":  true,
   "userFacing":  true
 }
