@@ -2386,10 +2386,10 @@
 
             <!-- Action Buttons -->
             <div style="display: flex; gap: 0.75rem; justify-content: center; align-items: center;">
-                <button type="button" id="cancelDeletePatientConfirmBtn" class="btn-secondary" style="flex: 1; padding: 0.65rem 1rem; border-radius: 10px; font-weight: 600; cursor: pointer; justify-content: center;" data-ar="إلغاء الأمر" data-en="Cancel">
+                <button type="button" id="cancelDeletePatientConfirmBtn" class="btn-secondary" style="flex: 1; padding: 0.65rem 1rem; border-radius: 10px; font-weight: 600; cursor: pointer; justify-content: center;" onclick="window.closeDeletePatientConfirmModal()" data-ar="إلغاء الأمر" data-en="Cancel">
                     إلغاء الأمر
                 </button>
-                <button type="button" id="executeDeletePatientConfirmBtn" class="btn-primary" style="flex: 1.2; padding: 0.65rem 1rem; border-radius: 10px; font-weight: 600; background: #dc2626; border-color: #dc2626; color: #ffffff; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;" data-ar="🗑️ مسح النهائي" data-en="🗑️ Delete Permanently">
+                <button type="button" id="executeDeletePatientConfirmBtn" class="btn-primary" style="flex: 1.2; padding: 0.65rem 1rem; border-radius: 10px; font-weight: 600; background: #dc2626; border-color: #dc2626; color: #ffffff; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;" onclick="window.executeDeletePatientConfirm()" data-ar="🗑️ مسح النهائي" data-en="🗑️ Delete Permanently">
                     <span>🗑️</span>
                     <span id="executeDeletePatientConfirmBtnText" data-ar="مسح النهائي" data-en="Delete Permanently">مسح النهائي</span>
                 </button>
