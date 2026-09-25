@@ -2345,6 +2345,58 @@
         </div>
     </div>
 
+    <!-- Custom Modern Delete Patient Confirmation Modal -->
+    <div id="deletePatientConfirmModal" class="modal" style="z-index: 100090;">
+        <div class="modal-content" style="max-width: 440px; border-radius: 16px; padding: 1.75rem; text-align: center; border: 1px solid var(--border-color); box-shadow: var(--shadow-xl); background: var(--bg-surface);">
+            <!-- Danger Header Badge -->
+            <div style="width: 60px; height: 60px; margin: 0 auto 1.25rem auto; border-radius: 50%; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; align-items: center; justify-content: center; color: #ef4444;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+            </div>
+
+            <h3 style="margin: 0 0 0.5rem 0; font-size: 1.25rem; font-weight: 700; color: var(--text-primary);" data-ar="تأكيد مسح ملف المريض نهائياً" data-en="Confirm Permanent Deletion">تأكيد مسح ملف المريض نهائياً</h3>
+            
+            <p style="margin: 0 0 1.25rem 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.5;" data-ar="هل أنت متأكد من رغبتك في مسح هذا الملف السريري؟ سيتم إزالة جميع بيانات السجل الطبي بشكل نهائي." data-en="Are you sure you want to delete this clinical profile? This action will permanently remove all associated medical records.">
+                هل أنت متأكد من رغبتك في مسح هذا الملف السريري؟ سيتم إزالة جميع بيانات السجل الطبي بشكل نهائي.
+            </p>
+
+            <!-- Patient Info Card -->
+            <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; text-align: start; display: flex; flex-direction: column; gap: 0.4rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.8rem; color: var(--text-muted);" data-ar="اسم المريض:" data-en="Patient Name:">اسم المريض:</span>
+                    <strong id="confirmDeletePatientName" style="font-size: 0.95rem; color: var(--text-primary); text-wrap: balance;">-</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border-color); padding-top: 0.4rem; margin-top: 0.15rem;">
+                    <span style="font-size: 0.8rem; color: var(--text-muted);" data-ar="رقم / معرّف الملف:" data-en="Profile ID:">رقم / معرّف الملف:</span>
+                    <span id="confirmDeletePatientId" style="font-size: 0.85rem; font-family: monospace; color: var(--brand-primary); font-weight: 600;">-</span>
+                </div>
+            </div>
+
+            <!-- Caution Note -->
+            <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.22); border-radius: 10px; padding: 0.75rem 0.85rem; margin-bottom: 1.5rem; text-align: start; font-size: 0.82rem; color: #ef4444; display: flex; align-items: flex-start; gap: 0.5rem; line-height: 1.4;">
+                <span style="font-size: 1.1rem; flex-shrink: 0; line-height: 1;">⚠️</span>
+                <span data-ar="تحذير: لا يمكن التراجع عن هذه العملية بعد إتمامها. سيتم مسح الفواتير، الزيارات والروشتات التابعة لهذا الملف." data-en="Warning: This action cannot be undone. All invoices, visits, and prescriptions for this profile will be purged.">
+                    تحذير: لا يمكن التراجع عن هذه العملية بعد إتمامها. سيتم مسح الفواتير، الزيارات والروشتات التابعة لهذا الملف.
+                </span>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 0.75rem; justify-content: center; align-items: center;">
+                <button type="button" id="cancelDeletePatientConfirmBtn" class="btn-secondary" style="flex: 1; padding: 0.65rem 1rem; border-radius: 10px; font-weight: 600; cursor: pointer; justify-content: center;" data-ar="إلغاء الأمر" data-en="Cancel">
+                    إلغاء الأمر
+                </button>
+                <button type="button" id="executeDeletePatientConfirmBtn" class="btn-primary" style="flex: 1.2; padding: 0.65rem 1rem; border-radius: 10px; font-weight: 600; background: #dc2626; border-color: #dc2626; color: #ffffff; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;" data-ar="🗑️ مسح النهائي" data-en="🗑️ Delete Permanently">
+                    <span>🗑️</span>
+                    <span id="executeDeletePatientConfirmBtnText" data-ar="مسح النهائي" data-en="Delete Permanently">مسح النهائي</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="toast.js"></script>
     <script src="script.js"></script>
     <script type="module" src="firebase-app-data.js"></script>

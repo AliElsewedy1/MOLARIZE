@@ -512,8 +512,10 @@ window.editPatient = function(id) {
     }
 }
 
-// Delete Patient Function
-window.deletePatient = async function(id, event) {
+// Delete Patient Modal & Execution Logic
+let pendingDeletePatientId = null;
+
+window.deletePatient = function(id, event) {
     if (event) {
         if (event.stopPropagation) event.stopPropagation();
         if (event.preventDefault) event.preventDefault();
@@ -539,62 +541,122 @@ window.deletePatient = async function(id, event) {
         else alert(authMsg);
         return;
     }
-    const uid = user.uid;
 
-    const patient = (currentPatients || []).find(p => p.id === id);
-    const patientName = patient ? patient.name : '';
+    pendingDeletePatientId = id;
+    const patient = (currentPatients || window.currentPatients || []).find(p => p.id === id);
 
-    const confirmMsg = isAr 
-        ? `هل أنت متأكد من رغبتك في مسح ملف المريض${patientName ? ' (' + patientName + ')' : ''} نهائياً مع كافة بياناته؟` 
-        : `Are you sure you want to permanently delete patient profile${patientName ? ' (' + patientName + ')' : ''} and all associated records?`;
+    const nameEl = document.getElementById('confirmDeletePatientName');
+    const idEl = document.getElementById('confirmDeletePatientId');
+    if (nameEl) nameEl.innerText = patient ? patient.name : (isAr ? 'مريض محدد' : 'Selected Patient');
+    if (idEl) idEl.innerText = patient ? (patient.displayId || patient.id.substring(0, 8)) : id;
 
-    if (confirm(confirmMsg)) {
-        try {
-            await deleteDoc(doc(db, "users", uid, "patients", id));
-
-            // Immediately update memory array
-            currentPatients = (currentPatients || []).filter(p => p.id !== id);
-            if (window.currentPatients) {
-                window.currentPatients = window.currentPatients.filter(p => p.id !== id);
-            }
-
-            // Close patient modal if open
-            const pModal = document.getElementById('patientModal');
-            if (pModal && pModal.classList.contains('show')) {
-                if (window.closeModalAndPopState) window.closeModalAndPopState(pModal);
-                else pModal.classList.remove('show');
-            }
-
-            // If deleting current profile patient, switch back to patients list section
-            if (window.currentProfilePatientId === id || currentProfilePatientId === id) {
-                window.currentProfilePatientId = null;
-                currentProfilePatientId = null;
-                const patientsSec = document.getElementById('patients-section');
-                if (patientsSec) {
-                    document.querySelectorAll('.app-section').forEach(sec => sec.style.display = 'none');
-                    patientsSec.style.display = 'block';
-                    history.pushState({ section: 'patients-section' }, '', '#patients-section');
-                }
-            }
-
-            await loadPatients();
-
-            if (typeof window.updateDashboardStats === 'function') {
-                window.updateDashboardStats();
-            }
-
-            if (window.showToast) {
-                window.showToast(isAr ? 'تم مسح ملف المريض بنجاح' : 'Patient profile deleted successfully', 'success');
-            }
-        } catch (e) {
-            console.error("Error deleting patient: ", e);
-            const errStr = isAr ? 'حدث خطأ أثناء مسح ملف المريض' : 'Error deleting patient profile';
-            if (window.showToast) window.showToast(errStr, 'error');
-            else alert(errStr);
-        }
+    const modal = document.getElementById('deletePatientConfirmModal');
+    if (modal) {
+        modal.classList.add('show');
+        history.pushState({ modal: 'deletePatientConfirmModal' }, '', window.location.hash);
     }
 };
 window.deletePatientProfile = window.deletePatient;
+
+// Wire up Delete Modal Action Handlers
+document.addEventListener('DOMContentLoaded', () => {
+    const confirmModal = document.getElementById('deletePatientConfirmModal');
+    const cancelBtn = document.getElementById('cancelDeletePatientConfirmBtn');
+    const executeBtn = document.getElementById('executeDeletePatientConfirmBtn');
+
+    if (cancelBtn && confirmModal) {
+        cancelBtn.addEventListener('click', () => {
+            pendingDeletePatientId = null;
+            if (window.closeModalAndPopState) window.closeModalAndPopState(confirmModal);
+            else confirmModal.classList.remove('show');
+        });
+    }
+
+    if (confirmModal) {
+        confirmModal.addEventListener('click', (e) => {
+            if (e.target === confirmModal) {
+                pendingDeletePatientId = null;
+                if (window.closeModalAndPopState) window.closeModalAndPopState(confirmModal);
+                else confirmModal.classList.remove('show');
+            }
+        });
+    }
+
+    if (executeBtn) {
+        executeBtn.addEventListener('click', async () => {
+            if (!pendingDeletePatientId) return;
+
+            const isAr = (document.documentElement.lang || 'en') === 'ar';
+            const user = auth.currentUser;
+            if (!user) {
+                const authMsg = isAr ? 'يرجى تسجيل الدخول أولاً' : 'Please authenticate first';
+                if (window.showToast) window.showToast(authMsg, 'error');
+                return;
+            }
+
+            const targetId = pendingDeletePatientId;
+            const btnTextEl = document.getElementById('executeDeletePatientConfirmBtnText');
+            const origText = btnTextEl ? btnTextEl.innerText : (isAr ? 'مسح النهائي' : 'Delete Permanently');
+
+            try {
+                executeBtn.disabled = true;
+                if (btnTextEl) btnTextEl.innerText = isAr ? 'جاري المسح...' : 'Deleting...';
+
+                await deleteDoc(doc(db, "users", user.uid, "patients", targetId));
+
+                // Update memory state
+                currentPatients = (currentPatients || []).filter(p => p.id !== targetId);
+                if (window.currentPatients) {
+                    window.currentPatients = window.currentPatients.filter(p => p.id !== targetId);
+                }
+
+                // Close Delete Confirmation Modal
+                if (confirmModal) {
+                    if (window.closeModalAndPopState) window.closeModalAndPopState(confirmModal);
+                    else confirmModal.classList.remove('show');
+                }
+
+                // Close Edit Patient Modal if open
+                const pModal = document.getElementById('patientModal');
+                if (pModal && pModal.classList.contains('show')) {
+                    if (window.closeModalAndPopState) window.closeModalAndPopState(pModal);
+                    else pModal.classList.remove('show');
+                }
+
+                // Switch back to patients list section if currently viewing deleted profile
+                if (window.currentProfilePatientId === targetId || currentProfilePatientId === targetId) {
+                    window.currentProfilePatientId = null;
+                    currentProfilePatientId = null;
+                    const patientsSec = document.getElementById('patients-section');
+                    if (patientsSec) {
+                        document.querySelectorAll('.app-section').forEach(sec => sec.style.display = 'none');
+                        patientsSec.style.display = 'block';
+                        history.pushState({ section: 'patients-section' }, '', '#patients-section');
+                    }
+                }
+
+                await loadPatients();
+
+                if (typeof window.updateDashboardStats === 'function') {
+                    window.updateDashboardStats();
+                }
+
+                if (window.showToast) {
+                    window.showToast(isAr ? 'تم مسح ملف المريض بنجاح' : 'Patient profile deleted successfully', 'success');
+                }
+            } catch (e) {
+                console.error("Error deleting patient: ", e);
+                const errStr = isAr ? 'حدث خطأ أثناء مسح ملف المريض' : 'Error deleting patient profile';
+                if (window.showToast) window.showToast(errStr, 'error');
+                else alert(errStr);
+            } finally {
+                executeBtn.disabled = false;
+                if (btnTextEl) btnTextEl.innerText = origText;
+                pendingDeletePatientId = null;
+            }
+        });
+    }
+});
 
 // Auth Listener
 onAuthStateChanged(auth, (user) => {
