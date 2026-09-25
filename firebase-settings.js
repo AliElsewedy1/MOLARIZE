@@ -31,9 +31,12 @@ export const DEFAULT_CLINIC_CONFIG = {
             cash: true,
             card: true,
             instapay: true,
-            insurance: true
+            vodafoneCash: true,
+            bankTransfer: true,
+            insurance: true,
+            installment: true
         },
-        discountPresets: [5, 10, 15, 20, 25],
+        discountPresets: [5, 10, 15, 20, 25, 30, 50],
         depositRequired: false,
         minimumDepositPercentage: 20
     },
@@ -648,34 +651,325 @@ export function updateDynamicUI() {
 }
 
 function syncTreatmentModalTemplates() {
-    const container = document.querySelector('#treatmentModal .quick-treatment-templates-container') || 
+    const container = document.getElementById('quickTreatmentButtonsContainer') || 
                       document.querySelector('#treatmentType')?.parentElement?.querySelector('div[style*="display: flex; gap:"]');
     
-    if (!container) return;
-
-    const activeServices = settingsStore.services.filter(s => s.isActive !== false);
+    const activeServices = (settingsStore.services || []).filter(s => s.isActive !== false);
     const isAr = document.documentElement.getAttribute('dir') === 'rtl';
 
-    let html = `<span style="font-size: 0.75rem; color: var(--text-muted); width: 100%;" data-ar="قوالب سريعة (من الإعدادات):" data-en="Quick templates (From Settings):">${isAr ? 'قوالب سريعة (من الإعدادات):' : 'Quick templates (From Settings):'}</span>`;
+    if (container) {
+        let html = `<span style="font-size: 0.75rem; color: var(--text-muted); width: 100%;" data-ar="إجراءات شائعة من جدول الخدمات:" data-en="Quick procedure templates:">${isAr ? 'إجراءات شائعة من جدول الخدمات:' : 'Quick procedure templates:'}</span>`;
+        
+        activeServices.slice(0, 10).forEach(s => {
+            const displayName = isAr ? (s.nameAr || s.nameEn) : (s.nameEn || s.nameAr);
+            const price = parseFloat(s.currentPrice) || 0;
+            html += `<button type="button" class="btn-outline quick-fill-btn dynamic-service-btn" style="padding: 2px 7px; font-size: 0.75rem; border-radius: 6px; transition: all 0.2s;" data-val="${s.nameEn || s.nameAr}" data-cost="${price}" data-ar="${s.nameAr || s.nameEn}" data-en="${s.nameEn || s.nameAr}" title="${settingsStore.formatCurrency(price)}">${displayName} (${price})</button>`;
+        });
+
+        container.innerHTML = html;
+
+        // Attach click handlers
+        container.querySelectorAll('.dynamic-service-btn').forEach(btn => {
+            btn.onclick = () => {
+                const val = btn.getAttribute('data-val') || btn.innerText;
+                const cost = parseFloat(btn.getAttribute('data-cost')) || 0;
+                setTreatmentProcedure(val, cost);
+            };
+        });
+    }
+
+    // Also sync visit modal quick procedure templates
+    syncVisitModalTemplates(activeServices, isAr);
+
+    // Refresh percentage chips based on clinic settings
+    syncPercentageAdjustmentChips();
+}
+
+function syncVisitModalTemplates(activeServices, isAr) {
+    const visitProcContainer = document.getElementById('quickVisitProcedureButtons');
+    if (visitProcContainer) {
+        let html = '';
+        activeServices.slice(0, 6).forEach(s => {
+            const displayName = isAr ? (s.nameAr || s.nameEn) : (s.nameEn || s.nameAr);
+            const price = parseFloat(s.currentPrice) || 0;
+            html += `<button type="button" class="btn-outline quick-visit-proc-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="${s.nameEn || s.nameAr}" data-cost="${price}">${displayName} (${price})</button>`;
+        });
+        visitProcContainer.innerHTML = html;
+
+        visitProcContainer.querySelectorAll('.quick-visit-proc-btn').forEach(btn => {
+            btn.onclick = () => {
+                const val = btn.getAttribute('data-val') || btn.innerText;
+                const cost = parseFloat(btn.getAttribute('data-cost')) || 0;
+                setVisitProcedure(val, cost);
+            };
+        });
+    }
+}
+
+// -----------------------------------------------------------------
+// Interactive Percentage Adjustment Logic for Treatments & Visits
+// -----------------------------------------------------------------
+
+export function setTreatmentProcedure(procName, basePrice) {
+    const typeInput = document.getElementById('treatmentType');
+    const baseInput = document.getElementById('treatmentBasePrice');
+    const catalogBadge = document.getElementById('treatmentCatalogPriceBadge');
+    const costInput = document.getElementById('treatmentCost');
+
+    if (typeInput) typeInput.value = procName;
+    if (baseInput) baseInput.value = basePrice;
     
-    activeServices.slice(0, 8).forEach(s => {
-        const displayName = isAr ? (s.nameAr || s.nameEn) : (s.nameEn || s.nameAr);
-        html += `<button type="button" class="btn-outline quick-fill-btn dynamic-service-btn" style="padding: 3px 8px; font-size: 0.78rem; border-radius: 6px; transition: all 0.2s;" data-val="${s.nameEn || s.nameAr}" data-cost="${s.currentPrice}" data-ar="${s.nameAr}" data-en="${s.nameEn}" title="${s.currentPrice} ${settingsStore.getCurrencySymbol()}">${displayName} (${s.currentPrice})</button>`;
+    if (catalogBadge) {
+        catalogBadge.style.display = 'inline-block';
+        catalogBadge.innerText = `السعر بالكتالوج: ${settingsStore.formatCurrency(basePrice)}`;
+    }
+
+    // Reset to 0% standard or current custom percentage
+    const activeChip = document.querySelector('#treatmentPercentChips .treatment-pct-chip.active');
+    const currentPct = activeChip ? parseFloat(activeChip.getAttribute('data-pct') || '0') : 0;
+    
+    applyTreatmentPercentage(currentPct, basePrice);
+}
+window.setTreatmentProcedure = setTreatmentProcedure;
+
+export function applyTreatmentPercentage(pct, optionalBasePrice = null) {
+    const baseInput = document.getElementById('treatmentBasePrice');
+    const costInput = document.getElementById('treatmentCost');
+    const pctInput = document.getElementById('treatmentDiscountPercent');
+    const customPctInput = document.getElementById('treatmentCustomPctInput');
+    const baseEl = document.getElementById('treatmentCalcBasePrice');
+    const modEl = document.getElementById('treatmentCalcModBadge');
+    const finalEl = document.getElementById('treatmentCalcFinalPrice');
+
+    let base = optionalBasePrice !== null ? optionalBasePrice : (parseFloat(baseInput?.value) || parseFloat(costInput?.value) || 0);
+    if (baseInput) baseInput.value = base;
+
+    const percentage = parseFloat(pct) || 0;
+    if (pctInput) pctInput.value = percentage;
+
+    const modAmount = Math.round(base * (percentage / 100));
+    let finalCost = Math.max(0, base + modAmount);
+
+    if (costInput) costInput.value = finalCost;
+
+    const isAr = document.documentElement.getAttribute('dir') === 'rtl';
+
+    if (baseEl) baseEl.innerText = settingsStore.formatCurrency(base);
+    if (modEl) {
+        if (percentage === 0) {
+            modEl.innerText = isAr ? '0% (بدون تعديل)' : '0% (Standard)';
+            modEl.style.color = 'var(--text-primary)';
+        } else if (percentage < 0) {
+            modEl.innerText = `${percentage}% (${settingsStore.formatCurrency(modAmount)})`;
+            modEl.style.color = 'var(--status-completed)';
+        } else {
+            modEl.innerText = `+${percentage}% (+${settingsStore.formatCurrency(modAmount)})`;
+            modEl.style.color = 'var(--brand-primary)';
+        }
+    }
+    if (finalEl) finalEl.innerText = settingsStore.formatCurrency(finalCost);
+
+    // Highlight matching chip
+    document.querySelectorAll('#treatmentPercentChips .treatment-pct-chip').forEach(chip => {
+        const chipPct = parseFloat(chip.getAttribute('data-pct'));
+        if (chipPct === percentage) {
+            chip.classList.add('active');
+            chip.style.background = 'var(--brand-primary)';
+            chip.style.color = '#fff';
+        } else {
+            chip.classList.remove('active');
+            chip.style.background = 'transparent';
+            chip.style.color = 'var(--text-primary)';
+        }
     });
 
-    container.innerHTML = html;
+    if (customPctInput && percentage !== 0) {
+        customPctInput.value = percentage;
+    }
+}
+window.applyTreatmentPercentage = applyTreatmentPercentage;
 
-    // Attach click handlers
-    container.querySelectorAll('.dynamic-service-btn').forEach(btn => {
-        btn.onclick = () => {
-            const val = btn.getAttribute('data-val') || btn.innerText;
-            const cost = btn.getAttribute('data-cost');
-            const typeInput = document.getElementById('treatmentType');
-            const costInput = document.getElementById('treatmentCost');
-            if (typeInput) typeInput.value = val;
-            if (costInput && cost) costInput.value = cost;
+export function setVisitProcedure(procName, basePrice) {
+    const typeInput = document.getElementById('visitProcedureType');
+    const baseInput = document.getElementById('visitProcedureBasePrice');
+    const finalInput = document.getElementById('visitProcedureFinalCost');
+    const catalogBadge = document.getElementById('visitBaseCatalogPriceBadge');
+
+    if (typeInput) typeInput.value = procName;
+    if (baseInput) baseInput.value = basePrice;
+    
+    if (catalogBadge) {
+        catalogBadge.innerText = `الأساسي: ${settingsStore.formatCurrency(basePrice)}`;
+    }
+
+    applyVisitPercentage(0, basePrice);
+}
+window.setVisitProcedure = setVisitProcedure;
+
+export function applyVisitPercentage(pct, optionalBasePrice = null) {
+    const baseInput = document.getElementById('visitProcedureBasePrice');
+    const finalInput = document.getElementById('visitProcedureFinalCost');
+    const pctInput = document.getElementById('visitProcedureDiscountPercent');
+    const customPctInput = document.getElementById('visitCustomPctInput');
+    const calcBase = document.getElementById('visitCalcBase');
+    const calcMod = document.getElementById('visitCalcMod');
+    const calcFinal = document.getElementById('visitCalcFinal');
+
+    let base = optionalBasePrice !== null ? optionalBasePrice : (parseFloat(baseInput?.value) || parseFloat(finalInput?.value) || 0);
+    if (baseInput) baseInput.value = base;
+
+    const percentage = parseFloat(pct) || 0;
+    if (pctInput) pctInput.value = percentage;
+
+    const modAmount = Math.round(base * (percentage / 100));
+    let finalCost = Math.max(0, base + modAmount);
+
+    if (finalInput) finalInput.value = finalCost;
+
+    if (calcBase) calcBase.innerText = settingsStore.formatCurrency(base);
+    if (calcMod) {
+        calcMod.innerText = percentage !== 0 ? `${percentage > 0 ? '+' : ''}${percentage}% (${settingsStore.formatCurrency(modAmount)})` : '0%';
+        calcMod.style.color = percentage < 0 ? 'var(--status-completed)' : (percentage > 0 ? 'var(--brand-primary)' : 'var(--text-primary)');
+    }
+    if (calcFinal) calcFinal.innerText = settingsStore.formatCurrency(finalCost);
+
+    // Highlight matching chip
+    document.querySelectorAll('#visitPercentChips .visit-pct-chip').forEach(chip => {
+        const chipPct = parseFloat(chip.getAttribute('data-pct'));
+        if (chipPct === percentage) {
+            chip.classList.add('active');
+            chip.style.background = 'var(--brand-primary)';
+            chip.style.color = '#fff';
+        } else {
+            chip.classList.remove('active');
+            chip.style.background = 'transparent';
+            chip.style.color = 'var(--text-primary)';
+        }
+    });
+
+    if (customPctInput && percentage !== 0) {
+        customPctInput.value = percentage;
+    }
+}
+window.applyVisitPercentage = applyVisitPercentage;
+
+function syncPercentageAdjustmentChips() {
+    const rawPresets = settingsStore.config?.financial?.discountPresets || [5, 10, 15, 20, 25, 30, 50];
+    const isDoctorAllowed = settingsStore.config?.clinicalRules?.allowDentistPriceEdit !== false;
+
+    // Show/hide percentage price adjustment section if doctor modification is allowed
+    const adjustSection = document.getElementById('treatmentPriceAdjustSection');
+    if (adjustSection) {
+        adjustSection.style.display = isDoctorAllowed ? 'block' : 'none';
+    }
+
+    // Populate treatment percentage chips
+    const treatmentChipsContainer = document.getElementById('treatmentPercentChips');
+    if (treatmentChipsContainer && isDoctorAllowed) {
+        let chipsHtml = `
+            <button type="button" class="btn-outline treatment-pct-chip active" data-pct="0" style="padding: 3px 8px; font-size: 0.78rem; font-weight: 600;">0% (الأساسي)</button>
+        `;
+        rawPresets.forEach(p => {
+            chipsHtml += `<button type="button" class="btn-outline treatment-pct-chip" data-pct="-${p}" style="padding: 3px 8px; font-size: 0.78rem; color: var(--status-completed); border-color: rgba(34, 197, 94, 0.3); font-weight: 600;">-${p}%</button>`;
+        });
+        chipsHtml += `
+            <button type="button" class="btn-outline treatment-pct-chip" data-pct="10" style="padding: 3px 8px; font-size: 0.78rem; color: var(--brand-primary); border-color: rgba(45, 212, 191, 0.3); font-weight: 600;">+10%</button>
+            <button type="button" class="btn-outline treatment-pct-chip" data-pct="20" style="padding: 3px 8px; font-size: 0.78rem; color: var(--brand-primary); border-color: rgba(45, 212, 191, 0.3); font-weight: 600;">+20%</button>
+            <button type="button" class="btn-outline treatment-pct-chip" data-pct="-100" style="padding: 3px 8px; font-size: 0.78rem; color: var(--status-error); border-color: rgba(239, 68, 68, 0.3); font-weight: 600;">-100% (مجاناً)</button>
+        `;
+        treatmentChipsContainer.innerHTML = chipsHtml;
+
+        treatmentChipsContainer.querySelectorAll('.treatment-pct-chip').forEach(btn => {
+            btn.onclick = () => {
+                const pct = parseFloat(btn.getAttribute('data-pct') || '0');
+                applyTreatmentPercentage(pct);
+            };
+        });
+    }
+
+    // Populate visit percentage chips
+    const visitChipsContainer = document.getElementById('visitPercentChips');
+    if (visitChipsContainer && isDoctorAllowed) {
+        let chipsHtml = `
+            <button type="button" class="btn-outline visit-pct-chip active" data-pct="0" style="padding: 2px 7px; font-size: 0.75rem; font-weight: 600;">0% (الأساسي)</button>
+        `;
+        rawPresets.forEach(p => {
+            chipsHtml += `<button type="button" class="btn-outline visit-pct-chip" data-pct="-${p}" style="padding: 2px 7px; font-size: 0.75rem; color: var(--status-completed); border-color: rgba(34, 197, 94, 0.3); font-weight: 600;">-${p}%</button>`;
+        });
+        chipsHtml += `
+            <button type="button" class="btn-outline visit-pct-chip" data-pct="10" style="padding: 2px 7px; font-size: 0.75rem; color: var(--brand-primary); border-color: rgba(45, 212, 191, 0.3); font-weight: 600;">+10%</button>
+            <button type="button" class="btn-outline visit-pct-chip" data-pct="20" style="padding: 2px 7px; font-size: 0.75rem; color: var(--brand-primary); border-color: rgba(45, 212, 191, 0.3); font-weight: 600;">+20%</button>
+        `;
+        visitChipsContainer.innerHTML = chipsHtml;
+
+        visitChipsContainer.querySelectorAll('.visit-pct-chip').forEach(btn => {
+            btn.onclick = () => {
+                const pct = parseFloat(btn.getAttribute('data-pct') || '0');
+                applyVisitPercentage(pct);
+            };
+        });
+    }
+
+    // Bind custom percentage input listeners
+    const customPctInput = document.getElementById('treatmentCustomPctInput');
+    if (customPctInput) {
+        customPctInput.oninput = () => {
+            const val = parseFloat(customPctInput.value);
+            if (!isNaN(val)) applyTreatmentPercentage(val);
         };
-    });
+    }
+
+    const visitCustomPctInput = document.getElementById('visitCustomPctInput');
+    if (visitCustomPctInput) {
+        visitCustomPctInput.oninput = () => {
+            const val = parseFloat(visitCustomPctInput.value);
+            if (!isNaN(val)) applyVisitPercentage(val);
+        };
+    }
+
+    // Two-way sync: when doctor edits final cost directly, recalculate implied percentage
+    const treatmentCostInput = document.getElementById('treatmentCost');
+    if (treatmentCostInput) {
+        treatmentCostInput.oninput = () => {
+            const base = parseFloat(document.getElementById('treatmentBasePrice')?.value) || 0;
+            const finalVal = parseFloat(treatmentCostInput.value) || 0;
+            if (base > 0) {
+                const impliedPct = Math.round(((finalVal - base) / base) * 100);
+                const pctInput = document.getElementById('treatmentDiscountPercent');
+                if (pctInput) pctInput.value = impliedPct;
+                const modEl = document.getElementById('treatmentCalcModBadge');
+                if (modEl) modEl.innerText = `${impliedPct > 0 ? '+' : ''}${impliedPct}% (${settingsStore.formatCurrency(finalVal - base)})`;
+                const finalEl = document.getElementById('treatmentCalcFinalPrice');
+                if (finalEl) finalEl.innerText = settingsStore.formatCurrency(finalVal);
+            }
+        };
+    }
+
+    const visitFinalCostInput = document.getElementById('visitProcedureFinalCost');
+    if (visitFinalCostInput) {
+        visitFinalCostInput.oninput = () => {
+            const base = parseFloat(document.getElementById('visitProcedureBasePrice')?.value) || 0;
+            const finalVal = parseFloat(visitFinalCostInput.value) || 0;
+            if (base > 0) {
+                const impliedPct = Math.round(((finalVal - base) / base) * 100);
+                const pctInput = document.getElementById('visitProcedureDiscountPercent');
+                if (pctInput) pctInput.value = impliedPct;
+                const calcMod = document.getElementById('visitCalcMod');
+                if (calcMod) calcMod.innerText = `${impliedPct > 0 ? '+' : ''}${impliedPct}% (${settingsStore.formatCurrency(finalVal - base)})`;
+                const calcFinal = document.getElementById('visitCalcFinal');
+                if (calcFinal) calcFinal.innerText = settingsStore.formatCurrency(finalVal);
+            }
+        };
+    }
+
+    // Visit procedure toggle show/hide
+    const visitToggle = document.getElementById('visitIncludeTreatmentToggle');
+    const visitProcSection = document.getElementById('visitProcedureSection');
+    if (visitToggle && visitProcSection) {
+        visitToggle.onchange = () => {
+            visitProcSection.style.display = visitToggle.checked ? 'block' : 'none';
+        };
+    }
 }
 
 function syncPrescriptionModalTemplates() {
@@ -1053,19 +1347,31 @@ function renderFinancialSettingsForm() {
 
     // Payment methods
     const pm = fin.paymentMethods || {};
-    const pmCash = document.getElementById('payMethodCash');
-    const pmCard = document.getElementById('payMethodCard');
-    const pmInsta = document.getElementById('payMethodInstapay');
-    const pmInsur = document.getElementById('payMethodInsurance');
+    const pmCash = document.getElementById('settingPmCash') || document.getElementById('payMethodCash');
+    const pmCard = document.getElementById('settingPmCard') || document.getElementById('payMethodCard');
+    const pmInsta = document.getElementById('settingPmInstapay') || document.getElementById('payMethodInstapay');
+    const pmVodafone = document.getElementById('settingPmVodafone');
+    const pmBank = document.getElementById('settingPmBank');
+    const pmInsur = document.getElementById('settingPmInsurance') || document.getElementById('payMethodInsurance');
+    const pmInstallment = document.getElementById('settingPmInstallment');
 
     if (pmCash) pmCash.checked = pm.cash !== false;
     if (pmCard) pmCard.checked = pm.card !== false;
     if (pmInsta) pmInsta.checked = pm.instapay !== false;
+    if (pmVodafone) pmVodafone.checked = pm.vodafoneCash !== false;
+    if (pmBank) pmBank.checked = pm.bankTransfer !== false;
     if (pmInsur) pmInsur.checked = pm.insurance !== false;
+    if (pmInstallment) pmInstallment.checked = pm.installment !== false;
 
     // Presets
-    const presetsInput = document.getElementById('settingDiscounts');
-    if (presetsInput) presetsInput.value = (fin.discountPresets || [5, 10, 15, 20]).join(', ');
+    const presetsInput = document.getElementById('settingDiscountPresets') || document.getElementById('settingDiscounts');
+    if (presetsInput) presetsInput.value = (fin.discountPresets || [5, 10, 15, 20, 25, 30, 50]).join(', ');
+
+    // Doctor visit price modification toggle
+    const dentistPriceToggle = document.getElementById('settingAllowDentistPriceEdit');
+    if (dentistPriceToggle) {
+        dentistPriceToggle.checked = settingsStore.config?.clinicalRules?.allowDentistPriceEdit !== false;
+    }
 }
 
 function renderClinicBrandingForm() {
@@ -1432,28 +1738,47 @@ export function setupSettingsUIEventListeners() {
     if (finForm) {
         finForm.onsubmit = async (e) => {
             e.preventDefault();
-            const curCode = document.getElementById('settingCurrencySelect').value;
-            const curSymbol = document.getElementById('settingCurrencySymbol').value.trim() || curCode;
-            const rawPresets = document.getElementById('settingDiscounts').value;
+            const curCode = document.getElementById('settingCurrencySelect')?.value || 'EGP';
+            const curSymbol = document.getElementById('settingCurrencySymbol')?.value.trim() || 'ج.م';
+            const presetsEl = document.getElementById('settingDiscountPresets') || document.getElementById('settingDiscounts');
+            const rawPresets = presetsEl ? presetsEl.value : '5, 10, 15, 20, 25, 30, 50';
             const discountPresets = rawPresets.split(',').map(n => parseFloat(n.trim())).filter(n => !isNaN(n));
+
+            const pmCash = document.getElementById('settingPmCash') || document.getElementById('payMethodCash');
+            const pmCard = document.getElementById('settingPmCard') || document.getElementById('payMethodCard');
+            const pmInsta = document.getElementById('settingPmInstapay') || document.getElementById('payMethodInstapay');
+            const pmVodafone = document.getElementById('settingPmVodafone');
+            const pmBank = document.getElementById('settingPmBank');
+            const pmInsur = document.getElementById('settingPmInsurance') || document.getElementById('payMethodInsurance');
+            const pmInstallment = document.getElementById('settingPmInstallment');
+
+            const allowDentistPriceEdit = document.getElementById('settingAllowDentistPriceEdit')?.checked ?? true;
 
             const financial = {
                 currencyCode: curCode,
                 currencySymbol: curSymbol,
                 symbolPosition: 'suffix',
-                taxEnabled: document.getElementById('settingTaxEnabled').checked,
-                taxRatePercentage: parseFloat(document.getElementById('settingTaxRate').value) || 0,
-                taxRegistrationNumber: document.getElementById('settingTaxNumber').value.trim(),
+                taxEnabled: document.getElementById('settingTaxEnabled')?.checked ?? false,
+                taxRatePercentage: parseFloat(document.getElementById('settingTaxRate')?.value) || 0,
+                taxRegistrationNumber: document.getElementById('settingTaxNumber')?.value.trim() || '',
                 paymentMethods: {
-                    cash: document.getElementById('payMethodCash').checked,
-                    card: document.getElementById('payMethodCard').checked,
-                    instapay: document.getElementById('payMethodInstapay').checked,
-                    insurance: document.getElementById('payMethodInsurance').checked
+                    cash: pmCash ? pmCash.checked : true,
+                    card: pmCard ? pmCard.checked : true,
+                    instapay: pmInsta ? pmInsta.checked : true,
+                    vodafoneCash: pmVodafone ? pmVodafone.checked : true,
+                    bankTransfer: pmBank ? pmBank.checked : true,
+                    insurance: pmInsur ? pmInsur.checked : true,
+                    installment: pmInstallment ? pmInstallment.checked : true
                 },
-                discountPresets: discountPresets.length > 0 ? discountPresets : [5, 10, 15, 20]
+                discountPresets: discountPresets.length > 0 ? discountPresets : [5, 10, 15, 20, 25, 30, 50]
             };
 
-            await saveGlobalConfig({ financial });
+            const clinicalRules = {
+                ...(settingsStore.config.clinicalRules || {}),
+                allowDentistPriceEdit: allowDentistPriceEdit
+            };
+
+            await saveGlobalConfig({ financial, clinicalRules });
         };
     }
 
@@ -1523,7 +1848,6 @@ export function setupSettingsUIEventListeners() {
             }
         }
     });
-}
 
     // 13. Close modals on backdrop click
     document.querySelectorAll('.modal').forEach(modalEl => {

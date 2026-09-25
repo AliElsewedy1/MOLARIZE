@@ -291,9 +291,16 @@ function renderTreatments() {
     currentTreatments.forEach(treatment => {
         const row = document.createElement('tr');
         const costFormatted = window.formatCurrency ? window.formatCurrency(treatment.cost) : `$${treatment.cost}`;
+        const pct = parseFloat(treatment.discountPercent) || 0;
+        const discountBadge = pct !== 0 ? 
+            `<div style="font-size: 0.72rem; color: ${pct < 0 ? 'var(--status-completed)' : 'var(--brand-primary)'}; font-weight: 600;">${pct > 0 ? '+' : ''}${pct}% ${isAr ? (pct < 0 ? 'تخفيض' : 'زيادة') : (pct < 0 ? 'discount' : 'markup')}</div>` : '';
+
         row.innerHTML = `
             <td>${treatment.patientName}</td>
-            <td>${treatment.type}</td>
+            <td>
+                <div style="font-weight: 600;">${treatment.type}</div>
+                ${discountBadge}
+            </td>
             <td style="font-weight: 600;">${costFormatted}</td>
             <td><span class="status-badge ${getStatusBadgeClass(treatment.status)}">${getStatusText(treatment.status)}</span></td>
             <td>
@@ -315,20 +322,31 @@ if (treatmentForm) {
         const targetPatientId = pNameInput.getAttribute('data-target-id');
         const type = document.getElementById('treatmentType').value;
         const cost = parseFloat(document.getElementById('treatmentCost').value) || 0;
+        const basePrice = parseFloat(document.getElementById('treatmentBasePrice')?.value) || cost;
+        const discountPercent = parseFloat(document.getElementById('treatmentDiscountPercent')?.value) || 0;
+        const adjustmentReason = document.getElementById('treatmentAdjustmentReason')?.value || 'none';
         const status = document.getElementById('treatmentStatus').value;
         const submitBtn = treatmentForm.querySelector('button[type="submit"]');
 
         submitBtn.disabled = true;
 
         try {
+            const payload = {
+                patientName,
+                type,
+                cost,
+                basePrice,
+                discountPercent,
+                adjustmentReason,
+                status
+            };
+
             if (idField) {
                 const treatmentRef = doc(db, "users", currentUserUid, "treatments", idField);
-                await updateDoc(treatmentRef, { patientName, type, cost, status });
+                await updateDoc(treatmentRef, payload);
             } else {
                 const treatmentsRef = collection(db, "users", currentUserUid, "treatments");
-                const payload = {
-                    patientName, type, cost, status, createdAt: new Date().toISOString()
-                };
+                payload.createdAt = new Date().toISOString();
                 if (targetPatientId) {
                     payload.patientId = targetPatientId;
                 }
@@ -347,6 +365,11 @@ if (treatmentForm) {
             pNameInput.removeAttribute('data-target-id');
             updateDashboardStats(); // Update dashboard stats (revenue/overdue)
             initChart(); // Update chart
+
+            const isAr = (document.documentElement.lang || 'en') === 'ar';
+            if (window.showToast) {
+                window.showToast(isAr ? 'تم حفظ خطة العلاج بنجاح' : 'Treatment plan saved successfully!', 'success');
+            }
         } catch (e) {
             console.error("Error saving treatment: ", e);
             alert("Error saving treatment.");
@@ -370,6 +393,19 @@ window.editTreatment = function(id) {
         document.getElementById('treatmentType').value = t.type;
         document.getElementById('treatmentCost').value = t.cost;
         document.getElementById('treatmentStatus').value = t.status;
+
+        const baseInput = document.getElementById('treatmentBasePrice');
+        const pctInput = document.getElementById('treatmentDiscountPercent');
+        const reasonInput = document.getElementById('treatmentAdjustmentReason');
+
+        if (baseInput) baseInput.value = t.basePrice || t.cost || 0;
+        if (pctInput) pctInput.value = t.discountPercent || 0;
+        if (reasonInput) reasonInput.value = t.adjustmentReason || 'none';
+
+        if (typeof window.applyTreatmentPercentage === 'function') {
+            window.applyTreatmentPercentage(t.discountPercent || 0, t.basePrice || t.cost || 0);
+        }
+
         treatmentModal.classList.add('show');
     }
 }
@@ -1786,8 +1822,75 @@ function initChart() {
 }
 window.initChart = initChart;
 
+// --- Payment Sources Helpers & Utilities ---
+export function getPaymentSourceInfo(method) {
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+    const m = String(method || '').trim();
+    const mLower = m.toLowerCase();
+
+    if (mLower === 'cash' || mLower.includes('نقد') || mLower.includes('كاش')) {
+        return {
+            key: 'Cash',
+            label: isAr ? '💵 نقداً / كاش' : '💵 Cash',
+            icon: '💵',
+            badgeClass: 'badge-cash'
+        };
+    } else if (mLower === 'card' || mLower === 'visa' || mLower.includes('بطاق') || mLower.includes('فيزا') || mLower.includes('pos')) {
+        return {
+            key: 'Card',
+            label: isAr ? '💳 بطاقة / فيزا POS' : '💳 Card / POS',
+            icon: '💳',
+            badgeClass: 'badge-card'
+        };
+    } else if (mLower === 'instapay' || mLower.includes('انستا') || mLower.includes('إنستا')) {
+        return {
+            key: 'InstaPay',
+            label: isAr ? '⚡ إنستاباي (InstaPay)' : '⚡ InstaPay IPN',
+            icon: '⚡',
+            badgeClass: 'badge-instapay'
+        };
+    } else if (mLower.includes('vodafone') || mLower.includes('فودافون') || mLower.includes('wallet') || mLower.includes('محفظ')) {
+        return {
+            key: 'Vodafone Cash',
+            label: isAr ? '📱 فودافون كاش ومحافظ' : '📱 Vodafone Cash / Wallet',
+            icon: '📱',
+            badgeClass: 'badge-vodafone'
+        };
+    } else if (mLower.includes('bank') || mLower.includes('تحويل') || mLower.includes('بنك') || mLower.includes('wire')) {
+        return {
+            key: 'Bank Transfer',
+            label: isAr ? '🏦 تحويل بنكي / شيك' : '🏦 Bank Transfer',
+            icon: '🏦',
+            badgeClass: 'badge-bank'
+        };
+    } else if (mLower.includes('insur') || mLower.includes('تأمين')) {
+        return {
+            key: 'Insurance',
+            label: isAr ? '🛡️ تأمين طبي' : '🛡️ Insurance',
+            icon: '🛡️',
+            badgeClass: 'badge-insurance'
+        };
+    } else if (mLower.includes('install') || mLower.includes('تقسيط') || mLower.includes('valu') || mLower.includes('فاليو') || mLower.includes('tabby') || mLower.includes('tamara')) {
+        return {
+            key: 'Installment',
+            label: isAr ? '🛍️ تقسيط / فاليو' : '🛍️ Installment / BNPL',
+            icon: '🛍️',
+            badgeClass: 'badge-installment'
+        };
+    } else {
+        return {
+            key: 'Other',
+            label: m ? `🏷️ ${m}` : (isAr ? '🏷️ أخرى' : '🏷️ Other'),
+            icon: '🏷️',
+            badgeClass: 'badge-other'
+        };
+    }
+}
+window.getPaymentSourceInfo = getPaymentSourceInfo;
+
 // --- Ledger Logic ---
 let globalPaymentsList = [];
+let activeLedgerMethodFilter = 'all';
 
 function renderLedgerRows() {
     const tbody = document.getElementById('ledger-table-body');
@@ -1798,37 +1901,103 @@ function renderLedgerRows() {
     let todayRev = 0;
     let monthRev = 0;
 
+    // Monthly channel breakdowns
+    let sumCash = 0, countCash = 0;
+    let sumCard = 0, countCard = 0;
+    let sumInsta = 0, countInsta = 0;
+    let sumVodafone = 0, countVodafone = 0;
+    let sumBank = 0, countBank = 0;
+    let sumOther = 0, countOther = 0;
+
     const today = new Date();
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
 
     globalPaymentsList.forEach(data => {
         const amount = parseFloat(data.amount) || 0;
-        const dateIso = new Date(data.date).toISOString();
+        const dateIso = data.date ? new Date(data.date).toISOString() : new Date().toISOString();
 
         if (dateIso >= startOfDay) todayRev += amount;
-        if (dateIso >= startOfMonth) monthRev += amount;
-
-        let methodDisplay = data.method || '-';
-        const mLower = String(data.method || '').toLowerCase();
-        if (mLower === 'cash' || mLower.includes('نقد') || mLower.includes('كاش')) {
-            methodDisplay = isAr ? 'نقداً / كاش' : 'Cash';
-        } else if (mLower === 'visa' || mLower.includes('بطاق') || mLower.includes('فيزا') || mLower.includes('card')) {
-            methodDisplay = isAr ? 'بطاقة / فيزا' : 'Card / Visa';
-        } else if (mLower.includes('vodafone') || mLower.includes('فودافون') || mLower.includes('wallet')) {
-            methodDisplay = isAr ? 'محفظة إلكترونية' : 'E-Wallet';
+        if (dateIso >= startOfMonth) {
+            monthRev += amount;
+            const srcInfo = getPaymentSourceInfo(data.method);
+            if (srcInfo.key === 'Cash') { sumCash += amount; countCash++; }
+            else if (srcInfo.key === 'Card') { sumCard += amount; countCard++; }
+            else if (srcInfo.key === 'InstaPay') { sumInsta += amount; countInsta++; }
+            else if (srcInfo.key === 'Vodafone Cash') { sumVodafone += amount; countVodafone++; }
+            else if (srcInfo.key === 'Bank Transfer') { sumBank += amount; countBank++; }
+            else { sumOther += amount; countOther++; }
         }
-
-        tbody.innerHTML += `
-            <tr>
-                <td>${window.formatDate ? window.formatDate(data.date) : data.date}</td>
-                <td>${data.patientName}</td>
-                <td>${data.treatmentName}</td>
-                <td style="color: var(--status-completed); font-weight: bold;">${window.formatCurrency ? window.formatCurrency(amount) : amount}</td>
-                <td>${methodDisplay}</td>
-            </tr>
-        `;
     });
+
+    // Update Income Sources Breakdown UI Cards
+    const formatCur = (val) => window.formatCurrency ? window.formatCurrency(val) : (val + ' ج.م');
+    const updateSrcCard = (type, sum, count) => {
+        const totalEl = document.getElementById(`srcTotal-${type}`);
+        const countEl = document.getElementById(`srcCount-${type}`);
+        if (totalEl) totalEl.innerText = formatCur(sum);
+        if (countEl) countEl.innerText = `${count} ${isAr ? 'عملية' : 'txns'}`;
+    };
+
+    updateSrcCard('cash', sumCash, countCash);
+    updateSrcCard('card', sumCard, countCard);
+    updateSrcCard('instapay', sumInsta, countInsta);
+    updateSrcCard('vodafone', sumVodafone, countVodafone);
+    updateSrcCard('bank', sumBank, countBank);
+    updateSrcCard('other', sumOther, countOther);
+
+    // Apply Payment Source Filter to Table
+    let filteredPayments = globalPaymentsList;
+    if (activeLedgerMethodFilter !== 'all') {
+        filteredPayments = globalPaymentsList.filter(data => {
+            const src = getPaymentSourceInfo(data.method).key;
+            return src === activeLedgerMethodFilter;
+        });
+    }
+
+    if (filteredPayments.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">${isAr ? 'لا توجد مقبوضات مالية مطابقة لمصدر الدفع المحدد' : 'No transactions found for this payment channel'}</td></tr>`;
+    } else {
+        filteredPayments.forEach(data => {
+            const amount = parseFloat(data.amount) || 0;
+            const srcInfo = getPaymentSourceInfo(data.method);
+            const formattedDate = window.formatDate ? window.formatDate(data.date) : data.date;
+
+            const referenceVal = data.reference || data.ref;
+            let detailsHtml = '';
+            if (referenceVal && data.notes) {
+                detailsHtml = `<div><strong style="font-family: monospace; color: var(--brand-primary); font-size: 0.8rem;">#${escapeHtml(referenceVal)}</strong></div><div style="font-size: 0.76rem; color: var(--text-muted);">${escapeHtml(data.notes)}</div>`;
+            } else if (referenceVal) {
+                detailsHtml = `<span style="font-family: monospace; color: var(--brand-primary); font-size: 0.82rem; font-weight: 600;">#${escapeHtml(referenceVal)}</span>`;
+            } else if (data.notes) {
+                detailsHtml = `<span style="font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(data.notes)}</span>`;
+            } else {
+                detailsHtml = `<span style="color: var(--text-muted); font-size: 0.78rem;">-</span>`;
+            }
+
+            tbody.innerHTML += `
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="font-family: monospace; font-size: 0.85rem; color: var(--text-muted); white-space: nowrap;">${formattedDate}</td>
+                    <td style="font-weight: 600; color: var(--brand-primary); cursor: pointer;" onclick="if(window.openPatientProfile && '${data.patientId}') window.openPatientProfile('${data.patientId}')">${data.patientName || '-'}</td>
+                    <td>${data.treatmentName || '-'}</td>
+                    <td style="color: var(--status-completed); font-weight: 800; font-family: monospace; font-size: 0.95rem;">${window.formatCurrency ? window.formatCurrency(amount) : amount}</td>
+                    <td>
+                        <span class="payment-source-badge ${srcInfo.badgeClass}">${srcInfo.label}</span>
+                    </td>
+                    <td>${detailsHtml}</td>
+                    <td>
+                        <div style="display: flex; gap: 0.35rem; align-items: center;">
+                            <button type="button" class="btn-outline" style="padding: 2px 7px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 3px;" onclick="window.openOfficialReceipt('${data.id}')" title="${isAr ? 'طباعة سند قبض مالي رسمي' : 'Print Official Receipt'}">
+                                🧾 <span>${isAr ? 'سند قبض' : 'Receipt'}</span>
+                            </button>
+                            <button type="button" class="btn-outline" style="padding: 2px 7px; font-size: 0.78rem;" onclick="if(window.editPayment) window.editPayment('${data.id}')" title="${isAr ? 'تعديل' : 'Edit'}">✏️</button>
+                            <button type="button" class="btn-outline" style="padding: 2px 7px; font-size: 0.78rem; color: var(--status-error); border-color: rgba(239, 68, 68, 0.3);" onclick="if(window.deletePayment) window.deletePayment('${data.id}', '${data.treatmentId}', ${amount})" title="${isAr ? 'حذف' : 'Delete'}">🗑️</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+    }
 
     if (document.getElementById('ledger-today-revenue')) {
         document.getElementById('ledger-today-revenue').innerText = window.formatCurrency ? window.formatCurrency(todayRev) : todayRev;
@@ -1836,6 +2005,132 @@ function renderLedgerRows() {
     }
 }
 window.renderLedgerRows = renderLedgerRows;
+
+// Bind Payment Source Filter Buttons for Ledger Table
+function setupLedgerSourceFilterListeners() {
+    const filterButtons = document.querySelectorAll('.ledger-method-filter-btn');
+    filterButtons.forEach(btn => {
+        btn.onclick = () => {
+            filterButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeLedgerMethodFilter = btn.getAttribute('data-method') || 'all';
+            renderLedgerRows();
+        };
+    });
+}
+
+// Official Payment Receipt Generator & Modal Display
+window.openOfficialReceipt = async function(paymentId) {
+    let pay = globalPaymentsList.find(p => p.id === paymentId);
+    
+    // Fallback: If not in memory, query Firestore
+    if (!pay) {
+        const user = auth.currentUser;
+        if (user && paymentId) {
+            try {
+                const payDoc = await getDoc(doc(db, 'users', user.uid, 'payments', paymentId));
+                if (payDoc.exists()) {
+                    pay = { id: payDoc.id, ...payDoc.data() };
+                }
+            } catch (err) {
+                console.error("Error fetching payment doc for receipt", err);
+            }
+        }
+    }
+
+    if (!pay) {
+        if (window.showToast) {
+            const isAr = (document.documentElement.lang || 'en') === 'ar';
+            window.showToast(isAr ? 'لم يتم العثور على بيانات المعاملة' : 'Payment record not found', 'warning');
+        }
+        return;
+    }
+
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+    const amount = parseFloat(pay.amount) || 0;
+    const formattedAmount = window.formatCurrency ? window.formatCurrency(amount) : (amount + ' EGP');
+    const srcInfo = getPaymentSourceInfo(pay.method);
+
+    // Get patient details
+    const patient = (window.currentPatients || []).find(p => p.id === pay.patientId || p.name === pay.patientName);
+    const fileId = patient?.displayId || pay.patientId?.substring(0, 5)?.toUpperCase() || '--';
+    const phone = patient?.phone || '-';
+
+    // Get parent treatment details
+    let totalCost = amount;
+    let paidSoFar = amount;
+    let remaining = 0;
+    const treatment = (window.currentTreatments || []).find(t => t.id === pay.treatmentId);
+    if (treatment) {
+        totalCost = parseFloat(treatment.cost) || amount;
+        paidSoFar = parseFloat(treatment.paidAmount) || amount;
+        remaining = Math.max(0, totalCost - paidSoFar);
+    }
+
+    // Populate Receipt Modal elements
+    const setTxt = (id, txt) => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = txt;
+    };
+
+    setTxt('receiptNumber', `REC-${(pay.id || '0000').substring(0, 8).toUpperCase()}`);
+    setTxt('receiptDate', pay.date ? (window.formatDate ? window.formatDate(pay.date) : pay.date) : new Date().toLocaleDateString());
+    setTxt('receiptPatientName', pay.patientName || '-');
+    setTxt('receiptPatientFileId', `#${fileId}`);
+    setTxt('receiptPatientPhone', phone);
+    setTxt('receiptTreatmentName', pay.treatmentName || (isAr ? 'علاج أسنان' : 'Dental Treatment'));
+    setTxt('receiptTreatmentTotal', window.formatCurrency ? window.formatCurrency(totalCost) : totalCost);
+    setTxt('receiptAmountDisplay', formattedAmount);
+
+    // Source Badge
+    const badgeEl = document.getElementById('receiptSourceBadge');
+    if (badgeEl) {
+        badgeEl.className = `payment-source-badge ${srcInfo.badgeClass}`;
+        badgeEl.innerHTML = `${srcInfo.icon} ${srcInfo.label}`;
+    }
+
+    // Ref & Notes
+    const refWrap = document.getElementById('receiptRefWrapper');
+    const refTxt = document.getElementById('receiptRefText');
+    const notesWrap = document.getElementById('receiptNotesWrapper');
+    const notesTxt = document.getElementById('receiptNotesText');
+
+    const paymentRef = pay.reference || pay.ref;
+    if (paymentRef || pay.notes) {
+        if (refWrap) {
+            refWrap.style.display = paymentRef ? 'block' : 'none';
+            if (refTxt) refTxt.innerText = paymentRef || '';
+        }
+        if (notesWrap) {
+            notesWrap.style.display = pay.notes ? 'block' : 'none';
+            if (notesTxt) notesTxt.innerText = pay.notes || '';
+        }
+    } else {
+        if (refWrap) refWrap.style.display = 'none';
+        if (notesWrap) notesWrap.style.display = 'none';
+    }
+
+    // Financial statement
+    setTxt('receiptStmtTotal', window.formatCurrency ? window.formatCurrency(totalCost) : totalCost);
+    setTxt('receiptStmtPaid', window.formatCurrency ? window.formatCurrency(paidSoFar) : paidSoFar);
+    setTxt('receiptStmtRemaining', window.formatCurrency ? window.formatCurrency(remaining) : remaining);
+
+    // Clinic config if available
+    const cfg = window.currentClinicConfig || (window.settingsStore ? window.settingsStore.config : null);
+    if (cfg) {
+        if (cfg.clinicName) setTxt('receiptClinicName', cfg.clinicName);
+        if (cfg.doctorName) setTxt('receiptDoctorName', cfg.doctorName);
+        if (cfg.credentials) setTxt('receiptDoctorCreds', cfg.credentials);
+        if (cfg.phone) setTxt('receiptClinicPhone', `Phone: ${cfg.phone}`);
+        if (cfg.financial?.taxRegistrationNumber) setTxt('receiptTaxNumber', cfg.financial.taxRegistrationNumber);
+    }
+
+    const receiptModal = document.getElementById('paymentReceiptModal');
+    if (receiptModal) {
+        receiptModal.classList.add('show');
+        history.pushState({ modal: 'receipt' }, '', window.location.hash);
+    }
+};
 
 function setupGlobalLedger() {
     const user = auth.currentUser;
@@ -1845,6 +2140,7 @@ function setupGlobalLedger() {
         globalPaymentsList = snapshot.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => new Date(b.date) - new Date(a.date));
         renderLedgerRows();
         renderOutstandingBalancesTable();
+        setupLedgerSourceFilterListeners();
     });
 }
 
@@ -1917,7 +2213,7 @@ if (tabLedgerAll && tabLedgerBalances) {
     });
 }
 
-// Export Ledger CSV
+// Export Ledger CSV with Full Payment Channel Breakdown & Ref
 const exportLedgerCsvBtn = document.getElementById('exportLedgerCsvBtn');
 if (exportLedgerCsvBtn) {
     exportLedgerCsvBtn.addEventListener('click', () => {
@@ -1927,21 +2223,26 @@ if (exportLedgerCsvBtn) {
             return;
         }
 
-        const headers = ['Date', 'Patient Name', 'Treatment', 'Amount', 'Method'];
-        const rows = globalPaymentsList.map(p => [
-            `"${(p.date || '')}"`,
-            `"${(p.patientName || '').replace(/"/g, '""')}"`,
-            `"${(p.treatmentName || '').replace(/"/g, '""')}"`,
-            `"${(p.amount || 0)}"`,
-            `"${(p.method || '')}"`
-        ]);
+        const headers = ['Date', 'Patient Name', 'Treatment', 'Amount', 'Payment Method & Channel', 'Reference Slip #', 'Notes'];
+        const rows = globalPaymentsList.map(p => {
+            const src = getPaymentSourceInfo(p.method);
+            return [
+                `"${(p.date || '')}"`,
+                `"${(p.patientName || '').replace(/"/g, '""')}"`,
+                `"${(p.treatmentName || '').replace(/"/g, '""')}"`,
+                `"${(p.amount || 0)}"`,
+                `"${(src.label || p.method || '')}"`,
+                `"${(p.ref || '')}"`,
+                `"${(p.notes || '').replace(/"/g, '""')}"`
+            ];
+        });
 
         const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `Molarize_Ledger_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute('download', `Molarize_Income_Ledger_${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

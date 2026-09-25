@@ -900,13 +900,68 @@ function escapeHtml(unsafe) {
 
 
 window.openVisitModal = function() {
-    document.getElementById('visitForm').reset();
+    const visitForm = document.getElementById('visitForm');
+    if (visitForm) visitForm.reset();
+    const vId = document.getElementById('visitId');
+    if (vId) vId.value = '';
+
+    const visitToggle = document.getElementById('visitIncludeTreatmentToggle');
+    if (visitToggle) visitToggle.checked = false;
+    const visitProcSec = document.getElementById('visitProcedureSection');
+    if (visitProcSec) visitProcSec.style.display = 'none';
+
+    const payToggle = document.getElementById('visitCollectPaymentToggle');
+    if (payToggle) payToggle.checked = false;
+    const payFields = document.getElementById('visitPaymentFields');
+    if (payFields) payFields.style.display = 'none';
+
+    const baseInput = document.getElementById('visitProcedureBasePrice');
+    const pctInput = document.getElementById('visitProcedureDiscountPercent');
+    const finalInput = document.getElementById('visitProcedureFinalCost');
+    const customPctInput = document.getElementById('visitCustomPctInput');
+    const catalogBadge = document.getElementById('visitBaseCatalogPriceBadge');
+
+    if (baseInput) baseInput.value = '0';
+    if (pctInput) pctInput.value = '0';
+    if (finalInput) finalInput.value = '';
+    if (customPctInput) customPctInput.value = '';
+    if (catalogBadge) catalogBadge.innerText = '';
+
+    const visitPayAmt = document.getElementById('visitPaymentAmount');
+    if (visitPayAmt) visitPayAmt.value = '';
+    const visitPayRef = document.getElementById('visitPaymentRef');
+    if (visitPayRef) visitPayRef.value = '';
+    const visitPayNotes = document.getElementById('visitPaymentNotes');
+    if (visitPayNotes) visitPayNotes.value = '';
+
+    if (typeof window.applyVisitPercentage === 'function') {
+        window.applyVisitPercentage(0, 0);
+    }
+
     const visitModal = document.getElementById('visitModal');
-    visitModal.classList.add('show');
-    history.pushState({ modal: 'visit' }, '', window.location.hash);
+    if (visitModal) {
+        visitModal.classList.add('show');
+        history.pushState({ modal: 'visit' }, '', window.location.hash);
+    }
 };
 
-
+// Wire visit payment toggle
+const visitCollectPaymentToggle = document.getElementById('visitCollectPaymentToggle');
+if (visitCollectPaymentToggle) {
+    visitCollectPaymentToggle.addEventListener('change', (e) => {
+        const payFields = document.getElementById('visitPaymentFields');
+        if (payFields) {
+            payFields.style.display = e.target.checked ? 'block' : 'none';
+            if (e.target.checked) {
+                const finalCost = parseFloat(document.getElementById('visitProcedureFinalCost')?.value) || 0;
+                const amtInput = document.getElementById('visitPaymentAmount');
+                if (amtInput && !amtInput.value && finalCost > 0) {
+                    amtInput.value = finalCost;
+                }
+            }
+        }
+    });
+}
 
 document.getElementById('visitForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -916,24 +971,97 @@ document.getElementById('visitForm').addEventListener('submit', async (e) => {
 
     const complaint = document.getElementById('visitChiefComplaint').value;
     const notes = document.getElementById('visitNotes').value;
-
     const vId = document.getElementById('visitId').value;
+
+    const isIncludeTreatment = document.getElementById('visitIncludeTreatmentToggle')?.checked;
+    const procType = document.getElementById('visitProcedureType')?.value.trim();
+    const finalCost = parseFloat(document.getElementById('visitProcedureFinalCost')?.value) || 0;
+    const basePrice = parseFloat(document.getElementById('visitProcedureBasePrice')?.value) || finalCost;
+    const discountPercent = parseFloat(document.getElementById('visitProcedureDiscountPercent')?.value) || 0;
+
+    const isCollectPay = document.getElementById('visitCollectPaymentToggle')?.checked;
+    const visitPaidAmt = parseFloat(document.getElementById('visitPaymentAmount')?.value) || 0;
+    const visitPaySource = document.getElementById('visitPaymentSource')?.value || 'Cash';
+    const visitPayRefNo = document.getElementById('visitPaymentRef')?.value || '';
+    const visitPayNoteText = document.getElementById('visitPaymentNotes')?.value || '';
+
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+
     try {
+        const visitPayload = {
+            complaint,
+            notes,
+            timestamp: new Date().toISOString()
+        };
+
+        if (isIncludeTreatment && procType) {
+            visitPayload.procedure = procType;
+            visitPayload.procedureCost = finalCost;
+            visitPayload.procedureBasePrice = basePrice;
+            visitPayload.discountPercent = discountPercent;
+        }
+
         if (vId) {
             const ref = doc(db, 'users', user.uid, 'patients', currentProfilePatientId, 'visits', vId);
-            await updateDoc(ref, { complaint, notes });
+            await updateDoc(ref, visitPayload);
         } else {
             const ref = collection(db, 'users', user.uid, 'patients', currentProfilePatientId, 'visits');
-            await addDoc(ref, {
-                complaint,
-                notes,
-                timestamp: new Date().toISOString()
-            });
+            await addDoc(ref, visitPayload);
         }
+
+        // If procedure was filled during visit, also record a completed Treatment Plan!
+        if (isIncludeTreatment && procType) {
+            const treatmentsRef = collection(db, 'users', user.uid, 'treatments');
+            const patientName = document.getElementById('profilePatientName')?.innerText || 'Patient';
+            const effectivePaid = (isCollectPay && visitPaidAmt > 0) ? Math.min(finalCost, visitPaidAmt) : 0;
+            
+            const newTreatmentDoc = await addDoc(treatmentsRef, {
+                patientId: currentProfilePatientId,
+                patientName: patientName,
+                type: procType,
+                cost: finalCost,
+                basePrice: basePrice,
+                discountPercent: discountPercent,
+                adjustmentReason: discountPercent !== 0 ? 'visit_discount' : 'none',
+                paidAmount: effectivePaid,
+                status: effectivePaid >= finalCost && finalCost > 0 ? 'Completed' : (effectivePaid > 0 ? 'In Progress' : 'Completed'),
+                createdAt: new Date().toISOString()
+            });
+
+            // If payment was collected at visit time, record payment document linked to source channel
+            if (isCollectPay && visitPaidAmt > 0) {
+                const paymentsRef = collection(db, 'users', user.uid, 'payments');
+                await addDoc(paymentsRef, {
+                    treatmentId: newTreatmentDoc.id,
+                    patientId: currentProfilePatientId,
+                    patientName: patientName,
+                    treatmentName: procType,
+                    amount: visitPaidAmt,
+                    method: visitPaySource,
+                    reference: visitPayRefNo,
+                    notes: visitPayNoteText,
+                    date: new Date().toISOString().split('T')[0],
+                    createdAt: new Date().toISOString()
+                });
+            }
+
+            // Update dashboard statistics
+            if (typeof window.updateDashboardStats === 'function') {
+                window.updateDashboardStats();
+            }
+        }
+
         window.closeModalAndPopState(document.getElementById('visitModal'));
         loadPatientTimeline(currentProfilePatientId);
+
+        if (window.showToast) {
+            window.showToast(isAr ? 'تم حفظ الزيارة السريرية وخطة العلاج والتحصيل المالي بنجاح' : 'Clinical visit, procedure and payment saved successfully!', 'success');
+        }
     } catch(err) {
         console.error("Error saving visit", err);
+        if (window.showToast) {
+            window.showToast(isAr ? 'حدث خطأ أثناء حفظ الزيارة' : 'Error saving visit data', 'error');
+        }
     }
 });
 
@@ -1024,9 +1152,17 @@ function renderTimeline(filter = 'all') {
         if (event.type === 'visit') {
             icon = '🔵';
             title = isAr ? 'زيارة كشف وعيادة' : 'Clinical Visit';
+            const procInfo = event.data.procedure ? 
+                `<div style="background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.2); border-radius: 6px; padding: 0.5rem 0.75rem; margin-top: 0.6rem; font-size: 0.85rem;">
+                    <strong>💉 ${isAr ? 'الإجراء المنفذ:' : 'Procedure Done:'}</strong> ${escapeHtml(event.data.procedure)} 
+                    <span style="color: var(--brand-primary); font-weight: 700; margin-inline-start: 6px;">(${window.formatCurrency ? window.formatCurrency(event.data.procedureCost) : event.data.procedureCost})</span>
+                    ${event.data.discountPercent ? `<span style="color: var(--status-completed); font-size: 0.78rem; margin-inline-start: 4px;">(${event.data.discountPercent}% ${isAr ? 'تعديل السعر' : 'modifier'})</span>` : ''}
+                </div>` : '';
+
             details = `
                 <p><strong>${isAr ? 'الشكوى الأساسية:' : 'Chief Complaint:'}</strong> ${escapeHtml(event.data.complaint)}</p>
                 <p style="white-space: pre-wrap;"><strong>${isAr ? 'الملاحظات والتشخيص:' : 'Notes:'}</strong><br>${escapeHtml(event.data.notes)}</p>
+                ${procInfo}
                 <div style="margin-top: 1rem;">
                     <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.editVisit('${event.id}')">${isAr ? 'تعديل' : 'Edit'}</button>
                     <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; color: var(--status-error); border-color: var(--status-error);" onclick="window.deleteVisit('${event.id}')">${isAr ? 'حذف' : 'Delete'}</button>
@@ -1037,15 +1173,22 @@ function renderTimeline(filter = 'all') {
             const typeStr = event.data.type || event.data.treatmentType || '';
             title = isAr ? ('خطة علاج: ' + typeStr) : ('Treatment: ' + typeStr);
             const total = parseFloat(event.data.cost) || 0;
+            const base = parseFloat(event.data.basePrice) || total;
+            const pct = parseFloat(event.data.discountPercent) || 0;
             const paid = parseFloat(event.data.paidAmount) || 0;
             const rem = total - paid;
             const statusLabel = isAr ? 
                 (event.data.status === 'Completed' ? 'مكتمل' : (event.data.status === 'In Progress' ? 'جاري المعالجة' : 'قيد الانتظار')) :
                 (event.data.status || 'Pending');
 
+            const priceModBadge = pct !== 0 ? 
+                `<span style="background: rgba(34, 197, 94, 0.12); color: ${pct < 0 ? 'var(--status-completed)' : 'var(--brand-primary)'}; padding: 1px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; margin-inline-start: 4px;">
+                    ${pct > 0 ? '+' : ''}${pct}% (${isAr ? (pct < 0 ? 'خصم من' : 'زيادة على') : 'from'} ${window.formatCurrency ? window.formatCurrency(base) : base})
+                </span>` : '';
+
             details = `
                 <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px;">
-                    <span><strong>${isAr ? 'الإجمالي:' : 'Total:'}</strong> ${window.formatCurrency ? window.formatCurrency(total) : total}</span>
+                    <span><strong>${isAr ? 'الإجمالي المطلوب:' : 'Total Cost:'}</strong> ${window.formatCurrency ? window.formatCurrency(total) : total} ${priceModBadge}</span>
                     <span><strong>${isAr ? 'المدفوع:' : 'Paid:'}</strong> ${window.formatCurrency ? window.formatCurrency(paid) : paid}</span>
                     <span style="color: ${rem > 0 ? 'var(--status-error)' : 'var(--status-completed)'}"><strong>${isAr ? 'المتبقي:' : 'Remaining:'}</strong> ${window.formatCurrency ? window.formatCurrency(rem) : rem}</span>
                     <span><strong>${isAr ? 'الحالة:' : 'Status:'}</strong> <span class="status-badge ${event.data.status === 'Completed' ? 'status-completed' : (event.data.status === 'In Progress' ? 'status-inprogress' : 'status-pending')}">${statusLabel}</span></span>
@@ -1059,23 +1202,36 @@ function renderTimeline(filter = 'all') {
         } else if (event.type === 'payment') {
             icon = '🟢';
             title = isAr ? 'سند قبض / دفعة نقدية' : 'Payment Received';
-            let methodDisplay = event.data.method || '-';
-            const mLower = String(event.data.method || '').toLowerCase();
-            if (mLower === 'cash' || mLower.includes('نقد') || mLower.includes('كاش')) {
-                methodDisplay = isAr ? 'نقداً / كاش' : 'Cash';
-            } else if (mLower === 'visa' || mLower.includes('بطاق') || mLower.includes('فيزا') || mLower.includes('card')) {
-                methodDisplay = isAr ? 'بطاقة / فيزا' : 'Card / Visa';
-            } else if (mLower.includes('vodafone') || mLower.includes('فودافون') || mLower.includes('wallet')) {
-                methodDisplay = isAr ? 'محفظة إلكترونية' : 'E-Wallet';
+            
+            // Payment source channel styling
+            let sourceBadge = '';
+            if (typeof window.getPaymentSourceInfo === 'function') {
+                const sInfo = window.getPaymentSourceInfo(event.data.method);
+                sourceBadge = `<span class="payment-source-badge ${sInfo.badgeClass}" style="margin-inline-start: 4px;">${sInfo.icon} ${isAr ? sInfo.labelAr : sInfo.labelEn}</span>`;
+            } else {
+                sourceBadge = `<span class="payment-source-badge badge-cash" style="margin-inline-start: 4px;">💵 ${escapeHtml(event.data.method || 'Cash')}</span>`;
             }
 
+            const refDisplay = event.data.reference ? 
+                `<div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 3px;"><strong>${isAr ? 'رقم الإيصال / المرجع:' : 'Ref / Tx ID:'}</strong> <code style="background: rgba(2, 132, 199, 0.08); padding: 1px 5px; border-radius: 4px; color: var(--brand-primary);">${escapeHtml(event.data.reference)}</code></div>` : '';
+            
+            const notesDisplay = event.data.notes ? 
+                `<div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 3px;"><strong>${isAr ? 'ملاحظات:' : 'Notes:'}</strong> ${escapeHtml(event.data.notes)}</div>` : '';
+
             details = `
-                <p><strong>${isAr ? 'المبلغ:' : 'Amount:'}</strong> <span style="color: var(--status-completed); font-weight: bold;">${window.formatCurrency ? window.formatCurrency(event.data.amount) : event.data.amount}</span></p>
-                <p><strong>${isAr ? 'طريقة الدفع:' : 'Method:'}</strong> ${methodDisplay}</p>
-                <p><strong>${isAr ? 'لخطة علاج:' : 'For Treatment:'}</strong> ${event.data.treatmentName || '-'}</p>
-                <div style="margin-top: 1rem;">
-                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.editPayment('${event.id}')">${isAr ? 'تعديل' : 'Edit'}</button>
-                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; color: var(--status-error); border-color: var(--status-error);" onclick="window.deletePayment('${event.id}', '${event.data.treatmentId}', ${parseFloat(event.data.amount) || 0})">${isAr ? 'حذف' : 'Delete'}</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 8px;">
+                    <div><strong>${isAr ? 'المبلغ المحصل:' : 'Amount:'}</strong> <span style="color: var(--status-completed); font-weight: 800; font-size: 1.05rem;">${window.formatCurrency ? window.formatCurrency(event.data.amount) : event.data.amount}</span></div>
+                    <div><strong>${isAr ? 'قناة الدفع / المصدر:' : 'Source:'}</strong> ${sourceBadge}</div>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-muted);">
+                    <strong>${isAr ? 'الخدمة / خطة العلاج:' : 'For Treatment:'}</strong> ${escapeHtml(event.data.treatmentName || '-')}
+                </div>
+                ${refDisplay}
+                ${notesDisplay}
+                <div style="margin-top: 0.9rem; display: flex; gap: 6px; flex-wrap: wrap;">
+                    <button class="btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; color: var(--brand-primary); border-color: var(--brand-primary);" onclick="if(typeof window.openOfficialReceipt === 'function'){ window.openOfficialReceipt('${event.id}'); } else { window.printInvoice('${event.data.treatmentId}', '${event.data.patientId}'); }">🧾 ${isAr ? 'طباعة سند القبض' : 'Print Receipt'}</button>
+                    <button class="btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;" onclick="window.editPayment('${event.id}')">${isAr ? 'تعديل' : 'Edit'}</button>
+                    <button class="btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; color: var(--status-error); border-color: var(--status-error);" onclick="window.deletePayment('${event.id}', '${event.data.treatmentId}', ${parseFloat(event.data.amount) || 0})">${isAr ? 'حذف' : 'Delete'}</button>
                 </div>
             `;
         } else if (event.type === 'prescription') {
@@ -1114,18 +1270,277 @@ document.querySelectorAll('.filter-chips .chip').forEach(chip => {
 
 
 
-// Payment Modal Logic
-window.openPaymentModal = function(tId, pId, pName, tName) {
-    document.getElementById('paymentForm').reset();
-    document.getElementById('paymentTreatmentId').value = tId;
-    document.getElementById('paymentPatientId').value = pId;
-    document.getElementById('paymentPatientName').value = pName;
-    document.getElementById('paymentTreatmentName').value = tName;
+// Payment Modal Logic with Detailed Source Channels & Professional Smart Calculator
+let currentModalCost = 0;
+let currentModalPaid = 0;
+let currentModalRemaining = 0;
+
+window.updatePaymentLiveCalculation = function() {
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+    const amtInput = document.getElementById('paymentAmount');
+    const payingNow = parseFloat(amtInput?.value) || 0;
+    const currentDue = currentModalRemaining;
+    const remainingAfter = currentDue - payingNow;
+    const pctOfDue = currentDue > 0 ? Math.round((payingNow / currentDue) * 100) : 0;
+
+    const formatCur = (val) => window.formatCurrency ? window.formatCurrency(val) : (Math.round(val) + ' ج.م');
+
+    // Update metrics
+    const dueEl = document.getElementById('calcMetricCurrentDue');
+    if (dueEl) dueEl.innerText = formatCur(currentDue);
+    const payingEl = document.getElementById('calcMetricPayingNow');
+    if (payingEl) payingEl.innerText = formatCur(payingNow);
+    const remAfterEl = document.getElementById('calcMetricRemainingAfter');
+    if (remAfterEl) {
+        if (remainingAfter <= 0 && currentDue > 0) {
+            remAfterEl.style.color = 'var(--status-completed)';
+            remAfterEl.innerText = remainingAfter === 0 ? (isAr ? '0 (خالصة)' : '0 (Paid)') : `+${formatCur(Math.abs(remainingAfter))} (${isAr ? 'زيادة' : 'Over'})`;
+        } else {
+            remAfterEl.style.color = remainingAfter > 0 ? 'var(--status-error)' : 'var(--text-primary)';
+            remAfterEl.innerText = formatCur(Math.max(0, remainingAfter));
+        }
+    }
+
+    // Update Status Pill
+    const pill = document.getElementById('paymentStatusPill');
+    if (pill) {
+        if (payingNow <= 0) {
+            pill.style.background = 'rgba(148, 163, 184, 0.15)';
+            pill.style.color = 'var(--text-muted)';
+            pill.innerText = isAr ? 'لم يُحدد مبلغ' : 'No amount';
+        } else if (remainingAfter === 0 && currentDue > 0) {
+            pill.style.background = 'rgba(16, 185, 129, 0.15)';
+            pill.style.color = '#10b981';
+            pill.innerText = isAr ? '🌟 سداد كامل (100%)' : '🌟 Full Pay (100%)';
+        } else if (remainingAfter < 0) {
+            pill.style.background = 'rgba(245, 158, 11, 0.15)';
+            pill.style.color = '#d97706';
+            pill.innerText = isAr ? `⚠️ زائد (+${formatCur(Math.abs(remainingAfter))})` : `⚠️ Over (+${formatCur(Math.abs(remainingAfter))})`;
+        } else {
+            pill.style.background = 'rgba(2, 132, 199, 0.12)';
+            pill.style.color = 'var(--brand-primary)';
+            pill.innerText = isAr ? `⚡ سداد جزئي (${pctOfDue}%)` : `⚡ Partial (${pctOfDue}%)`;
+        }
+    }
+
+    // Update Percentage Badge above input
+    const pctBadge = document.getElementById('paymentPctBadge');
+    if (pctBadge) {
+        if (payingNow <= 0) {
+            pctBadge.innerText = isAr ? '0% من المتبقي' : '0% of due';
+        } else if (remainingAfter === 0) {
+            pctBadge.innerText = isAr ? '100% كامل المتبقي' : '100% full balance';
+        } else {
+            pctBadge.innerText = `${pctOfDue}% ${isAr ? 'من المتبقي' : 'of due'}`;
+        }
+    }
+
+    // Update Dynamic Percentage Chips Active State & Values
+    const updateChip = (chipId, valId, pct) => {
+        const valEl = document.getElementById(valId);
+        const chipEl = document.getElementById(chipId);
+        const exactTarget = Math.round((currentDue * pct) / 100);
+        if (valEl) valEl.innerText = formatCur(exactTarget);
+        if (chipEl) {
+            const isMatch = Math.abs(payingNow - exactTarget) < 0.5 && payingNow > 0;
+            chipEl.classList.toggle('active', isMatch);
+        }
+    };
+
+    updateChip('chipPct100', 'chipVal100', 100);
+    updateChip('chipPct75', 'chipVal75', 75);
+    updateChip('chipPct50', 'chipVal50', 50);
+    updateChip('chipPct25', 'chipVal25', 25);
+    updateChip('chipPct10', 'chipVal10', 10);
+};
+
+window.openPaymentModal = async function(tId, pId, pName, tName) {
+    const paymentFormEl = document.getElementById('paymentForm');
+    if (paymentFormEl) paymentFormEl.reset();
+
+    document.getElementById('paymentId').value = '';
+    document.getElementById('paymentTreatmentId').value = tId || '';
+    document.getElementById('paymentPatientId').value = pId || currentProfilePatientId || '';
+    
+    const actualPatientName = pName || document.getElementById('profilePatientName')?.innerText || '';
+    document.getElementById('paymentPatientName').value = actualPatientName;
+    document.getElementById('paymentTreatmentName').value = tName || '';
+
+    // Set default date to today
+    const dateInput = document.getElementById('paymentDate');
+    if (dateInput && !dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
+
+    // Reset reference & notes
+    const refInput = document.getElementById('paymentReference');
+    if (refInput) refInput.value = '';
+    const notesInput = document.getElementById('paymentNotes');
+    if (notesInput) notesInput.value = '';
+
+    // Populate patient & treatment display badges
+    const pDisplay = document.getElementById('paySummaryPatientName') || document.getElementById('paymentModalPatientDisplay');
+    if (pDisplay) pDisplay.innerText = actualPatientName || '-';
+    const tDisplay = document.getElementById('paySummaryTreatmentName') || document.getElementById('paymentModalTreatmentDisplay');
+    if (tDisplay) tDisplay.innerText = tName || '-';
+
+    // Fetch treatment to calculate remaining balance & fill summary card
+    currentModalCost = 0;
+    currentModalPaid = 0;
+    currentModalRemaining = 0;
+
+    const user = auth.currentUser;
+    if (user && tId) {
+        try {
+            const tDoc = await getDoc(doc(db, 'users', user.uid, 'treatments', tId));
+            if (tDoc.exists()) {
+                const data = tDoc.data();
+                currentModalCost = parseFloat(data.cost) || 0;
+                currentModalPaid = parseFloat(data.paidAmount) || 0;
+                currentModalRemaining = Math.max(0, currentModalCost - currentModalPaid);
+
+                const cDisplay = document.getElementById('paySummaryTotalCost') || document.getElementById('paymentModalCostDisplay');
+                if (cDisplay) cDisplay.innerText = window.formatCurrency ? window.formatCurrency(currentModalCost) : `${currentModalCost} ج.م`;
+                const pdDisplay = document.getElementById('paySummaryPaidAmount') || document.getElementById('paymentModalPaidDisplay');
+                if (pdDisplay) pdDisplay.innerText = window.formatCurrency ? window.formatCurrency(currentModalPaid) : `${currentModalPaid} ج.م`;
+                const rDisplay = document.getElementById('paySummaryRemainingBalance') || document.getElementById('paymentModalRemDisplay');
+                if (rDisplay) rDisplay.innerText = window.formatCurrency ? window.formatCurrency(currentModalRemaining) : `${currentModalRemaining} ج.م`;
+
+                // Default amount to full remaining balance if > 0
+                const amtInput = document.getElementById('paymentAmount');
+                if (amtInput) {
+                    amtInput.value = currentModalRemaining > 0 ? currentModalRemaining : currentModalCost;
+                }
+            }
+        } catch (e) {
+            console.error("Error fetching treatment details for payment", e);
+        }
+    }
+
+    // Set default payment method to Cash and activate its chip
+    const methodSelect = document.getElementById('paymentMethod');
+    if (methodSelect) {
+        methodSelect.value = 'Cash';
+    }
+    document.querySelectorAll('.payment-source-chip-btn, .quick-pm-chip').forEach(chip => {
+        chip.classList.toggle('active', chip.getAttribute('data-source') === 'Cash' || chip.getAttribute('data-val') === 'Cash');
+    });
+
+    // Run live calculation
+    window.updatePaymentLiveCalculation();
 
     const paymentModal = document.getElementById('paymentModal');
-    paymentModal.classList.add('show');
-    history.pushState({ modal: 'payment' }, '', window.location.hash);
+    if (paymentModal) {
+        paymentModal.classList.add('show');
+        history.pushState({ modal: 'payment' }, '', window.location.hash);
+    }
 };
+
+// Global helper for quick payment percentage selection in payment modal
+window.setQuickPaymentAmount = function(pct) {
+    const amtInput = document.getElementById('paymentAmount');
+    if (!amtInput) return;
+
+    if (pct === 'full' || pct === 100) {
+        amtInput.value = currentModalRemaining > 0 ? currentModalRemaining : currentModalCost;
+    } else if (typeof pct === 'number' && pct > 0) {
+        const base = currentModalRemaining > 0 ? currentModalRemaining : currentModalCost;
+        amtInput.value = Math.round((base * pct) / 100);
+    } else if (pct === 0) {
+        amtInput.value = '';
+    } else {
+        amtInput.value = pct;
+    }
+    
+    window.updatePaymentLiveCalculation();
+    amtInput.focus();
+};
+
+// Global helper to increment payment amount by fixed sum (+50, +100, +200, +500, +1000)
+window.incrementPaymentAmount = function(addAmt) {
+    const amtInput = document.getElementById('paymentAmount');
+    if (!amtInput) return;
+    const currentVal = parseFloat(amtInput.value) || 0;
+    amtInput.value = currentVal + addAmt;
+    window.updatePaymentLiveCalculation();
+    amtInput.focus();
+};
+
+// Global helper to round payment amount to nearest 50 or 100
+window.roundPaymentAmount = function() {
+    const amtInput = document.getElementById('paymentAmount');
+    if (!amtInput) return;
+    const currentVal = parseFloat(amtInput.value) || 0;
+    if (currentVal <= 0) return;
+    
+    let rounded = currentVal;
+    if (currentVal < 200) {
+        rounded = Math.round(currentVal / 10) * 10;
+    } else if (currentVal < 1000) {
+        rounded = Math.round(currentVal / 50) * 50;
+    } else {
+        rounded = Math.round(currentVal / 100) * 100;
+    }
+    amtInput.value = rounded;
+    window.updatePaymentLiveCalculation();
+};
+
+// Global helper for quick visit payment calculation
+window.setVisitQuickPayment = function(pct) {
+    const costInput = document.getElementById('visitProcedureFinalCost');
+    const payInput = document.getElementById('visitPaidAmount');
+    if (!payInput) return;
+    const totalCost = parseFloat(costInput?.value) || 0;
+
+    if (pct === 'full' || pct === 100) {
+        payInput.value = totalCost;
+    } else if (typeof pct === 'number' && pct > 0) {
+        payInput.value = Math.round((totalCost * pct) / 100);
+    } else if (pct === 0) {
+        payInput.value = '';
+    }
+    payInput.focus();
+};
+
+window.incrementVisitPayment = function(addAmt) {
+    const payInput = document.getElementById('visitPaidAmount');
+    if (!payInput) return;
+    const current = parseFloat(payInput.value) || 0;
+    payInput.value = current + addAmt;
+    payInput.focus();
+};
+
+// Live listener on paymentAmount input
+const payAmtInputEl = document.getElementById('paymentAmount');
+if (payAmtInputEl) {
+    payAmtInputEl.addEventListener('input', () => {
+        window.updatePaymentLiveCalculation();
+    });
+}
+
+// Global helper for quick payment source selection in payment modal
+window.selectPaymentSourceChannel = function(methodVal, chipEl) {
+    const methodSelect = document.getElementById('paymentMethod');
+    if (methodSelect) {
+        methodSelect.value = methodVal;
+        methodSelect.dispatchEvent(new Event('change'));
+    }
+    document.querySelectorAll('.payment-source-chip-btn, .quick-pm-chip').forEach(c => c.classList.remove('active'));
+    if (chipEl) {
+        chipEl.classList.add('active');
+    }
+};
+
+// Connect visual payment source chips in paymentModal
+document.querySelectorAll('#paymentSourceChipsGrid .payment-source-chip-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        const targetBtn = e.currentTarget;
+        const sourceVal = targetBtn.getAttribute('data-source');
+        if (sourceVal) {
+            window.selectPaymentSourceChannel(sourceVal, targetBtn);
+        }
+    });
+});
 
 const cancelPaymentBtn = document.getElementById('cancelPaymentBtn');
 if (cancelPaymentBtn) {
@@ -1146,29 +1561,42 @@ if (paymentForm) {
 
         const payId = document.getElementById('paymentId').value;
         const tId = document.getElementById('paymentTreatmentId').value;
-        const pId = document.getElementById('paymentPatientId').value;
-        const pName = document.getElementById('paymentPatientName').value || document.getElementById('profilePatientName').innerText;
-        const tName = document.getElementById('paymentTreatmentName').value;
+        const pId = document.getElementById('paymentPatientId').value || currentProfilePatientId;
+        const pName = document.getElementById('paymentPatientName').value || document.getElementById('profilePatientName')?.innerText || 'Patient';
+        const tName = document.getElementById('paymentTreatmentName').value || 'Treatment';
         const amount = parseFloat(document.getElementById('paymentAmount').value) || 0;
-        const method = document.getElementById('paymentMethod').value;
-        const date = document.getElementById('paymentDate').value;
+        const method = document.getElementById('paymentMethod').value || 'Cash';
+        const date = document.getElementById('paymentDate').value || new Date().toISOString().split('T')[0];
+        const reference = document.getElementById('paymentReference')?.value.trim() || '';
+        const notes = document.getElementById('paymentNotes')?.value.trim() || '';
 
         try {
             if (payId) {
                 // UPDATE EXISTING PAYMENT
                 const payRef = doc(db, 'users', user.uid, 'payments', payId);
-                await updateDoc(payRef, { amount, method, date });
+                await updateDoc(payRef, { 
+                    amount, 
+                    method, 
+                    date,
+                    reference,
+                    notes,
+                    updatedAt: new Date().toISOString()
+                });
 
                 // Adjust parent treatment paidAmount (subtract old, add new)
-                const tRef = doc(db, 'users', user.uid, 'treatments', tId);
-                const tDoc = await getDoc(tRef);
-                if (tDoc.exists()) {
-                    const currentPaid = parseFloat(tDoc.data().paidAmount) || 0;
-                    const newPaid = (currentPaid - originalPaymentAmount) + amount;
-                    await updateDoc(tRef, { paidAmount: newPaid });
+                if (tId) {
+                    const tRef = doc(db, 'users', user.uid, 'treatments', tId);
+                    const tDoc = await getDoc(tRef);
+                    if (tDoc.exists()) {
+                        const currentPaid = parseFloat(tDoc.data().paidAmount) || 0;
+                        const newPaid = Math.max(0, (currentPaid - originalPaymentAmount) + amount);
+                        const cost = parseFloat(tDoc.data().cost) || 0;
+                        const newStatus = newPaid >= cost && cost > 0 ? 'Completed' : (newPaid > 0 ? 'In Progress' : tDoc.data().status);
+                        await updateDoc(tRef, { paidAmount: newPaid, status: newStatus });
+                    }
                 }
                 const isAr = (document.documentElement.lang || 'en') === 'ar';
-                if (window.showToast) window.showToast(isAr ? 'تم تحديث الدفعة بنجاح' : 'Payment updated successfully', 'success');
+                if (window.showToast) window.showToast(isAr ? 'تم تحديث الدفعة ومصدر التحصيل بنجاح' : 'Payment and source channel updated successfully', 'success');
             } else {
                 // CREATE NEW PAYMENT
                 const paymentsRef = collection(db, 'users', user.uid, 'payments');
@@ -1179,23 +1607,37 @@ if (paymentForm) {
                     treatmentName: tName,
                     amount: amount,
                     method: method,
+                    reference: reference,
+                    notes: notes,
                     date: date,
                     createdAt: new Date().toISOString()
                 });
 
                 // Update paidAmount on global treatment document
-                const tRef = doc(db, 'users', user.uid, 'treatments', tId);
-                const tDoc = await getDoc(tRef);
-                if (tDoc.exists()) {
-                    const currentPaid = parseFloat(tDoc.data().paidAmount) || 0;
-                    await updateDoc(tRef, { paidAmount: currentPaid + amount });
+                if (tId) {
+                    const tRef = doc(db, 'users', user.uid, 'treatments', tId);
+                    const tDoc = await getDoc(tRef);
+                    if (tDoc.exists()) {
+                        const currentPaid = parseFloat(tDoc.data().paidAmount) || 0;
+                        const newPaid = currentPaid + amount;
+                        const cost = parseFloat(tDoc.data().cost) || 0;
+                        const newStatus = newPaid >= cost && cost > 0 ? 'Completed' : (newPaid > 0 ? 'In Progress' : tDoc.data().status);
+                        await updateDoc(tRef, { paidAmount: newPaid, status: newStatus });
+                    }
                 }
                 const isAr = (document.documentElement.lang || 'en') === 'ar';
-                if (window.showToast) window.showToast(isAr ? 'تم تسجيل الدفعة بنجاح' : 'Payment recorded successfully', 'success');
+                if (window.showToast) window.showToast(isAr ? 'تم تسجيل الدفعة وتحديد مصدر التحصيل بنجاح' : 'Payment and income source recorded successfully', 'success');
+            }
+
+            // Update dashboard statistics if active
+            if (typeof window.updateDashboardStats === 'function') {
+                window.updateDashboardStats();
             }
 
             window.closeModalAndPopState(document.getElementById('paymentModal'));
-            loadPatientTimeline(pId);
+            if (pId) {
+                loadPatientTimeline(pId);
+            }
         } catch (error) {
             console.error("Error saving payment", error);
             const isAr = (document.documentElement.lang || 'en') === 'ar';
@@ -1208,11 +1650,23 @@ if (paymentForm) {
         if (!event) return;
 
         document.getElementById('paymentId').value = event.id;
-        document.getElementById('paymentTreatmentId').value = event.data.treatmentId;
-        document.getElementById('paymentPatientId').value = event.data.patientId;
-        document.getElementById('paymentAmount').value = event.data.amount;
-        document.getElementById('paymentMethod').value = event.data.method;
-        document.getElementById('paymentDate').value = event.data.date;
+        document.getElementById('paymentTreatmentId').value = event.data.treatmentId || '';
+        document.getElementById('paymentPatientId').value = event.data.patientId || '';
+        document.getElementById('paymentPatientName').value = event.data.patientName || '';
+        document.getElementById('paymentTreatmentName').value = event.data.treatmentName || '';
+        document.getElementById('paymentAmount').value = event.data.amount || '';
+        document.getElementById('paymentMethod').value = event.data.method || 'Cash';
+        document.getElementById('paymentDate').value = event.data.date || '';
+
+        const refEl = document.getElementById('paymentReference');
+        if (refEl) refEl.value = event.data.reference || '';
+        const notesEl = document.getElementById('paymentNotes');
+        if (notesEl) notesEl.value = event.data.notes || '';
+
+        // Highlight chip
+        document.querySelectorAll('.quick-pm-chip').forEach(chip => {
+            chip.classList.toggle('active', chip.getAttribute('data-val') === event.data.method);
+        });
 
         originalPaymentAmount = parseFloat(event.data.amount) || 0;
 

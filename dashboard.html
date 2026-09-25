@@ -398,17 +398,21 @@
         <!-- Payments Chart Section -->
         <section id="payments-section" class="app-section" style="display: none;">
             <div class="table-header" style="margin-top:0;">
-                <h1 data-ar="المدفوعات والخزينة" data-en="Payments & Billing">Payments & Billing</h1>
+                <div>
+                    <h1 data-ar="المدفوعات والخزينة ومصادر الدخل" data-en="Payments & Income Sources">Payments & Income Sources</h1>
+                    <p style="margin: 3px 0 0 0; font-size: 0.85rem; color: var(--text-muted);" data-ar="تتبع تفصيلي لجميع المقبوضات المالية ومصادر تحصيلها المتنوعة (كاش، فيزا، إنستاباي، محافظ، تحويلات، تأمين، تقسيط)" data-en="Comprehensive tracking of clinical income across all payment sources (Cash, Cards, InstaPay, Wallets, Transfers, Insurance, BNPL)">Comprehensive tracking of clinical income across all payment sources (Cash, Cards, InstaPay, Wallets, Transfers, Insurance, BNPL)</p>
+                </div>
             </div>
 
+            <!-- Primary KPI Totals -->
             <div class="home-grid three-cols" style="margin-top: 1rem;">
                 <div class="col-item center-text" style="background: var(--bg-surface); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
                     <div class="stat-value" id="ledger-today-revenue" style="color: var(--brand-primary);">$0</div>
-                    <div class="stat-label" data-ar="دخل اليوم" data-en="Today's Revenue">Today's Revenue</div>
+                    <div class="stat-label" data-ar="إجمالي دخل اليوم" data-en="Today's Revenue">Today's Revenue</div>
                 </div>
                 <div class="col-item center-text" style="background: var(--bg-surface); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
                     <div class="stat-value" id="ledger-month-revenue" style="color: var(--status-completed);">$0</div>
-                    <div class="stat-label" data-ar="دخل الشهر" data-en="This Month's Revenue">This Month's Revenue</div>
+                    <div class="stat-label" data-ar="إجمالي دخل الشهر" data-en="This Month's Revenue">This Month's Revenue</div>
                 </div>
                 <div class="col-item center-text" style="background: var(--bg-surface); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
                     <div class="stat-value" id="ledger-outstanding" style="color: var(--status-error);">$0</div>
@@ -416,24 +420,109 @@
                 </div>
             </div>
 
-            <div class="table-container" style="margin-top: 2rem;">
-                <div class="table-header" style="flex-wrap: wrap; gap: 1rem;">
-                    <div class="filter-chips" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                        <button class="chip active" id="tabLedgerAll" data-ar="سجل المدفوعات" data-en="Payment Transactions">Payment Transactions</button>
-                        <button class="chip" id="tabLedgerBalances" data-ar="⚠️ مبالغ متبقية على المرضى" data-en="⚠️ Outstanding Balances">⚠️ Outstanding Balances</button>
-                    </div>
-                    <button class="btn-outline" id="exportLedgerCsvBtn" style="font-size: 0.85rem;" data-ar="📥 تصدير السجل CSV" data-en="📥 Export Ledger CSV">📥 Export Ledger CSV</button>
+            <!-- Detailed Breakdown by Payment Source (توزيع مصادر الدخل المالي) -->
+            <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; margin-top: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <h3 style="margin: 0; font-size: 1.05rem; display: flex; align-items: center; gap: 6px;" data-ar="📊 توزيع مصادر الدخل المالي (Income by Channel)" data-en="📊 Income Breakdown by Payment Channel">
+                        <span>📊</span> <span data-ar="توزيع مصادر الدخل المالي (Income by Channel)" data-en="Income Breakdown by Payment Channel">Income Breakdown by Payment Channel</span>
+                    </h3>
+                    <span style="font-size: 0.78rem; color: var(--text-muted);" id="paymentSourceBreakdownPeriod" data-ar="إجمالي عمليات الشهر الحالي" data-en="Current Month's Transactions">Current Month's Transactions</span>
                 </div>
 
-                <!-- Payments Ledger Table -->
+                <div class="income-sources-grid" id="incomeSourcesSummaryGrid">
+                    <!-- Injected dynamically by JS -->
+                    <div class="income-source-card" style="border-inline-start: 4px solid #10b981;">
+                        <div class="income-source-header">
+                            <span>💵 نقداً / كاش (Cash)</span>
+                            <span id="srcCount-cash" class="badge-cash payment-source-badge" style="font-size: 0.7rem; padding: 1px 6px;">0</span>
+                        </div>
+                        <div class="income-source-amount" id="srcTotal-cash">0</div>
+                        <div class="income-source-sub" data-ar="خزينة العيادة النقدية" data-en="Cash Register">Cash Register</div>
+                    </div>
+
+                    <div class="income-source-card" style="border-inline-start: 4px solid #0284c7;">
+                        <div class="income-source-header">
+                            <span>💳 بطاقات / POS (Cards)</span>
+                            <span id="srcCount-card" class="badge-card payment-source-badge" style="font-size: 0.7rem; padding: 1px 6px;">0</span>
+                        </div>
+                        <div class="income-source-amount" id="srcTotal-card">0</div>
+                        <div class="income-source-sub" data-ar="ماكينة الفيزا / POS" data-en="Credit & Debit Cards">Credit & Debit Cards</div>
+                    </div>
+
+                    <div class="income-source-card" style="border-inline-start: 4px solid #8b5cf6;">
+                        <div class="income-source-header">
+                            <span>⚡ إنستاباي (InstaPay)</span>
+                            <span id="srcCount-instapay" class="badge-instapay payment-source-badge" style="font-size: 0.7rem; padding: 1px 6px;">0</span>
+                        </div>
+                        <div class="income-source-amount" id="srcTotal-instapay">0</div>
+                        <div class="income-source-sub" data-ar="التحويل اللحظي InstaPay" data-en="Instant Network">Instant Network</div>
+                    </div>
+
+                    <div class="income-source-card" style="border-inline-start: 4px solid #ef4444;">
+                        <div class="income-source-header">
+                            <span>📱 فودافون كاش ومحافظ</span>
+                            <span id="srcCount-vodafone" class="badge-vodafone payment-source-badge" style="font-size: 0.7rem; padding: 1px 6px;">0</span>
+                        </div>
+                        <div class="income-source-amount" id="srcTotal-vodafone">0</div>
+                        <div class="income-source-sub" data-ar="محافظ الهاتف الذكي" data-en="E-Wallets">E-Wallets</div>
+                    </div>
+
+                    <div class="income-source-card" style="border-inline-start: 4px solid #14b8a6;">
+                        <div class="income-source-header">
+                            <span>🏦 تحويل بنكي (Bank)</span>
+                            <span id="srcCount-bank" class="badge-bank payment-source-badge" style="font-size: 0.7rem; padding: 1px 6px;">0</span>
+                        </div>
+                        <div class="income-source-amount" id="srcTotal-bank">0</div>
+                        <div class="income-source-sub" data-ar="حسابات البنك" data-en="Wire Transfers">Wire Transfers</div>
+                    </div>
+
+                    <div class="income-source-card" style="border-inline-start: 4px solid #f59e0b;">
+                        <div class="income-source-header">
+                            <span>🛡️ تأمين وتقسيط (Other)</span>
+                            <span id="srcCount-other" class="badge-insurance payment-source-badge" style="font-size: 0.7rem; padding: 1px 6px;">0</span>
+                        </div>
+                        <div class="income-source-amount" id="srcTotal-other">0</div>
+                        <div class="income-source-sub" data-ar="تأمين طبي / تقسيط فاليو" data-en="Insurance & BNPL">Insurance & BNPL</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container" style="margin-top: 1.5rem;">
+                <div class="table-header" style="flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between;">
+                    <div class="filter-chips" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="chip active" id="tabLedgerAll" data-ar="سجل المعاملات المالية" data-en="Payment Transactions">Payment Transactions</button>
+                        <button class="chip" id="tabLedgerBalances" data-ar="⚠️ مبالغ متبقية على المرضى" data-en="⚠️ Outstanding Balances">⚠️ Outstanding Balances</button>
+                    </div>
+
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                        <button class="btn-outline" id="exportLedgerCsvBtn" style="font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px;" data-ar="📥 تصدير السجل CSV" data-en="📥 Export Ledger CSV">📥 Export Ledger CSV</button>
+                    </div>
+                </div>
+
+                <!-- Payment Source Filter Bar for the Ledger -->
+                <div id="ledgerMethodFilterBar" style="display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; padding: 0.75rem 1rem; background: var(--bg-surface); border-bottom: 1px solid var(--border-color);">
+                    <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-inline-end: 4px;" data-ar="فلترة حسب مصدر الدفع:" data-en="Filter by Source:">Filter by Source:</span>
+                    <button type="button" class="chip active ledger-method-filter-btn" data-method="all" data-ar="الكل (All)" data-en="All">All</button>
+                    <button type="button" class="chip ledger-method-filter-btn" data-method="Cash" data-ar="💵 كاش (Cash)" data-en="💵 Cash">💵 Cash</button>
+                    <button type="button" class="chip ledger-method-filter-btn" data-method="Card" data-ar="💳 بطاقة POS" data-en="💳 Card">💳 Card</button>
+                    <button type="button" class="chip ledger-method-filter-btn" data-method="InstaPay" data-ar="⚡ إنستاباي" data-en="⚡ InstaPay">⚡ InstaPay</button>
+                    <button type="button" class="chip ledger-method-filter-btn" data-method="Vodafone Cash" data-ar="📱 فودافون كاش" data-en="📱 Vodafone">📱 Vodafone</button>
+                    <button type="button" class="chip ledger-method-filter-btn" data-method="Bank Transfer" data-ar="🏦 تحويل بنكي" data-en="🏦 Bank">🏦 Bank</button>
+                    <button type="button" class="chip ledger-method-filter-btn" data-method="Insurance" data-ar="🛡️ تأمين" data-en="🛡️ Insurance">🛡️ Insurance</button>
+                    <button type="button" class="chip ledger-method-filter-btn" data-method="Installment" data-ar="🛍️ تقسيط" data-en="🛍️ Installment">🛍️ Installment</button>
+                </div>
+
+                <!-- Payments Ledger Table with Source Channels -->
                 <table id="ledgerMainTable">
                     <thead>
                         <tr>
-                            <th data-ar="التاريخ" data-en="Date">Date</th>
+                            <th data-ar="التاريخ والوقت" data-en="Date & Time">Date & Time</th>
                             <th data-ar="المريض" data-en="Patient">Patient</th>
-                            <th data-ar="الإجراء" data-en="Treatment">Treatment</th>
-                            <th data-ar="المبلغ" data-en="Amount">Amount</th>
-                            <th data-ar="الوسيلة" data-en="Method">Method</th>
+                            <th data-ar="الإجراء / العلاج" data-en="Treatment">Treatment</th>
+                            <th data-ar="المبلغ المدفوع" data-en="Amount">Amount</th>
+                            <th data-ar="مصدر وقناة الدفع" data-en="Payment Source & Channel">Payment Source & Channel</th>
+                            <th data-ar="المرجع / الملاحظات" data-en="Ref & Details">Ref & Details</th>
+                            <th data-ar="الإجراءات" data-en="Actions">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="ledger-table-body">
@@ -881,7 +970,7 @@
 
                             <!-- Payment Methods Channels -->
                             <div class="input-group" style="grid-column: 1 / -1;">
-                                <label data-ar="طرق الدفع المتاحة بالعيادة:" data-en="Enabled Payment Channels:">Enabled Payment Channels:</label>
+                                <label data-ar="طرق وقنوات تحصيل الدخل المتاحة بالعيادة:" data-en="Enabled Payment Channels & Sources:">Enabled Payment Channels & Sources:</label>
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; margin-top: 0.5rem;">
                                     <label class="toggle-switch-card" style="margin-bottom: 0;">
                                         <div class="toggle-switch-info">
@@ -895,7 +984,7 @@
 
                                     <label class="toggle-switch-card" style="margin-bottom: 0;">
                                         <div class="toggle-switch-info">
-                                            <h4 data-ar="💳 بطاقة ائتمان (Credit/Debit)" data-en="💳 Credit/Debit Card">💳 Credit/Debit Card</h4>
+                                            <h4 data-ar="💳 بطاقة ائتمان / POS" data-en="💳 Credit/Debit Card">💳 Credit/Debit Card</h4>
                                         </div>
                                         <label class="switch">
                                             <input type="checkbox" id="settingPmCard" checked>
@@ -905,10 +994,30 @@
 
                                     <label class="toggle-switch-card" style="margin-bottom: 0;">
                                         <div class="toggle-switch-info">
-                                            <h4 data-ar="📱 إنستاباي ومحافظ (InstaPay)" data-en="📱 InstaPay / Wallets">📱 InstaPay / Wallets</h4>
+                                            <h4 data-ar="⚡ شبكة إنستاباي (InstaPay)" data-en="⚡ InstaPay IPN">⚡ InstaPay IPN</h4>
                                         </div>
                                         <label class="switch">
                                             <input type="checkbox" id="settingPmInstapay" checked>
+                                            <span class="slider"></span>
+                                        </label>
+                                    </label>
+
+                                    <label class="toggle-switch-card" style="margin-bottom: 0;">
+                                        <div class="toggle-switch-info">
+                                            <h4 data-ar="📱 فودافون كاش ومحافظ" data-en="📱 Vodafone Cash / Wallets">📱 Vodafone Cash / Wallets</h4>
+                                        </div>
+                                        <label class="switch">
+                                            <input type="checkbox" id="settingPmVodafone" checked>
+                                            <span class="slider"></span>
+                                        </label>
+                                    </label>
+
+                                    <label class="toggle-switch-card" style="margin-bottom: 0;">
+                                        <div class="toggle-switch-info">
+                                            <h4 data-ar="🏦 تحويلات بنكية وشيكات" data-en="🏦 Bank Wire Transfers">🏦 Bank Wire Transfers</h4>
+                                        </div>
+                                        <label class="switch">
+                                            <input type="checkbox" id="settingPmBank" checked>
                                             <span class="slider"></span>
                                         </label>
                                     </label>
@@ -922,14 +1031,38 @@
                                             <span class="slider"></span>
                                         </label>
                                     </label>
+
+                                    <label class="toggle-switch-card" style="margin-bottom: 0;">
+                                        <div class="toggle-switch-info">
+                                            <h4 data-ar="🛍️ تقسيط / فاليو / تابي" data-en="🛍️ Installments / BNPL">🛍️ Installments / BNPL</h4>
+                                        </div>
+                                        <label class="switch">
+                                            <input type="checkbox" id="settingPmInstallment" checked>
+                                            <span class="slider"></span>
+                                        </label>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Doctor Visit Price Modification & Discount Presets -->
+                            <div class="input-group" style="grid-column: 1 / -1;">
+                                <div class="toggle-switch-card" style="background: rgba(45, 212, 191, 0.05); border: 1px solid rgba(45, 212, 191, 0.3);">
+                                    <div class="toggle-switch-info">
+                                        <h4 data-ar="🩺 سماح للطبيب بتعديل السعر والخصم أثناء الزيارة بنسب مئوية" data-en="🩺 Allow Doctor Price & Percentage Adjustments During Visits">🩺 Allow Doctor Price & Percentage Adjustments During Visits</h4>
+                                        <p data-ar="إتاحة أزرار الخصم السريعة (مثل -5%, -10%, -15%, -20%, -25%, -50%) ونسب الزيادة للحالات المعقدة للطبيب أثناء الكشف مباشرة." data-en="Enables quick percentage adjustment chips (e.g. -5%, -10%, -15%, -20%, -25%, -50%) and custom percentages during patient visits.">Enables quick percentage adjustment chips (e.g. -5%, -10%, -15%, -20%, -25%, -50%) and custom percentages during patient visits.</p>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" id="settingAllowDentistPriceEdit" checked>
+                                        <span class="slider"></span>
+                                    </label>
                                 </div>
                             </div>
 
                             <!-- Discount Presets -->
                             <div class="input-group" style="grid-column: 1 / -1;">
-                                <label for="settingDiscountPresets" data-ar="نسب الخصم الجاهزة بنقرة واحدة (%):" data-en="Preset Discount Quick Rates (%):">Preset Discount Quick Rates (%):</label>
-                                <input type="text" id="settingDiscountPresets" placeholder="5, 10, 15, 20, 25">
-                                <small style="color: var(--text-muted); margin-top: 4px;" data-ar="افصل بين النسب بفاصلة (مثال: 5, 10, 15, 20)" data-en="Comma-separated percentages (e.g. 5, 10, 15, 20)">Comma-separated percentages (e.g. 5, 10, 15, 20)</small>
+                                <label for="settingDiscountPresets" data-ar="نسب الخصم والتعديل المئوية السريعة المتاحة للطبيب (%):" data-en="Preset Quick Percentage Rates for Doctor (%):">Preset Quick Percentage Rates for Doctor (%):</label>
+                                <input type="text" id="settingDiscountPresets" placeholder="5, 10, 15, 20, 25, 30, 50" value="5, 10, 15, 20, 25, 30, 50">
+                                <small style="color: var(--text-muted); margin-top: 4px;" data-ar="افصل بين النسب بفاصلة (مثال: 5, 10, 15, 20, 25, 30, 50) لتظهر كأزرار سريعة بنقرة واحدة داخل نوافذ العلاج والزيارة" data-en="Comma-separated percentages (e.g. 5, 10, 15, 20, 25, 30, 50) to appear as one-click quick chips in treatment and visit modals">Comma-separated percentages (e.g. 5, 10, 15, 20, 25, 30, 50) to appear as one-click quick chips in treatment and visit modals</small>
                             </div>
                         </div>
                     </div>
@@ -1158,44 +1291,124 @@
         </div>
     </div>
 
-    <!-- Modal for Treatment Plans -->
+    <!-- Modal for Treatment Plans & Visit Price Adjustment -->
     <div id="treatmentModal" class="modal">
-        <div class="modal-content">
-            <h3 data-ar="إضافة خطة علاج" data-en="Add Treatment Plan">Add Treatment Plan</h3>
+        <div class="modal-content" style="max-width: 580px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+                <div>
+                    <h3 id="treatmentModalTitle" style="margin: 0; font-size: 1.2rem; text-align: start;" data-ar="🩺 إضافة / تعديل خطة علاج" data-en="🩺 Add / Edit Treatment Plan">🩺 Add / Edit Treatment Plan</h3>
+                    <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: var(--text-muted);" data-ar="تحديد الإجراء الطبي وتعديل السعر بنسب مئوية أثناء الزيارة" data-en="Select clinical procedure and apply percentage price adjustments">Select clinical procedure and apply percentage price adjustments</p>
+                </div>
+                <button type="button" class="close-modal-btn" onclick="if(window.closeModalAndPopState) window.closeModalAndPopState(document.getElementById('treatmentModal')); else document.getElementById('treatmentModal').classList.remove('show');" style="background: none; border: none; font-size: 1.3rem; color: var(--text-muted); cursor: pointer; padding: 4px 8px; border-radius: 6px;">✕</button>
+            </div>
+
             <form id="treatmentForm">
                 <input type="hidden" id="treatmentId">
+                <input type="hidden" id="treatmentBasePrice" value="0">
+                <input type="hidden" id="treatmentDiscountPercent" value="0">
+
                 <div class="input-group">
                     <label for="treatmentPatientName" data-ar="اسم المريض:" data-en="Patient Name:">Patient Name:</label>
-                    <input type="text" id="treatmentPatientName" required>
+                    <input type="text" id="treatmentPatientName" required placeholder="اسم المريض..." data-ar-placeholder="اسم المريض..." data-en-placeholder="Patient name...">
                 </div>
+
                 <div class="input-group">
-                    <label for="treatmentType" data-ar="نوع العلاج:" data-en="Treatment Type:">Treatment Type:</label>
-                    <input type="text" id="treatmentType" required>
-                    <!-- Quick Treatment Templates -->
-                    <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.4rem;">
-                        <span style="font-size: 0.75rem; color: var(--text-muted); width: 100%;" data-ar="قوالب سريعة:" data-en="Quick templates:">Quick templates:</span>
-                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Composite Filling" data-cost="500" data-ar="حشو تجميلي" data-en="Composite Filling">Composite Filling</button>
-                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Root Canal Treatment" data-cost="1200" data-ar="علاج عصب" data-en="Root Canal">Root Canal</button>
-                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Teeth Scaling & Polishing" data-cost="400" data-ar="تنظيف وتلميع" data-en="Teeth Scaling">Teeth Scaling</button>
-                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Simple Extraction" data-cost="350" data-ar="خلع بسيط" data-en="Simple Extraction">Simple Extraction</button>
-                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Zirconia Crown" data-cost="1800" data-ar="طربوش زيركون" data-en="Zirconia Crown">Zirconia Crown</button>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <label for="treatmentType" data-ar="نوع الإجراء الطبي / الخدمة:" data-en="Treatment Procedure:">Treatment Procedure:</label>
+                        <span id="treatmentCatalogPriceBadge" style="font-size: 0.8rem; color: var(--brand-primary); font-weight: 600; display: none;"></span>
+                    </div>
+                    <input type="text" id="treatmentType" required placeholder="مثال: حشو تجميلي كومبوزيت" data-ar-placeholder="مثال: حشو تجميلي كومبوزيت" data-en-placeholder="e.g. Composite Filling">
+                    
+                    <!-- Quick Procedure Catalog Buttons (Dynamically synced with Settings) -->
+                    <div id="quickTreatmentButtonsContainer" style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.45rem;">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); width: 100%;" data-ar="إجراءات شائعة من جدول الخدمات:" data-en="Quick procedure templates:">Quick procedure templates:</span>
+                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Composite Filling" data-cost="500" data-ar="حشو تجميلي (500)" data-en="Composite Filling (500)">Composite Filling (500)</button>
+                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Root Canal Treatment" data-cost="1200" data-ar="علاج عصب (1200)" data-en="Root Canal (1200)">Root Canal (1200)</button>
+                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Teeth Scaling & Polishing" data-cost="400" data-ar="تنظيف وتلميع (400)" data-en="Teeth Scaling (400)">Teeth Scaling (400)</button>
+                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Simple Extraction" data-cost="350" data-ar="خلع بسيط (350)" data-en="Simple Extraction (350)">Simple Extraction (350)</button>
+                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Zirconia Crown" data-cost="1800" data-ar="طربوش زيركون (1800)" data-en="Zirconia Crown (1800)">Zirconia Crown (1800)</button>
                     </div>
                 </div>
-                <div class="input-group">
-                    <label for="treatmentCost" data-ar="التكلفة:" data-en="Cost:">Cost:</label>
-                    <input type="number" id="treatmentCost" required>
+
+                <!-- Doctor Percentage Price Adjustment Bar -->
+                <div id="treatmentPriceAdjustSection" class="input-group" style="background: rgba(45, 212, 191, 0.04); border: 1px solid rgba(45, 212, 191, 0.25); border-radius: 8px; padding: 0.85rem; margin-top: 0.5rem; margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 4px;">
+                        <span style="font-weight: 700; font-size: 0.88rem; color: var(--brand-primary); display: flex; align-items: center; gap: 5px;">
+                            <span>🏷️</span> <span data-ar="تعديل السعر بنسب مئوية أثناء الزيارة:" data-en="Doctor Percentage Price Adjustments:">Doctor Percentage Price Adjustments:</span>
+                        </span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);" data-ar="خصم سريع أو زيادة تعقيد الحالة" data-en="Quick discount or complexity markup">Quick discount or complexity markup</span>
+                    </div>
+
+                    <!-- Percentage Chips Bar -->
+                    <div id="treatmentPercentChips" style="display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.65rem;">
+                        <button type="button" class="btn-outline treatment-pct-chip active" data-pct="0" style="padding: 3px 8px; font-size: 0.78rem; font-weight: 600;" data-ar="0% (الأساسي)" data-en="0% (Standard)">0% (Standard)</button>
+                        <button type="button" class="btn-outline treatment-pct-chip" data-pct="-5" style="padding: 3px 8px; font-size: 0.78rem; color: var(--status-completed); border-color: rgba(34, 197, 94, 0.3);">-5%</button>
+                        <button type="button" class="btn-outline treatment-pct-chip" data-pct="-10" style="padding: 3px 8px; font-size: 0.78rem; color: var(--status-completed); border-color: rgba(34, 197, 94, 0.3);">-10%</button>
+                        <button type="button" class="btn-outline treatment-pct-chip" data-pct="-15" style="padding: 3px 8px; font-size: 0.78rem; color: var(--status-completed); border-color: rgba(34, 197, 94, 0.3);">-15%</button>
+                        <button type="button" class="btn-outline treatment-pct-chip" data-pct="-20" style="padding: 3px 8px; font-size: 0.78rem; color: var(--status-completed); border-color: rgba(34, 197, 94, 0.3);">-20%</button>
+                        <button type="button" class="btn-outline treatment-pct-chip" data-pct="-25" style="padding: 3px 8px; font-size: 0.78rem; color: var(--status-completed); border-color: rgba(34, 197, 94, 0.3);">-25%</button>
+                        <button type="button" class="btn-outline treatment-pct-chip" data-pct="-30" style="padding: 3px 8px; font-size: 0.78rem; color: var(--status-completed); border-color: rgba(34, 197, 94, 0.3);">-30%</button>
+                        <button type="button" class="btn-outline treatment-pct-chip" data-pct="-50" style="padding: 3px 8px; font-size: 0.78rem; color: var(--status-completed); border-color: rgba(34, 197, 94, 0.3);">-50%</button>
+                        <button type="button" class="btn-outline treatment-pct-chip" data-pct="10" style="padding: 3px 8px; font-size: 0.78rem; color: var(--brand-primary); border-color: rgba(45, 212, 191, 0.3);">+10%</button>
+                        <button type="button" class="btn-outline treatment-pct-chip" data-pct="20" style="padding: 3px 8px; font-size: 0.78rem; color: var(--brand-primary); border-color: rgba(45, 212, 191, 0.3);">+20%</button>
+                        <button type="button" class="btn-outline treatment-pct-chip" data-pct="-100" style="padding: 3px 8px; font-size: 0.78rem; color: var(--status-error); border-color: rgba(239, 68, 68, 0.3);" data-ar="مجاناً 100%-" data-en="-100% (Free)">-100% (Free)</button>
+                    </div>
+
+                    <!-- Custom Percentage Input & Reason Row -->
+                    <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 0.5rem; margin-bottom: 0.6rem;">
+                        <div>
+                            <label for="treatmentCustomPctInput" style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 2px; display: block;" data-ar="نسبة مخصصة (± %):" data-en="Custom (± %):">Custom (± %):</label>
+                            <input type="number" id="treatmentCustomPctInput" placeholder="مثال: -12 أو 15" data-ar-placeholder="مثال: -12 أو 15" data-en-placeholder="e.g. -12 or 15" step="0.5" style="width: 100%; padding: 0.4rem; font-size: 0.85rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary); font-family: monospace;">
+                        </div>
+                        <div>
+                            <label for="treatmentAdjustmentReason" style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 2px; display: block;" data-ar="سبب التعديل / الخصم:" data-en="Adjustment Reason:">Adjustment Reason:</label>
+                            <select id="treatmentAdjustmentReason" style="width: 100%; padding: 0.4rem; font-size: 0.85rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary);">
+                                <option value="none" data-ar="بدون (سعر عادي)" data-en="None (Standard Price)">None (Standard Price)</option>
+                                <option value="visit_discount" data-ar="خصم كشف / زيارة خاصة" data-en="Special Visit Discount">Special Visit Discount</option>
+                                <option value="family_friend" data-ar="خصم أقارب / عائلة" data-en="Friends & Family Discount">Friends & Family Discount</option>
+                                <option value="package_deal" data-ar="خصم باقة علاجية شاملة" data-en="Comprehensive Package Deal">Comprehensive Package Deal</option>
+                                <option value="complex_case" data-ar="زيادة لصعوبة وتعقيد الحالة (+)" data-en="Complex Case Procedure (+)">Complex Case Procedure (+)</option>
+                                <option value="urgent_afterhours" data-ar="طوارئ / خارج أوقات العمل (+)" data-en="Urgent / After-hours (+)">Urgent / After-hours (+)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Live Calculation Breakdown Card -->
+                    <div id="treatmentCalculationCard" style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-surface); padding: 0.55rem 0.8rem; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.84rem; flex-wrap: wrap; gap: 6px;">
+                        <div>
+                            <span style="color: var(--text-muted);" data-ar="السعر الأساسي:" data-en="Base:">Base:</span>
+                            <strong id="treatmentCalcBasePrice" style="color: var(--text-primary); margin-inline-start: 3px;">0</strong>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-muted);" data-ar="التعديل:" data-en="Mod:">Mod:</span>
+                            <strong id="treatmentCalcModBadge" style="color: var(--brand-primary); margin-inline-start: 3px;">0% (0)</strong>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-muted);" data-ar="الإجمالي النهائي:" data-en="Final:">Final:</span>
+                            <strong id="treatmentCalcFinalPrice" style="color: var(--status-completed); font-size: 0.95rem; margin-inline-start: 3px;">0</strong>
+                        </div>
+                    </div>
                 </div>
-                <div class="input-group">
-                    <label for="treatmentStatus" data-ar="الحالة:" data-en="Status:">Status:</label>
-                    <select id="treatmentStatus" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);">
-                        <option value="Pending" data-ar="قيد الانتظار" data-en="Pending">Pending</option>
-                        <option value="In Progress" data-ar="جاري المعالجة" data-en="In Progress">In Progress</option>
-                        <option value="Completed" data-ar="مكتمل" data-en="Completed">Completed</option>
-                    </select>
+
+                <div class="input-group" style="display: flex; gap: 1rem;">
+                    <div style="flex: 1.2;">
+                        <label for="treatmentCost" data-ar="التكلفة الإجمالية النهائية المطلوبة:" data-en="Final Total Cost:">Final Total Cost:</label>
+                        <input type="number" id="treatmentCost" required style="font-size: 1.05rem; font-weight: 700; color: var(--brand-primary); font-family: monospace;">
+                        <small style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 3px;" data-ar="يمكنك أيضاً كتابة السعر يدوياً وسيتم احتساب النسبة تلقائياً" data-en="You can also type cost manually to auto-calculate %">You can also type cost manually to auto-calculate %</small>
+                    </div>
+                    <div style="flex: 1;">
+                        <label for="treatmentStatus" data-ar="حالة الخطة:" data-en="Status:">Status:</label>
+                        <select id="treatmentStatus" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);">
+                            <option value="Pending" data-ar="قيد الانتظار" data-en="Pending">Pending</option>
+                            <option value="In Progress" data-ar="جاري المعالجة" data-en="In Progress">In Progress</option>
+                            <option value="Completed" data-ar="مكتمل" data-en="Completed">Completed</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="modal-actions">
+
+                <div class="modal-actions" style="margin-top: 1.25rem;">
                     <button type="button" class="btn-secondary" id="cancelTreatmentBtn" data-ar="إلغاء" data-en="Cancel">Cancel</button>
-                    <button type="submit" class="btn-primary" data-ar="حفظ" data-en="Save">Save</button>
+                    <button type="submit" class="btn-primary" data-ar="💾 حفظ خطة العلاج" data-en="💾 Save Treatment">💾 Save Treatment</button>
                 </div>
             </form>
         </div>
@@ -1234,10 +1447,32 @@
 
 
 
-    <!-- Modal for Adding Payment -->
+    <!-- Modal for Adding/Editing Payment with Detailed Source Channels -->
     <div id="paymentModal" class="modal">
-        <div class="modal-content">
-            <h3 data-ar="إضافة دفعة مالية" data-en="Add Payment">Add Payment</h3>
+        <div class="modal-content" style="max-width: 560px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+                <div>
+                    <h3 id="paymentModalTitle" style="margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 6px;" data-ar="💳 تسجيل سند قبض / دفعة مالية" data-en="💳 Record Payment & Income">
+                        <span>💳</span> <span data-ar="تسجيل سند قبض / دفعة مالية" data-en="Record Payment & Income">Record Payment & Income</span>
+                    </h3>
+                    <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: var(--text-muted);" data-ar="تحديد المبلغ ومصدر الدفع التفصيلي والرقم المرجعي للعملية" data-en="Specify amount, detailed payment channel, and transaction reference">Specify amount, detailed payment channel, and transaction reference</p>
+                </div>
+                <button type="button" class="close-modal-btn" onclick="if(window.closeModalAndPopState) window.closeModalAndPopState(document.getElementById('paymentModal')); else document.getElementById('paymentModal').classList.remove('show');" style="background: none; border: none; font-size: 1.3rem; color: var(--text-muted); cursor: pointer; padding: 4px 8px; border-radius: 6px;">✕</button>
+            </div>
+
+            <!-- Patient & Treatment Info Summary Card -->
+            <div id="paymentModalSummaryCard" style="background: rgba(2, 132, 199, 0.05); border: 1px solid rgba(2, 132, 199, 0.25); border-radius: 8px; padding: 0.75rem 0.9rem; margin-bottom: 0.75rem; font-size: 0.88rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap; gap: 4px;">
+                    <div><strong data-ar="المريض:" data-en="Patient:">Patient:</strong> <span id="paySummaryPatientName" style="font-weight: 700; color: var(--brand-primary);">-</span></div>
+                    <div><strong data-ar="العلاج:" data-en="Treatment:">Treatment:</strong> <span id="paySummaryTreatmentName" style="font-weight: 600;">-</span></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: var(--text-muted); border-top: 1px dashed var(--border-color); padding-top: 4px; margin-top: 4px; flex-wrap: wrap; gap: 4px;">
+                    <div><span data-ar="إجمالي التكلفة:" data-en="Total Cost:">Total Cost:</span> <span id="paySummaryTotalCost" style="font-weight: 600; color: var(--text-primary);">0</span></div>
+                    <div><span data-ar="المسدد سابقاً:" data-en="Paid so far:">Paid so far:</span> <span id="paySummaryPaidAmount" style="font-weight: 600; color: var(--status-completed);">0</span></div>
+                    <div><span data-ar="المتبقي للتحصيل:" data-en="Due Balance:">Due Balance:</span> <strong id="paySummaryRemainingBalance" style="color: var(--status-error); font-size: 0.9rem;">0</strong></div>
+                </div>
+            </div>
+
             <form id="paymentForm">
                 <input type="hidden" id="paymentId">
                 <input type="hidden" id="paymentTreatmentId">
@@ -1245,27 +1480,249 @@
                 <input type="hidden" id="paymentPatientName">
                 <input type="hidden" id="paymentTreatmentName">
 
-                <div class="input-group">
-                    <label for="paymentAmount" data-ar="المبلغ المدفوع:" data-en="Amount Paid:">Amount Paid:</label>
-                    <input type="number" id="paymentAmount" required>
+                <!-- Smart Payment Calculator & Dynamic Live Calculation Panel -->
+                <div class="smart-calc-panel" id="paymentSmartCalcPanel">
+                    <div class="smart-calc-header">
+                        <span style="font-weight: 700; display: flex; align-items: center; gap: 4px;" data-ar="🧮 حاسبة السداد الذكية وتوزيع النسب" data-en="🧮 Smart Payment Calculator">🧮 Smart Payment Calculator</span>
+                        <span id="paymentStatusPill" style="font-size: 0.72rem; padding: 2px 7px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700;">سداد كامل (100%)</span>
+                    </div>
+                    
+                    <div class="smart-calc-metrics">
+                        <div class="smart-calc-metric-item">
+                            <span class="smart-calc-metric-label" data-ar="المتبقي الحالي" data-en="Current Due">Current Due</span>
+                            <span class="smart-calc-metric-value" id="calcMetricCurrentDue" style="color: var(--status-error);">0</span>
+                        </div>
+                        <div class="smart-calc-metric-item">
+                            <span class="smart-calc-metric-label" data-ar="المسدد بهذه الدفعة" data-en="Paying Now">Paying Now</span>
+                            <span class="smart-calc-metric-value" id="calcMetricPayingNow" style="color: var(--brand-primary);">0</span>
+                        </div>
+                        <div class="smart-calc-metric-item">
+                            <span class="smart-calc-metric-label" data-ar="المتبقي بعد السداد" data-en="Balance After">Balance After</span>
+                            <span class="smart-calc-metric-value" id="calcMetricRemainingAfter" style="color: var(--status-completed);">0</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="input-group">
-                    <label for="paymentMethod" data-ar="طريقة الدفع:" data-en="Payment Method:">Payment Method:</label>
-                    <select id="paymentMethod" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);">
-                        <option value="Cash" data-ar="كاش" data-en="Cash">Cash</option>
-                        <option value="Card" data-ar="بطاقة ائتمان" data-en="Card">Card</option>
-                        <option value="Insurance" data-ar="تأمين" data-en="Insurance">Insurance</option>
+
+                <!-- Professional Quick Amount Percentages & Adders -->
+                <div style="margin-bottom: 0.85rem;">
+                    <div class="quick-amount-section-title">
+                        <span data-ar="⚡ اختيارات سريعة محسوبة بدقة:" data-en="⚡ Smart Amount Presets:">⚡ Smart Amount Presets:</span>
+                        <span style="font-size: 0.72rem; color: var(--brand-primary); cursor: pointer;" onclick="window.setQuickPaymentAmount('full')" data-ar="سداد كامل 100%" data-en="Pay 100%">Pay 100%</span>
+                    </div>
+
+                    <!-- Dynamic Percentage Grid -->
+                    <div class="quick-amount-chips-grid" id="quickPercentGrid">
+                        <button type="button" class="quick-percent-chip active" id="chipPct100" onclick="window.setQuickPaymentAmount(100)">
+                            <span class="quick-percent-title" data-ar="🌟 100% كامل المتبقي" data-en="🌟 100% Full Due">🌟 100% Full Due</span>
+                            <span class="quick-percent-val" id="chipVal100">0 ج.م</span>
+                        </button>
+                        <button type="button" class="quick-percent-chip" id="chipPct75" onclick="window.setQuickPaymentAmount(75)">
+                            <span class="quick-percent-title" data-ar="⚡ 75% من المتبقي" data-en="⚡ 75% Due">⚡ 75% Due</span>
+                            <span class="quick-percent-val" id="chipVal75">0 ج.م</span>
+                        </button>
+                        <button type="button" class="quick-percent-chip" id="chipPct50" onclick="window.setQuickPaymentAmount(50)">
+                            <span class="quick-percent-title" data-ar="⚡ 50% النصف" data-en="⚡ 50% Half">⚡ 50% Half</span>
+                            <span class="quick-percent-val" id="chipVal50">0 ج.م</span>
+                        </button>
+                        <button type="button" class="quick-percent-chip" id="chipPct25" onclick="window.setQuickPaymentAmount(25)">
+                            <span class="quick-percent-title" data-ar="⚡ 25% الربع" data-en="⚡ 25% Quarter">⚡ 25% Quarter</span>
+                            <span class="quick-percent-val" id="chipVal25">0 ج.م</span>
+                        </button>
+                        <button type="button" class="quick-percent-chip" id="chipPct10" onclick="window.setQuickPaymentAmount(10)">
+                            <span class="quick-percent-title" data-ar="⚡ 10% عربون/حجز" data-en="⚡ 10% Deposit">⚡ 10% Deposit</span>
+                            <span class="quick-percent-val" id="chipVal10">0 ج.م</span>
+                        </button>
+                    </div>
+
+                    <!-- Incremental Adders & Rounding Tools -->
+                    <div class="quick-adders-bar">
+                        <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;" data-ar="إضافات وتعديل:" data-en="Adjust:">Adjust:</span>
+                        <button type="button" class="quick-add-btn" onclick="window.incrementPaymentAmount(50)">+50</button>
+                        <button type="button" class="quick-add-btn" onclick="window.incrementPaymentAmount(100)">+100</button>
+                        <button type="button" class="quick-add-btn" onclick="window.incrementPaymentAmount(200)">+200</button>
+                        <button type="button" class="quick-add-btn" onclick="window.incrementPaymentAmount(500)">+500</button>
+                        <button type="button" class="quick-add-btn" onclick="window.incrementPaymentAmount(1000)">+1,000</button>
+                        <button type="button" class="quick-add-btn" onclick="window.roundPaymentAmount()" title="تقريب المبلغ لأقرب 50 أو 100 ج.م" data-ar="تقريب ⟲" data-en="Round ⟲">تقريب ⟲</button>
+                        <button type="button" class="quick-add-btn special-reset" onclick="window.setQuickPaymentAmount(0)" data-ar="مسح ✕" data-en="Clear ✕">مسح ✕</button>
+                    </div>
+                </div>
+
+                <!-- Amount Field with Live Currency & Auto-Sync -->
+                <div class="input-group" style="margin-bottom: 0.85rem;">
+                    <label for="paymentAmount" style="margin-bottom: 4px; font-weight: 700; display: flex; justify-content: space-between; align-items: center;" data-ar="المبلغ المحصل الآن للدفع:" data-en="Amount to Pay Now:">
+                        <span data-ar="المبلغ المحصل الآن للدفع:" data-en="Amount to Pay Now:">Amount to Pay Now:</span>
+                        <span id="paymentPctBadge" style="font-size: 0.75rem; color: var(--brand-primary); font-weight: 700;">100% من المتبقي</span>
+                    </label>
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <input type="number" id="paymentAmount" step="0.5" min="0" required placeholder="0.00" style="font-size: 1.2rem; font-weight: 800; color: var(--status-completed); font-family: monospace; width: 100%; padding-inline-end: 3.5rem;">
+                        <span style="position: absolute; inset-inline-end: 12px; font-size: 0.82rem; font-weight: 700; color: var(--text-muted); pointer-events: none;">ج.م</span>
+                    </div>
+                </div>
+
+                <!-- Payment Source Selection (Interactive Chips + Select) -->
+                <div class="input-group" style="margin-bottom: 0.85rem;">
+                    <label for="paymentMethod" style="font-weight: 700; display: flex; align-items: center; justify-content: space-between;" data-ar="مصدر وطريقة تحصيل الدخل:" data-en="Payment Source & Channel:">
+                        <span data-ar="مصدر وطريقة تحصيل الدخل:" data-en="Payment Source & Channel:">Payment Source & Channel:</span>
+                        <span style="font-size: 0.75rem; color: var(--brand-primary); font-weight: normal;" data-ar="اختر من الأزرار السريعة أدناه" data-en="Click chip to select">Click chip to select</span>
+                    </label>
+
+                    <!-- Interactive Visual Payment Source Chips -->
+                    <div class="payment-chips-grid" id="paymentSourceChipsGrid">
+                        <button type="button" class="payment-source-chip-btn active" data-source="Cash">
+                            <span>💵</span> <span>نقداً (كاش)</span>
+                        </button>
+                        <button type="button" class="payment-source-chip-btn" data-source="Card">
+                            <span>💳</span> <span>بطاقة / POS</span>
+                        </button>
+                        <button type="button" class="payment-source-chip-btn" data-source="InstaPay">
+                            <span>⚡</span> <span>إنستاباي (InstaPay)</span>
+                        </button>
+                        <button type="button" class="payment-source-chip-btn" data-source="Vodafone Cash">
+                            <span>📱</span> <span>فودافون كاش ومحافظ</span>
+                        </button>
+                        <button type="button" class="payment-source-chip-btn" data-source="Bank Transfer">
+                            <span>🏦</span> <span>تحويل بنكي</span>
+                        </button>
+                        <button type="button" class="payment-source-chip-btn" data-source="Insurance">
+                            <span>🛡️</span> <span>تأمين صحي</span>
+                        </button>
+                        <button type="button" class="payment-source-chip-btn" data-source="Installment">
+                            <span>🛍️</span> <span>تقسيط / فاليو</span>
+                        </button>
+                        <button type="button" class="payment-source-chip-btn" data-source="Other">
+                            <span>🏷️</span> <span>أخرى (Other)</span>
+                        </button>
+                    </div>
+
+                    <select id="paymentMethod" required style="width: 100%; padding: 0.65rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary); font-size: 0.9rem;">
+                        <option value="Cash" data-ar="💵 نقداً / كاش (Cash)" data-en="💵 Cash">💵 نقداً / كاش (Cash)</option>
+                        <option value="Card" data-ar="💳 بطاقة بنكية / فيزا (POS / Card)" data-en="💳 Credit/Debit Card">💳 بطاقة بنكية / فيزا (POS / Card)</option>
+                        <option value="InstaPay" data-ar="⚡ إنستاباي (InstaPay IPN)" data-en="⚡ InstaPay">⚡ إنستاباي (InstaPay IPN)</option>
+                        <option value="Vodafone Cash" data-ar="📱 فودافون كاش ومحافظ إلكترونية (E-Wallet)" data-en="📱 Vodafone Cash / E-Wallet">📱 فودافون كاش ومحافظ إلكترونية (E-Wallet)</option>
+                        <option value="Bank Transfer" data-ar="🏦 تحويل بنكي / شيك (Bank Transfer)" data-en="🏦 Bank Transfer">🏦 تحويل بنكي / شيك (Bank Transfer)</option>
+                        <option value="Insurance" data-ar="🛡️ شركة تأمين طبي (Medical Insurance)" data-en="🛡️ Medical Insurance">🛡️ شركة تأمين طبي (Medical Insurance)</option>
+                        <option value="Installment" data-ar="🛍️ تقسيط / فاليو / تابي (Installments / BNPL)" data-en="🛍️ Installments / BNPL">🛍️ تقسيط / فاليو / تابي (Installments / BNPL)</option>
+                        <option value="Other" data-ar="🏷️ وسيلة أخرى (Other)" data-en="🏷️ Other">🏷️ وسيلة أخرى (Other)</option>
                     </select>
                 </div>
+
+                <!-- Transaction Reference / Account / Receipt # -->
+                <div class="input-group" style="margin-bottom: 0.85rem;">
+                    <label for="paymentRef" style="display: flex; justify-content: space-between; align-items: center;" data-ar="رقم العملية / المرجع / رقم المحفظة المحول منها:" data-en="Transaction Ref / Transfer # / POS Slip:">
+                        <span data-ar="رقم العملية / المرجع / رقم المحفظة المحول منها:" data-en="Transaction Ref / Transfer # / POS Slip:">Transaction Ref / Transfer # / POS Slip:</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);" data-ar="اختياري للتدقيق المالي" data-en="Optional for audit">Optional for audit</span>
+                    </label>
+                    <input type="text" id="paymentRef" placeholder="مثال: رقم إيصال الفيزا #9482 أو تحويل إنستاباي 010..." data-ar-placeholder="مثال: رقم إيصال الفيزا #9482 أو تحويل إنستاباي 010..." data-en-placeholder="e.g. POS Slip #9482 or InstaPay Ref...">
+                </div>
+
+                <!-- Payment Details / Source Notes -->
+                <div class="input-group" style="margin-bottom: 0.85rem;">
+                    <label for="paymentNotes" data-ar="ملاحظات مصدر الدخل (اسم البنك / جهة التأمين / المودع):" data-en="Source Details & Notes:">Source Details & Notes:</label>
+                    <input type="text" id="paymentNotes" placeholder="مثال: حساب البنك الأهلي، أو تأمين بوبا، أو مدفوع عبر فودافون كاش باسم..." data-ar-placeholder="مثال: حساب البنك الأهلي، أو تأمين بوبا، أو مدفوع عبر فودافون كاش باسم..." data-en-placeholder="e.g. NBE Account, Bupa Insurance, or paid by...">
+                </div>
+
+                <!-- Payment Date -->
                 <div class="input-group">
-                    <label for="paymentDate" data-ar="التاريخ:" data-en="Date:">Date:</label>
+                    <label for="paymentDate" data-ar="تاريخ التحصيل:" data-en="Payment Date:">Payment Date:</label>
                     <input type="date" id="paymentDate" required>
                 </div>
-                <div class="modal-actions">
+
+                <div class="modal-actions" style="margin-top: 1.25rem;">
                     <button type="button" class="btn-secondary" id="cancelPaymentBtn" data-ar="إلغاء" data-en="Cancel">Cancel</button>
-                    <button type="submit" class="btn-primary" data-ar="حفظ" data-en="Save">Save</button>
+                    <button type="submit" class="btn-primary" id="savePaymentSubmitBtn" data-ar="💾 حفظ سند القبض" data-en="💾 Save Payment Receipt">💾 Save Payment Receipt</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Official Printable Payment Receipt Modal (سند قبض مالي معتمد) -->
+    <div id="paymentReceiptModal" class="modal" style="z-index: 100050;">
+        <div class="modal-content" style="max-width: 620px; max-height: 90vh; overflow-y: auto; padding: 1.5rem;">
+            <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                <h3 style="margin: 0;" data-ar="🧾 سند قبض مالي رسمي" data-en="🧾 Official Payment Receipt">🧾 Official Payment Receipt</h3>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button type="button" class="btn-primary" onclick="window.print()" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px;" data-ar="🖨️ طباعة السند" data-en="🖨️ Print Receipt">
+                        <span>🖨️</span> <span data-ar="طباعة السند" data-en="Print Receipt">Print Receipt</span>
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="if(window.closeModalAndPopState) window.closeModalAndPopState(document.getElementById('paymentReceiptModal')); else document.getElementById('paymentReceiptModal').classList.remove('show');" style="padding: 0.4rem 0.75rem; font-size: 0.85rem;" data-ar="إغلاق" data-en="Close">Close</button>
+                </div>
+            </div>
+
+            <!-- Printable Receipt Paper Card -->
+            <div id="printableReceiptCard" style="background: #ffffff; color: #0f172a; border: 2px solid #e2e8f0; border-radius: 10px; padding: 1.5rem; font-family: inherit;">
+                <!-- Header -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0284c7; padding-bottom: 0.75rem; margin-bottom: 1rem;">
+                    <div>
+                        <h2 style="margin: 0; color: #0284c7; font-size: 1.4rem; font-weight: 800;" id="receiptClinicName">MOLARIZE DENTAL SPECIALTY CENTER</h2>
+                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 2px;" id="receiptDoctorName">Dr. Ahmed El-Sewedy - Medical Director</div>
+                        <div style="font-size: 0.78rem; color: #94a3b8;" id="receiptDoctorCreds">BDS, MSc - Consultant Oral & Maxillofacial Surgeon</div>
+                    </div>
+                    <div style="text-align: right; font-size: 0.82rem; color: #64748b;">
+                        <div style="font-weight: 700; color: #0f172a; font-size: 1rem;" data-ar="سند قبض مالي" data-en="PAYMENT RECEIPT">PAYMENT RECEIPT</div>
+                        <div><strong data-ar="رقم السند:" data-en="Receipt #:">Receipt #:</strong> <span id="receiptNumber" style="font-family: monospace; font-weight: 700; color: #0284c7;">REC-0000</span></div>
+                        <div><strong data-ar="التاريخ:" data-en="Date:">Date:</strong> <span id="receiptDate">--/--/----</span></div>
+                    </div>
+                </div>
+
+                <!-- Patient & Bill Details Grid -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.88rem;">
+                    <div>
+                        <strong style="color: #64748b;" data-ar="استلمنا من السيد/ة:" data-en="Received From:">Received From:</strong>
+                        <div style="font-weight: 700; font-size: 1.05rem; color: #0f172a; margin-top: 2px;" id="receiptPatientName">-</div>
+                        <div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">
+                            <span data-ar="رقم الملف:" data-en="File ID:">File ID:</span> <span id="receiptPatientFileId" style="font-weight: 600; color: #0284c7;">#--</span> | <span id="receiptPatientPhone">-</span>
+                        </div>
+                    </div>
+                    <div>
+                        <strong style="color: #64748b;" data-ar="وذلك مقابل خدمة / إجراء:" data-en="For Procedure / Treatment:">For Procedure / Treatment:</strong>
+                        <div style="font-weight: 700; color: #0f172a; margin-top: 2px;" id="receiptTreatmentName">-</div>
+                        <div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">
+                            <span data-ar="إجمالي قيمة الخطة:" data-en="Treatment Total:">Treatment Total:</span> <span id="receiptTreatmentTotal" style="font-weight: 600;">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Details Highlight Box -->
+                <div style="border: 2px dashed #0284c7; background: rgba(2, 132, 199, 0.04); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                        <div>
+                            <span style="font-size: 0.85rem; color: #64748b; display: block;" data-ar="المبلغ المقبوض كتابة ورقماً:" data-en="Amount Received:">Amount Received:</span>
+                            <div style="font-size: 1.6rem; font-weight: 900; color: #10b981; font-family: monospace;" id="receiptAmountDisplay">0.00 ج.م</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="font-size: 0.82rem; color: #64748b; display: block; margin-bottom: 3px;" data-ar="مصدر وقناة الدفع:" data-en="Payment Source:">Payment Source:</span>
+                            <div id="receiptSourceBadgeContainer">
+                                <span class="payment-source-badge badge-cash" id="receiptSourceBadge" style="font-size: 0.9rem; padding: 4px 10px;">💵 نقداً / كاش (Cash)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ref & Notes Row -->
+                    <div id="receiptRefWrapper" style="display: none; margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px dashed #cbd5e1; font-size: 0.84rem; color: #475569;">
+                        <div><strong data-ar="رقم العملية / المرجع:" data-en="Transaction Ref / Slip #:">Transaction Ref / Slip #:</strong> <span id="receiptRefText" style="font-family: monospace; font-weight: 600;">-</span></div>
+                        <div id="receiptNotesWrapper" style="display: none; margin-top: 2px;"><strong data-ar="تفاصيل وملاحظات جهة الدفع:" data-en="Source Notes:">Source Notes:</strong> <span id="receiptNotesText">-</span></div>
+                    </div>
+                </div>
+
+                <!-- Financial Statement Summary -->
+                <div style="display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; border-radius: 6px; padding: 0.6rem 0.85rem; font-size: 0.85rem; margin-bottom: 1.25rem;">
+                    <div><span data-ar="إجمالي المطلوب:" data-en="Total Cost:">Total Cost:</span> <strong id="receiptStmtTotal">0</strong></div>
+                    <div><span data-ar="إجمالي المسدد حتى الآن:" data-en="Total Paid:">Total Paid:</span> <strong style="color: #10b981;" id="receiptStmtPaid">0</strong></div>
+                    <div><span data-ar="المتبقي بعد هذه الدفعة:" data-en="Remaining Balance:">Remaining Balance:</span> <strong style="color: #ef4444;" id="receiptStmtRemaining">0</strong></div>
+                </div>
+
+                <!-- Footer Signatures -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-top: 1rem; border-top: 1px solid #e2e8f0; font-size: 0.82rem; color: #64748b;">
+                    <div>
+                        <div data-ar="الرقم الضريبي:" data-en="Tax Registration:">Tax Registration: <span id="receiptTaxNumber">TR-894-320-11</span></div>
+                        <div id="receiptClinicPhone">Phone: +20 100 123 4567</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="margin-bottom: 2rem; font-weight: 600;" data-ar="توقيع المستلم / الخزينة" data-en="Authorized Signature / Cashier">Authorized Signature / Cashier</div>
+                        <div style="width: 140px; border-bottom: 1px solid #94a3b8;"></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1536,12 +1993,22 @@
         </div>
     </div>
 
-    <!-- Modal for Visits -->
+    <!-- Modal for Visits with Optional Clinical Procedure & Price Adjustments -->
     <div id="visitModal" class="modal">
-        <div class="modal-content" style="max-width: 600px;">
-            <h3 data-ar="إضافة كشف/زيارة" data-en="Add Clinical Visit">Add Clinical Visit</h3>
+        <div class="modal-content" style="max-width: 620px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+                <div>
+                    <h3 data-ar="🩺 تسجيل كشف وزيارة سريرية" data-en="🩺 Add Clinical Visit">🩺 Add Clinical Visit</h3>
+                    <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: var(--text-muted);" data-ar="تسجيل شكوى المريض، التشخيص، وخطة العلاج المنفذة مع تعديل السعر" data-en="Record complaints, clinical notes, and procedure with percentage pricing">Record complaints, clinical notes, and procedure with percentage pricing</p>
+                </div>
+                <button type="button" class="close-modal-btn" onclick="if(window.closeModalAndPopState) window.closeModalAndPopState(document.getElementById('visitModal')); else document.getElementById('visitModal').classList.remove('show');" style="background: none; border: none; font-size: 1.3rem; color: var(--text-muted); cursor: pointer; padding: 4px 8px; border-radius: 6px;">✕</button>
+            </div>
+
             <form id="visitForm">
                 <input type="hidden" id="visitId">
+                <input type="hidden" id="visitProcedureBasePrice" value="0">
+                <input type="hidden" id="visitProcedureDiscountPercent" value="0">
+
                 <div class="input-group">
                     <label for="visitChiefComplaint" data-ar="الشكوى الأساسية (Chief Complaint):" data-en="Chief Complaint:">Chief Complaint:</label>
                     <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.4rem;">
@@ -1550,8 +2017,9 @@
                         <button type="button" class="btn-outline quick-complaint-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Broken tooth / lost filling" data-ar="كسر بالسن / حشوة" data-en="Broken Tooth">Broken Tooth</button>
                         <button type="button" class="btn-outline quick-complaint-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Routine dental checkup" data-ar="فحص دوري" data-en="Routine Checkup">Routine Checkup</button>
                     </div>
-                    <input type="text" id="visitChiefComplaint" required>
+                    <input type="text" id="visitChiefComplaint" required placeholder="شكوى المريض الأساسية..." data-ar-placeholder="شكوى المريض الأساسية..." data-en-placeholder="Patient's primary complaint...">
                 </div>
+
                 <div class="input-group">
                     <label for="visitNotes" data-ar="التشخيص والملاحظات (Clinical Notes):" data-en="Diagnosis & Notes:">Diagnosis & Notes:</label>
                     <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.4rem;">
@@ -1559,11 +2027,120 @@
                         <button type="button" class="btn-outline quick-notes-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Class II dental caries. Cavity prepped and composite restoration done." data-ar="تسوس عميق (حشو تجميلي)" data-en="Class II Caries (Composite)">Class II Caries (Composite)</button>
                         <button type="button" class="btn-outline quick-notes-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Generalized marginal gingivitis. Full ultrasonic scaling performed." data-ar="تنظيف جير" data-en="Full Ultrasonic Scaling">Full Ultrasonic Scaling</button>
                     </div>
-                    <textarea id="visitNotes" rows="4" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);" required></textarea>
+                    <textarea id="visitNotes" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);" required placeholder="اكتب التشخيص والملاحظات الطبية..." data-ar-placeholder="اكتب التشخيص والملاحظات الطبية..." data-en-placeholder="Clinical diagnosis and notes..."></textarea>
                 </div>
+
+                <!-- Integrated Procedure & Visit Price Adjustment Card -->
+                <div style="background: rgba(2, 132, 199, 0.04); border: 1px solid rgba(2, 132, 199, 0.25); border-radius: 8px; padding: 0.85rem; margin-top: 0.75rem; margin-bottom: 1rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 6px;">
+                        <label class="toggle-switch-card" style="margin: 0; padding: 0; background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="visitIncludeTreatmentToggle" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-weight: 700; font-size: 0.9rem; color: var(--brand-primary);" data-ar="💉 تسجيل إجراء علاجي وتعديل السعر بالزيارة" data-en="💉 Record Procedure & Price Adjustment">💉 Record Procedure & Price Adjustment</span>
+                        </label>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);" data-ar="إضافة الخطة المالية تلقائياً" data-en="Auto-create financial record">Auto-create financial record</span>
+                    </div>
+
+                    <!-- Collapsible Procedure Body in Visit -->
+                    <div id="visitProcedureSection" style="display: none; margin-top: 0.75rem; border-top: 1px dashed var(--border-color); padding-top: 0.75rem;">
+                        <div class="input-group" style="margin-bottom: 0.6rem;">
+                            <label for="visitProcedureType" data-ar="اسم الإجراء الطبي المنفذ:" data-en="Performed Procedure:">Performed Procedure:</label>
+                            <input type="text" id="visitProcedureType" placeholder="اختر من القوالب أو اكتب الإجراء..." data-ar-placeholder="اختر من القوالب أو اكتب الإجراء..." data-en-placeholder="Select template or type procedure...">
+                            
+                            <!-- Quick Visit Procedure Templates -->
+                            <div id="quickVisitProcedureButtons" style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.4rem;">
+                                <button type="button" class="btn-outline quick-visit-proc-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Composite Filling" data-cost="500" data-ar="حشو تجميلي (500)" data-en="Composite (500)">Composite (500)</button>
+                                <button type="button" class="btn-outline quick-visit-proc-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Root Canal Treatment" data-cost="1200" data-ar="علاج عصب (1200)" data-en="Root Canal (1200)">Root Canal (1200)</button>
+                                <button type="button" class="btn-outline quick-visit-proc-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Teeth Scaling & Polishing" data-cost="400" data-ar="تنظيف وتلميع (400)" data-en="Scaling (400)">Scaling (400)</button>
+                                <button type="button" class="btn-outline quick-visit-proc-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Simple Extraction" data-cost="350" data-ar="خلع بسيط (350)" data-en="Extraction (350)">Extraction (350)</button>
+                            </div>
+                        </div>
+
+                        <!-- Doctor Percentage Buttons for Visit -->
+                        <div style="margin-bottom: 0.6rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-primary); margin: 0;" data-ar="أزرار الخصم والتعديل المئوي المباشر:" data-en="Percentage Discount & Modification Chips:">Percentage Discount & Modification Chips:</label>
+                                <span style="font-size: 0.75rem; color: var(--brand-primary); font-weight: 600;" id="visitBaseCatalogPriceBadge"></span>
+                            </div>
+                            <div id="visitPercentChips" style="display: flex; gap: 0.3rem; flex-wrap: wrap; align-items: center;">
+                                <button type="button" class="btn-outline visit-pct-chip active" data-pct="0" style="padding: 2px 7px; font-size: 0.75rem; font-weight: 600;">0% (الأساسي)</button>
+                                <button type="button" class="btn-outline visit-pct-chip" data-pct="-5" style="padding: 2px 7px; font-size: 0.75rem; color: var(--status-completed); border-color: rgba(34, 197, 94, 0.3);">-5%</button>
+                                <button type="button" class="btn-outline visit-pct-chip" data-pct="-10" style="padding: 2px 7px; font-size: 0.75rem; color: var(--status-completed); border-color: rgba(34, 197, 94, 0.3);">-10%</button>
+                                <button type="button" class="btn-outline visit-pct-chip" data-pct="-15" style="padding: 2px 7px; font-size: 0.75rem; color: var(--status-completed); border-color: rgba(34, 197, 94, 0.3);">-15%</button>
+                                <button type="button" class="btn-outline visit-pct-chip" data-pct="-20" style="padding: 2px 7px; font-size: 0.75rem; color: var(--status-completed); border-color: rgba(34, 197, 94, 0.3);">-20%</button>
+                                <button type="button" class="btn-outline visit-pct-chip" data-pct="-25" style="padding: 2px 7px; font-size: 0.75rem; color: var(--status-completed); border-color: rgba(34, 197, 94, 0.3);">-25%</button>
+                                <button type="button" class="btn-outline visit-pct-chip" data-pct="-50" style="padding: 2px 7px; font-size: 0.75rem; color: var(--status-completed); border-color: rgba(34, 197, 94, 0.3);">-50%</button>
+                                <button type="button" class="btn-outline visit-pct-chip" data-pct="10" style="padding: 2px 7px; font-size: 0.75rem; color: var(--brand-primary); border-color: rgba(45, 212, 191, 0.3);">+10%</button>
+                                <button type="button" class="btn-outline visit-pct-chip" data-pct="20" style="padding: 2px 7px; font-size: 0.75rem; color: var(--brand-primary); border-color: rgba(45, 212, 191, 0.3);">+20%</button>
+                            </div>
+                        </div>
+
+                        <!-- Price Calculation & Custom Pct Row -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <div>
+                                <label for="visitCustomPctInput" style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px; display: block;" data-ar="نسبة مخصصة (± %):" data-en="Custom Pct (± %):">Custom Pct (± %):</label>
+                                <input type="number" id="visitCustomPctInput" placeholder="مثال: -15 أو 10" step="0.5" style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.85rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary); font-family: monospace;">
+                            </div>
+                            <div>
+                                <label for="visitProcedureFinalCost" style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px; display: block;" data-ar="السعر النهائي المطلوب:" data-en="Final Cost:">Final Cost:</label>
+                                <input type="number" id="visitProcedureFinalCost" placeholder="0" style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.95rem; font-weight: 700; color: var(--brand-primary); border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); font-family: monospace;">
+                            </div>
+                        </div>
+
+                        <div id="visitCalcBreakdown" style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-surface); padding: 0.45rem 0.7rem; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.8rem; margin-bottom: 0.6rem;">
+                            <span><strong data-ar="الأساسي:" data-en="Base:">Base:</strong> <span id="visitCalcBase">0</span></span>
+                            <span><strong data-ar="الخصم:" data-en="Mod:">Mod:</strong> <span id="visitCalcMod" style="color: var(--status-completed);">0%</span></span>
+                            <span><strong data-ar="النهائي:" data-en="Final:">Final:</strong> <span id="visitCalcFinal" style="color: var(--brand-primary); font-weight: bold;">0</span></span>
+                        </div>
+
+                        <!-- Direct Optional Payment Collection during Visit -->
+                        <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 0.65rem 0.75rem;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                                <input type="checkbox" id="visitCollectPaymentToggle" style="width: 16px; height: 16px; cursor: pointer;">
+                                <span style="font-weight: 700; font-size: 0.85rem; color: var(--status-completed);" data-ar="💵 تحصيل دفعة / سداد فوري أثناء الزيارة" data-en="💵 Collect Immediate Payment">💵 Collect Immediate Payment</span>
+                            </label>
+
+                            <div id="visitPaymentInputsWrapper" style="display: none; border-top: 1px dashed rgba(16, 185, 129, 0.3); padding-top: 0.5rem; margin-top: 0.5rem;">
+                                <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 0.5rem; margin-bottom: 0.4rem;">
+                                    <div>
+                                        <label for="visitPaidAmount" style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px; display: block;" data-ar="المبلغ المسدد الآن:" data-en="Paid Amount:">Paid Amount:</label>
+                                        <input type="number" id="visitPaidAmount" placeholder="0.00" step="0.5" style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.95rem; font-weight: 700; color: var(--status-completed); border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); font-family: monospace;">
+                                    </div>
+                                    <div>
+                                        <label for="visitPaymentMethod" style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px; display: block;" data-ar="مصدر وقناة الدفع:" data-en="Payment Source:">Payment Source:</label>
+                                        <select id="visitPaymentMethod" style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.82rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary);">
+                                            <option value="Cash" data-ar="💵 نقداً / كاش" data-en="💵 Cash">💵 نقداً / كاش</option>
+                                            <option value="Card" data-ar="💳 بطاقة / فيزا POS" data-en="💳 Card / POS">💳 بطاقة / فيزا POS</option>
+                                            <option value="InstaPay" data-ar="⚡ إنستاباي (InstaPay)" data-en="⚡ InstaPay">⚡ إنستاباي (InstaPay)</option>
+                                            <option value="Vodafone Cash" data-ar="📱 فودافون كاش ومحافظ" data-en="📱 Vodafone Cash">📱 فودافون كاش ومحافظ</option>
+                                            <option value="Bank Transfer" data-ar="🏦 تحويل بنكي" data-en="🏦 Bank Transfer">🏦 تحويل بنكي</option>
+                                            <option value="Insurance" data-ar="🛡️ شركة تأمين" data-en="🛡️ Insurance">🛡️ شركة تأمين</option>
+                                            <option value="Installment" data-ar="🛍️ تقسيط / فاليو" data-en="🛍️ Installments">🛍️ تقسيط / فاليو</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Quick Amount Chips for Visit Payment -->
+                                <div style="display: flex; gap: 0.3rem; flex-wrap: wrap; margin-bottom: 0.45rem;">
+                                    <button type="button" class="btn-outline" style="padding: 2px 7px; font-size: 0.72rem; font-weight: 700; color: var(--brand-primary);" onclick="window.setVisitQuickPayment('full')" data-ar="100% كامل الإجراء" data-en="100% Full">100% Full</button>
+                                    <button type="button" class="btn-outline" style="padding: 2px 7px; font-size: 0.72rem;" onclick="window.setVisitQuickPayment(50)" data-ar="50% النصف" data-en="50% Half">50% Half</button>
+                                    <button type="button" class="btn-outline" style="padding: 2px 7px; font-size: 0.72rem;" onclick="window.setVisitQuickPayment(25)" data-ar="25% الربع" data-en="25% Quarter">25% Quarter</button>
+                                    <button type="button" class="btn-outline" style="padding: 2px 7px; font-size: 0.72rem;" onclick="window.incrementVisitPayment(100)">+100</button>
+                                    <button type="button" class="btn-outline" style="padding: 2px 7px; font-size: 0.72rem;" onclick="window.incrementVisitPayment(500)">+500</button>
+                                    <button type="button" class="btn-outline" style="padding: 2px 7px; font-size: 0.72rem; color: var(--status-error);" onclick="window.setVisitQuickPayment(0)" data-ar="تصفير" data-en="Clear">Clear</button>
+                                </div>
+
+                                <div>
+                                    <label for="visitPaymentRef" style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px; display: block;" data-ar="رقم العملية / المرجع / رقم المحفظة (اختياري):" data-en="Transaction Ref / Slip # (Optional):">Transaction Ref / Slip # (Optional):</label>
+                                    <input type="text" id="visitPaymentRef" placeholder="مثال: رقم إيصال الفيزا أو تحويل إنستاباي..." style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.82rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary);">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="modal-actions">
-                    <button type="button" class="btn-secondary" onclick="window.closeModalAndPopState(document.getElementById('visitModal'))" data-ar="إلغاء" data-en="Cancel">Cancel</button>
-                    <button type="submit" class="btn-primary" id="saveVisitBtn" data-ar="حفظ الزيارة" data-en="Save Visit">Save Visit</button>
+                    <button type="button" class="btn-secondary" onclick="if(window.closeModalAndPopState) window.closeModalAndPopState(document.getElementById('visitModal')); else document.getElementById('visitModal').classList.remove('show');" data-ar="إلغاء" data-en="Cancel">Cancel</button>
+                    <button type="submit" class="btn-primary" id="saveVisitBtn" data-ar="💾 حفظ الزيارة" data-en="💾 Save Visit">💾 Save Visit</button>
                 </div>
             </form>
         </div>
