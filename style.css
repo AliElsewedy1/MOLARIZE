@@ -1519,22 +1519,22 @@ tbody tr:nth-child(7) { animation-delay: 0.20s; }
     min-width: 480px;
 }
 
-/* Agenda Appointments List & Items - Horizontal Scroll */
+/* Agenda Appointments List & Items - Vertical on Desktop/Tablet, Horizontal on Mobile */
 .agenda-items-list {
     display: flex;
-    flex-direction: row;
-    gap: 0.85rem;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 0.65rem;
-    padding-top: 0.15rem;
-    align-items: stretch;
+    flex-direction: column;
+    gap: 0.75rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 480px;
+    padding-right: 4px;
+    padding-left: 2px;
+    padding-bottom: 0.25rem;
 }
 
-/* Custom Sleek Horizontal Scrollbar */
+/* Custom Sleek Scrollbar */
 .agenda-items-list::-webkit-scrollbar {
+    width: 6px;
     height: 6px;
 }
 .agenda-items-list::-webkit-scrollbar-track {
@@ -1553,18 +1553,18 @@ tbody tr:nth-child(7) { animation-delay: 0.20s; }
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
     border-radius: 12px;
-    padding: 0.95rem 1rem;
+    padding: 0.9rem 1rem;
     display: flex;
-    flex-direction: column;
     justify-content: space-between;
+    align-items: center;
     gap: 0.85rem;
     transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
     cursor: pointer;
     position: relative;
-    flex: 0 0 320px;
-    min-width: 290px;
-    max-width: 340px;
-    scroll-snap-align: start;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    flex: 0 0 auto;
 }
 
 .agenda-item-card:hover {
@@ -1575,9 +1575,9 @@ tbody tr:nth-child(7) { animation-delay: 0.20s; }
 
 .agenda-item-left {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 0.85rem;
-    width: 100%;
+    flex: 1;
     min-width: 0;
 }
 
@@ -1609,7 +1609,7 @@ tbody tr:nth-child(7) { animation-delay: 0.20s; }
 .agenda-item-info {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
     min-width: 0;
     flex: 1;
 }
@@ -1622,7 +1622,7 @@ tbody tr:nth-child(7) { animation-delay: 0.20s; }
     white-space: normal;
     word-break: break-word;
     overflow-wrap: break-word;
-    line-height: 1.4;
+    line-height: 1.35;
     transition: color 0.15s ease;
 }
 
@@ -1704,10 +1704,7 @@ tbody tr:nth-child(7) { animation-delay: 0.20s; }
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    width: 100%;
-    border-top: 1px solid var(--border-color);
-    padding-top: 0.65rem;
-    margin-top: auto;
+    flex-shrink: 0;
 }
 
 .agenda-action-btn {
@@ -1726,7 +1723,6 @@ tbody tr:nth-child(7) { animation-delay: 0.20s; }
     text-decoration: none;
     transition: all 0.15s ease;
     min-height: 34px;
-    flex: 1;
 }
 
 .agenda-action-btn:hover {
@@ -1802,11 +1798,22 @@ tbody tr:nth-child(7) { animation-delay: 0.20s; }
     background: rgba(0, 0, 0, 0.02);
     min-height: 120px;
     width: 100%;
-    min-width: 100%;
 }
 
-/* --- Mobile Dedicated Styles for Appointment Cards --- */
+/* --- Mobile Dedicated Styles for Appointment Cards (Horizontal Swipe on Mobile) --- */
 @media (max-width: 640px) {
+    .agenda-items-list {
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        max-height: none;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 0.65rem;
+        padding-top: 0.15rem;
+        align-items: stretch;
+    }
+
     .agenda-item-card {
         flex: 0 0 85%;
         min-width: 82%;
@@ -1814,10 +1821,15 @@ tbody tr:nth-child(7) { animation-delay: 0.20s; }
         scroll-snap-align: center;
         padding: 0.95rem;
         border-radius: 12px;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: stretch;
+        gap: 0.75rem;
     }
 
     .agenda-item-left {
         width: 100%;
+        align-items: flex-start;
         gap: 0.75rem;
     }
 
@@ -1842,5 +1854,6 @@ tbody tr:nth-child(7) { animation-delay: 0.20s; }
         font-size: 0.78rem;
         min-height: 36px;
         justify-content: center;
+        flex: 1;
     }
 }
