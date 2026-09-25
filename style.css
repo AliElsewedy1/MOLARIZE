@@ -1614,15 +1614,16 @@ tbody tr:nth-child(7) { animation-delay: 0.20s; }
     flex: 1;
 }
 
-/* Patient Full Name - Never truncated, rich and clear */
+/* Patient Full Name - Never broken character by character */
 .agenda-item-patient-name {
     font-weight: 700;
     font-size: 1.02rem;
     color: var(--text-primary);
     white-space: normal;
-    word-break: break-word;
-    overflow-wrap: break-word;
-    line-height: 1.35;
+    word-break: keep-all;
+    overflow-wrap: normal;
+    line-height: 1.4;
+    display: inline-block;
     transition: color 0.15s ease;
 }
 
@@ -1837,7 +1838,8 @@ tbody tr:nth-child(7) { animation-delay: 0.20s; }
         font-size: 1.05rem;
         line-height: 1.35;
         white-space: normal;
-        word-break: break-word;
+        word-break: keep-all;
+        overflow-wrap: normal;
     }
 
     .agenda-item-actions {
