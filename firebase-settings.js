@@ -300,10 +300,34 @@ window.settingsStore = settingsStore;
 // ==========================================
 // 3. FIRESTORE PERSISTENCE & SYNC
 // ==========================================
+// Helper functions to get authenticated path references nested under the secure users/{uid} node
+function getClinicDocRef() {
+    const uid = auth.currentUser?.uid || "fallback_default";
+    return doc(db, "users", uid, "clinic_settings", "config");
+}
+
+function getServicesColRef() {
+    const uid = auth.currentUser?.uid || "fallback_default";
+    return collection(db, "users", uid, "clinic_services");
+}
+
+function getMedsColRef() {
+    const uid = auth.currentUser?.uid || "fallback_default";
+    return collection(db, "users", uid, "clinic_medications");
+}
+
+function getAuditLogsColRef() {
+    const uid = auth.currentUser?.uid || "fallback_default";
+    return collection(db, "users", uid, "clinic_audit_logs");
+}
+
 export async function initializeSettings() {
+    const user = auth.currentUser;
+    if (!user) return; // Wait for onAuthStateChanged to trigger once logged in
+
     try {
         // 1. Load Global Clinic Config
-        const configDocRef = doc(db, "clinic_settings", "config");
+        const configDocRef = getClinicDocRef();
         const configSnap = await getDoc(configDocRef);
         
         if (configSnap.exists()) {
@@ -312,7 +336,7 @@ export async function initializeSettings() {
                 ...DEFAULT_CLINIC_CONFIG,
                 ...data,
                 financial: { ...DEFAULT_CLINIC_CONFIG.financial, ...(data.financial || {}) },
-                clinicalRules: { ...DEFAULT_CLINIC_CONFIG.clinicalRules, ...(data.clinicalRules || {}) }
+                clinicalRules: { ...settingsStore.config.clinicalRules, ...(data.clinicalRules || {}) }
             };
         } else {
             // Seed initial config
@@ -321,7 +345,7 @@ export async function initializeSettings() {
         }
 
         // 2. Load Services
-        const servicesColRef = collection(db, "clinic_services");
+        const servicesColRef = getServicesColRef();
         const servicesSnap = await getDocs(servicesColRef);
         if (!servicesSnap.empty) {
             const list = [];
@@ -330,13 +354,13 @@ export async function initializeSettings() {
         } else {
             // Seed initial services in batch
             for (const s of DEFAULT_SERVICES) {
-                await setDoc(doc(db, "clinic_services", s.id), s);
+                await setDoc(doc(servicesColRef, s.id), s);
             }
             settingsStore.services = [...DEFAULT_SERVICES];
         }
 
         // 3. Load Medications
-        const medsColRef = collection(db, "clinic_medications");
+        const medsColRef = getMedsColRef();
         const medsSnap = await getDocs(medsColRef);
         if (!medsSnap.empty) {
             const list = [];
@@ -345,7 +369,7 @@ export async function initializeSettings() {
         } else {
             // Seed initial medications in batch
             for (const m of DEFAULT_MEDICATIONS) {
-                await setDoc(doc(db, "clinic_medications", m.id), m);
+                await setDoc(doc(medsColRef, m.id), m);
             }
             settingsStore.medications = [...DEFAULT_MEDICATIONS];
         }
@@ -413,7 +437,7 @@ export async function logAuditEvent(action, targetEntity, details = {}) {
             details: details
         };
 
-        const colRef = collection(db, "clinic_audit_logs");
+        const colRef = getAuditLogsColRef();
         const docRef = await addDoc(colRef, logEntry);
         logEntry.id = docRef.id;
         
@@ -441,7 +465,7 @@ export async function logAuditEvent(action, targetEntity, details = {}) {
 
 async function loadAuditLogs() {
     try {
-        const snap = await getDocs(collection(db, "clinic_audit_logs"));
+        const snap = await getDocs(getAuditLogsColRef());
         const list = [];
         snap.forEach(d => list.push({ id: d.id, ...d.data() }));
         list.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -468,7 +492,7 @@ export async function saveGlobalConfig(newPartialConfig) {
         };
 
         const oldVal = { ...settingsStore.config };
-        await setDoc(doc(db, "clinic_settings", "config"), merged);
+        await setDoc(getClinicDocRef(), merged);
         settingsStore.config = merged;
         settingsStore.notify();
 
@@ -514,7 +538,7 @@ export async function saveService(serviceData) {
             updatedAt: new Date().toISOString()
         };
 
-        await setDoc(doc(db, "clinic_services", serviceData.id), updatedService);
+        await setDoc(doc(getServicesColRef(), serviceData.id), updatedService);
         const idx = settingsStore.services.findIndex(s => s.id === serviceData.id);
         if (idx !== -1) settingsStore.services[idx] = updatedService;
         
@@ -540,7 +564,7 @@ export async function saveService(serviceData) {
             createdAt: new Date().toISOString()
         };
 
-        await setDoc(doc(db, "clinic_services", newId), newService);
+        await setDoc(doc(getServicesColRef(), newId), newService);
         settingsStore.services.push(newService);
 
         await logAuditEvent("SERVICE_ADDED", newService.nameEn || newService.nameAr, {
@@ -565,7 +589,7 @@ export async function deleteService(serviceId) {
     const srv = settingsStore.services.find(s => s.id === serviceId);
     if (!srv) return false;
 
-    await deleteDoc(doc(db, "clinic_services", serviceId));
+    await deleteDoc(doc(getServicesColRef(), serviceId));
     settingsStore.services = settingsStore.services.filter(s => s.id !== serviceId);
     
     await logAuditEvent("SERVICE_DELETED", srv.nameEn || srv.nameAr, { serviceId });
@@ -584,7 +608,7 @@ export async function saveMedication(medData) {
             updatedAt: new Date().toISOString()
         };
 
-        await setDoc(doc(db, "clinic_medications", medData.id), updatedMed);
+        await setDoc(doc(getMedsColRef(), medData.id), updatedMed);
         const idx = settingsStore.medications.findIndex(m => m.id === medData.id);
         if (idx !== -1) settingsStore.medications[idx] = updatedMed;
 
@@ -601,7 +625,7 @@ export async function saveMedication(medData) {
             createdAt: new Date().toISOString()
         };
 
-        await setDoc(doc(db, "clinic_medications", newId), newMed);
+        await setDoc(doc(getMedsColRef(), newId), newMed);
         settingsStore.medications.push(newMed);
 
         await logAuditEvent("MEDICATION_ADDED", newMed.name, {
@@ -620,7 +644,7 @@ export async function deleteMedication(medId) {
     const med = settingsStore.medications.find(m => m.id === medId);
     if (!med) return false;
 
-    await deleteDoc(doc(db, "clinic_medications", medId));
+    await deleteDoc(doc(getMedsColRef(), medId));
     settingsStore.medications = settingsStore.medications.filter(m => m.id !== medId);
 
     await logAuditEvent("MEDICATION_DELETED", med.name, { medicationId: medId });
@@ -1133,7 +1157,7 @@ export function updateServicePriceInline(serviceId, newPrice) {
     });
 
     // Save to Firestore in background
-    setDoc(doc(db, "clinic_services", serviceId), srv, { merge: true }).catch(err => console.error(err));
+    setDoc(doc(getServicesColRef(), serviceId), srv, { merge: true }).catch(err => console.error(err));
     logAuditEvent("PRICE_UPDATED", srv.nameEn || srv.nameAr, {
         serviceId: serviceId,
         oldPrice: oldPrice,
@@ -1872,14 +1896,16 @@ window.saveService = saveService;
 window.saveMedication = saveMedication;
 window.saveGlobalConfig = saveGlobalConfig;
 
-// Auto-run initialization on load
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
+// Auto-run initialization on load when the user is authenticated
+let isUIEventListenersSetup = false;
+
+onAuthStateChanged(auth, (user) => {
+    if (user) {
         initializeSettings();
-        setupSettingsUIEventListeners();
-    });
-} else {
-    initializeSettings();
-    setupSettingsUIEventListeners();
-}
+        if (!isUIEventListenersSetup) {
+            setupSettingsUIEventListeners();
+            isUIEventListenersSetup = true;
+        }
+    }
+});
 

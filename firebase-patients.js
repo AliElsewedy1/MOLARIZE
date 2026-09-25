@@ -31,6 +31,8 @@ window.openNewPatientModal = function() {
         submitBtn.setAttribute('data-en', 'Save Patient');
     }
     document.querySelectorAll('.alert-checkbox').forEach(cb => cb.checked = false);
+    const deleteModalBtn = document.getElementById('deletePatientFromModalBtn');
+    if (deleteModalBtn) deleteModalBtn.style.display = 'none';
     if (pModal) {
         pModal.classList.add('show');
         history.pushState({ modal: 'patient' }, '', window.location.hash);
@@ -160,7 +162,7 @@ function renderPatients(patientsToRender = currentPatients) {
         <button class="btn-action btn-edit" onclick="window.editPatient('${patient.id}')" style="display:inline-flex; align-items:center; gap:3px;" title="${isAr ? 'تعديل بيانات المريض' : 'Edit Patient'}">
             ⚙️ <span>${isAr ? 'تعديل' : 'Edit'}</span>
         </button>
-        <button class="btn-action btn-delete" onclick="window.deletePatient('${patient.id}')" title="${isAr ? 'حذف' : 'Delete'}">${isAr ? 'حذف' : 'Delete'}</button>
+        <button class="btn-action btn-delete" onclick="event.stopPropagation(); window.deletePatient('${patient.id}', event);" title="${isAr ? 'حذف المريض' : 'Delete Patient'}">${isAr ? 'حذف' : 'Delete'}</button>
       </td>
     `;
     tbody.appendChild(row);
@@ -295,10 +297,11 @@ if (patientForm) {
         const notes = document.getElementById('patientNotes').value.trim();
         const isAr = document.documentElement.lang === 'ar';
 
-        // Validation for name
-        if (!name || name.length < 2) {
+        // Validation for name (must be at least a triple name / ثلاثي)
+        const nameWords = name.split(/\s+/).filter(w => w.length > 0);
+        if (nameWords.length < 3) {
             if (window.showToast) {
-                window.showToast(isAr ? 'يرجى إدخال اسم المريض (حرفين على الأقل)' : 'Please enter patient name (at least 2 letters)', 'warning');
+                window.showToast(isAr ? 'لا يمكن تسجيل اسم مريض أقل من ثلاثي (أدخل 3 كلمات على الأقل)' : 'Patient name must be at least a triple name (minimum 3 words)', 'warning');
             }
             return;
         }
@@ -501,28 +504,93 @@ window.editPatient = function(id) {
                 }
             });
         }
+        const deleteModalBtn = document.getElementById('deletePatientFromModalBtn');
+        if (deleteModalBtn) deleteModalBtn.style.display = 'inline-flex';
+
         patientModal.classList.add('show');
         history.pushState({ modal: 'patient' }, '', window.location.hash);
     }
 }
 
 // Delete Patient Function
-window.deletePatient = async function(id) {
-    if (!currentUserUid) return;
-    if (confirm('Are you sure you want to delete this patient?')) {
+window.deletePatient = async function(id, event) {
+    if (event) {
+        if (event.stopPropagation) event.stopPropagation();
+        if (event.preventDefault) event.preventDefault();
+    }
+
+    if (!id || typeof id !== 'string') {
+        id = window.currentProfilePatientId || (document.getElementById('patientId') ? document.getElementById('patientId').value : null);
+    }
+
+    if (!id) {
+        console.warn("No valid patient ID provided for deletion.");
+        return;
+    }
+
+    const user = auth.currentUser;
+    if (!user) {
+        const isAr = document.documentElement.lang === 'ar';
+        if (window.showToast) {
+            window.showToast(isAr ? 'يرجى تسجيل الدخول أولاً' : 'Please authenticate first', 'error');
+        } else {
+            alert(isAr ? 'يرجى تسجيل الدخول أولاً' : 'Please authenticate first');
+        }
+        return;
+    }
+    const uid = user.uid;
+    const isAr = document.documentElement.lang === 'ar';
+
+    const patient = (currentPatients || []).find(p => p.id === id);
+    const patientName = patient ? patient.name : '';
+
+    const confirmMsg = isAr 
+        ? `هل أنت متأكد من رغبتك في مسح ملف المريض${patientName ? ' (' + patientName + ')' : ''} نهائياً مع كافة بياناته؟` 
+        : `Are you sure you want to permanently delete patient profile${patientName ? ' (' + patientName + ')' : ''} and all associated records?`;
+
+    if (confirm(confirmMsg)) {
         try {
-            await deleteDoc(doc(db, "users", currentUserUid, "patients", id));
+            await deleteDoc(doc(db, "users", uid, "patients", id));
+
+            // Close patient modal if open
+            const pModal = document.getElementById('patientModal');
+            if (pModal && pModal.classList.contains('show')) {
+                if (window.closeModalAndPopState) window.closeModalAndPopState(pModal);
+                else pModal.classList.remove('show');
+            }
+
+            // If deleting current profile patient, switch back to patients list section
+            if (window.currentProfilePatientId === id) {
+                window.currentProfilePatientId = null;
+                currentProfilePatientId = null;
+                const patientsSec = document.getElementById('patients-section');
+                if (patientsSec) {
+                    document.querySelectorAll('.app-section').forEach(sec => sec.style.display = 'none');
+                    patientsSec.style.display = 'block';
+                    history.pushState({ section: 'patients-section' }, '', '#patients-section');
+                }
+            }
+
             await loadPatients();
 
             if (typeof window.updateDashboardStats === 'function') {
                 window.updateDashboardStats();
             }
+
+            if (window.showToast) {
+                window.showToast(isAr ? 'تم مسح ملف المريض بنجاح' : 'Patient profile deleted successfully', 'success');
+            }
         } catch (e) {
             console.error("Error deleting patient: ", e);
-            alert("Error deleting patient.");
+            if (window.showToast) {
+                window.showToast(isAr ? 'حدث خطأ أثناء مسح ملف المريض' : 'Error deleting patient profile', 'error');
+            } else {
+                alert(isAr ? 'حدث خطأ أثناء مسح ملف المريض' : 'Error deleting patient profile');
+            }
         }
     }
-}
+};
+window.deletePatientProfile = window.deletePatient;
 
 // Auth Listener
 onAuthStateChanged(auth, (user) => {

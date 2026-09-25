@@ -690,8 +690,12 @@ if (embeddedPatientForm) {
 
         const isAr = document.documentElement.lang === 'ar';
 
-        if (!name || name.length < 2) {
-            if (window.showToast) window.showToast(isAr ? 'يرجى إدخال اسم المريض (حرفين على الأقل)' : 'Please enter patient name', 'warning');
+        // Validation for name (must be at least a triple name / ثلاثي)
+        const nameWords = name.split(/\s+/).filter(w => w.length > 0);
+        if (nameWords.length < 3) {
+            if (window.showToast) {
+                window.showToast(isAr ? 'لا يمكن تسجيل اسم مريض أقل من ثلاثي (أدخل 3 كلمات على الأقل)' : 'Patient name must be at least a triple name (minimum 3 words)', 'warning');
+            }
             embeddedPatientName.focus();
             return;
         }

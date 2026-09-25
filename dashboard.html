@@ -608,7 +608,7 @@
                         👤
                     </div>
                     <div style="min-width: 0; flex: 1; overflow: hidden;">
-                        <div style="display: flex; align-items: center; gap: 0.75rem; margin: 0 0 0.4rem 0; flex-wrap: nowrap; max-width: 100%;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin: 0 0 0.4rem 0; flex-wrap: wrap; max-width: 100%;">
                             <h1 id="profilePatientName" style="margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: clamp(1rem, 2.5vw, 1.35rem); font-weight: 600; line-height: 1.25;">Patient Name</h1>
                             <button id="editPatientProfileBtn" class="btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.85rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--brand-primary); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; transition: all 0.2s;" onclick="if(window.editPatient && window.currentProfilePatientId) window.editPatient(window.currentProfilePatientId);" title="تعديل بيانات المريض / Edit Patient" data-ar-title="تعديل بيانات المريض" data-en-title="Edit Patient">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;">
@@ -616,6 +616,15 @@
                                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                                 </svg>
                                 <span data-ar="تعديل" data-en="Edit">Edit</span>
+                            </button>
+                            <button id="deletePatientProfileBtn" class="btn-danger" style="padding: 0.3rem 0.65rem; font-size: 0.85rem; border-radius: 8px; border: 1px solid #ef4444; background: rgba(239, 68, 68, 0.12); color: #ef4444; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; transition: all 0.2s;" onclick="if(window.deletePatient && window.currentProfilePatientId) window.deletePatient(window.currentProfilePatientId, event);" title="مسح ملف المريض / Delete Patient Profile" data-ar-title="مسح ملف المريض" data-en-title="Delete Patient Profile">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                                </svg>
+                                <span data-ar="مسح ملف المريض" data-en="Delete Profile">مسح ملف المريض</span>
                             </button>
                         </div>
                         <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.9rem; color: var(--text-muted);">
@@ -1283,7 +1292,8 @@
                     <label for="patientNotes" data-ar="ملاحظات (اختياري):" data-en="Notes (Optional):">Notes (Optional):</label>
                     <textarea id="patientNotes" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);"></textarea>
                 </div>
-                <div class="modal-actions">
+                <div class="modal-actions" style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
+                    <button type="button" id="deletePatientFromModalBtn" class="btn-danger" style="display: none; background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid #ef4444; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 500; cursor: pointer; margin-inline-end: auto;" onclick="if(window.deletePatient) window.deletePatient(document.getElementById('patientId').value, event);" data-ar="🗑️ مسح المريض" data-en="🗑️ Delete Patient">🗑️ مسح المريض</button>
                     <button type="button" class="btn-secondary" id="cancelBtn" data-ar="إلغاء" data-en="Cancel">Cancel</button>
                     <button type="submit" class="btn-primary" data-ar="حفظ" data-en="Save">Save</button>
                 </div>
