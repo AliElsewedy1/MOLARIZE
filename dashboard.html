@@ -433,7 +433,7 @@
                     <!-- Injected dynamically by JS -->
                     <div class="income-source-card" style="border-inline-start: 4px solid #10b981;">
                         <div class="income-source-header">
-                            <span>💵 نقداً / كاش (Cash)</span>
+                            <span data-ar="💵 نقداً / كاش (Cash)" data-en="💵 Cash">💵 Cash</span>
                             <span id="srcCount-cash" class="badge-cash payment-source-badge" style="font-size: 0.7rem; padding: 1px 6px;">0</span>
                         </div>
                         <div class="income-source-amount" id="srcTotal-cash">0</div>
@@ -442,7 +442,7 @@
 
                     <div class="income-source-card" style="border-inline-start: 4px solid #0284c7;">
                         <div class="income-source-header">
-                            <span>💳 بطاقات / POS (Cards)</span>
+                            <span data-ar="💳 بطاقات / POS (Cards)" data-en="💳 Credit & Debit (POS)">💳 Credit & Debit (POS)</span>
                             <span id="srcCount-card" class="badge-card payment-source-badge" style="font-size: 0.7rem; padding: 1px 6px;">0</span>
                         </div>
                         <div class="income-source-amount" id="srcTotal-card">0</div>
@@ -451,7 +451,7 @@
 
                     <div class="income-source-card" style="border-inline-start: 4px solid #8b5cf6;">
                         <div class="income-source-header">
-                            <span>⚡ إنستاباي (InstaPay)</span>
+                            <span data-ar="⚡ إنستاباي (InstaPay)" data-en="⚡ InstaPay">⚡ InstaPay</span>
                             <span id="srcCount-instapay" class="badge-instapay payment-source-badge" style="font-size: 0.7rem; padding: 1px 6px;">0</span>
                         </div>
                         <div class="income-source-amount" id="srcTotal-instapay">0</div>
@@ -460,7 +460,7 @@
 
                     <div class="income-source-card" style="border-inline-start: 4px solid #ef4444;">
                         <div class="income-source-header">
-                            <span>📱 فودافون كاش ومحافظ</span>
+                            <span data-ar="📱 فودافون كاش ومحافظ" data-en="📱 Vodafone Cash / Wallets">📱 Vodafone Cash / Wallets</span>
                             <span id="srcCount-vodafone" class="badge-vodafone payment-source-badge" style="font-size: 0.7rem; padding: 1px 6px;">0</span>
                         </div>
                         <div class="income-source-amount" id="srcTotal-vodafone">0</div>
@@ -469,7 +469,7 @@
 
                     <div class="income-source-card" style="border-inline-start: 4px solid #14b8a6;">
                         <div class="income-source-header">
-                            <span>🏦 تحويل بنكي (Bank)</span>
+                            <span data-ar="🏦 تحويل بنكي (Bank)" data-en="🏦 Bank Transfer">🏦 Bank Transfer</span>
                             <span id="srcCount-bank" class="badge-bank payment-source-badge" style="font-size: 0.7rem; padding: 1px 6px;">0</span>
                         </div>
                         <div class="income-source-amount" id="srcTotal-bank">0</div>
@@ -478,7 +478,7 @@
 
                     <div class="income-source-card" style="border-inline-start: 4px solid #f59e0b;">
                         <div class="income-source-header">
-                            <span>🛡️ تأمين وتقسيط (Other)</span>
+                            <span data-ar="🛡️ تأمين وتقسيط (Other)" data-en="🛡️ Insurance & BNPL">🛡️ Insurance & BNPL</span>
                             <span id="srcCount-other" class="badge-insurance payment-source-badge" style="font-size: 0.7rem; padding: 1px 6px;">0</span>
                         </div>
                         <div class="income-source-amount" id="srcTotal-other">0</div>
@@ -1569,28 +1569,28 @@
                     <!-- Interactive Visual Payment Source Chips -->
                     <div class="payment-chips-grid" id="paymentSourceChipsGrid">
                         <button type="button" class="payment-source-chip-btn active" data-source="Cash">
-                            <span>💵</span> <span>نقداً (كاش)</span>
+                            <span>💵</span> <span data-ar="نقداً (كاش)" data-en="Cash">Cash</span>
                         </button>
                         <button type="button" class="payment-source-chip-btn" data-source="Card">
-                            <span>💳</span> <span>بطاقة / POS</span>
+                            <span>💳</span> <span data-ar="بطاقة / POS" data-en="Card / POS">Card / POS</span>
                         </button>
                         <button type="button" class="payment-source-chip-btn" data-source="InstaPay">
-                            <span>⚡</span> <span>إنستاباي (InstaPay)</span>
+                            <span>⚡</span> <span data-ar="إنستاباي (InstaPay)" data-en="InstaPay">InstaPay</span>
                         </button>
                         <button type="button" class="payment-source-chip-btn" data-source="Vodafone Cash">
-                            <span>📱</span> <span>فودافون كاش ومحافظ</span>
+                            <span>📱</span> <span data-ar="فودافون كاش ومحافظ" data-en="Vodafone / Wallet">Vodafone / Wallet</span>
                         </button>
                         <button type="button" class="payment-source-chip-btn" data-source="Bank Transfer">
-                            <span>🏦</span> <span>تحويل بنكي</span>
+                            <span>🏦</span> <span data-ar="تحويل بنكي" data-en="Bank Transfer">Bank Transfer</span>
                         </button>
                         <button type="button" class="payment-source-chip-btn" data-source="Insurance">
-                            <span>🛡️</span> <span>تأمين صحي</span>
+                            <span>🛡️</span> <span data-ar="تأمين صحي" data-en="Insurance">Insurance</span>
                         </button>
                         <button type="button" class="payment-source-chip-btn" data-source="Installment">
-                            <span>🛍️</span> <span>تقسيط / فاليو</span>
+                            <span>🛍️</span> <span data-ar="تقسيط / فاليو" data-en="Installments">Installments</span>
                         </button>
                         <button type="button" class="payment-source-chip-btn" data-source="Other">
-                            <span>🏷️</span> <span>أخرى (Other)</span>
+                            <span>🏷️</span> <span data-ar="أخرى (Other)" data-en="Other">Other</span>
                         </button>
                     </div>
 
@@ -1653,9 +1653,9 @@
                 <!-- Header -->
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0284c7; padding-bottom: 0.75rem; margin-bottom: 1rem;">
                     <div>
-                        <h2 style="margin: 0; color: #0284c7; font-size: 1.4rem; font-weight: 800;" id="receiptClinicName">MOLARIZE DENTAL SPECIALTY CENTER</h2>
-                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 2px;" id="receiptDoctorName">Dr. Ahmed El-Sewedy - Medical Director</div>
-                        <div style="font-size: 0.78rem; color: #94a3b8;" id="receiptDoctorCreds">BDS, MSc - Consultant Oral & Maxillofacial Surgeon</div>
+                        <h2 style="margin: 0; color: #0284c7; font-size: 1.4rem; font-weight: 800;" id="receiptClinicName">[Clinic Name / اسم العيادة]</h2>
+                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 2px;" id="receiptDoctorName">[Doctor Name / اسم الطبيب]</div>
+                        <div style="font-size: 0.78rem; color: #94a3b8;" id="receiptDoctorCreds">[Credentials & Title / التخصص والشهادات]</div>
                     </div>
                     <div style="text-align: right; font-size: 0.82rem; color: #64748b;">
                         <div style="font-weight: 700; color: #0f172a; font-size: 1rem;" data-ar="سند قبض مالي" data-en="PAYMENT RECEIPT">PAYMENT RECEIPT</div>

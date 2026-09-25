@@ -171,6 +171,9 @@ window.applyLanguage = function(lang) {
     });
 
     // 5. Re-render dynamic modules
+    if (typeof window.updateGreetingAndDate === 'function') {
+        window.updateGreetingAndDate();
+    }
     if (typeof window.updateDashboardStats === 'function') {
         window.updateDashboardStats();
     }
@@ -186,6 +189,9 @@ window.applyLanguage = function(lang) {
     if (typeof window.renderTodayAppointments === 'function') {
         window.renderTodayAppointments();
     }
+    if (typeof window.renderLedgerRows === 'function') {
+        window.renderLedgerRows();
+    }
     if (typeof window.renderOutstandingBalancesTable === 'function') {
         window.renderOutstandingBalancesTable();
     }
@@ -197,6 +203,18 @@ window.applyLanguage = function(lang) {
     }
     if (typeof window.updateProfileUI === 'function') {
         window.updateProfileUI();
+    }
+    if (typeof window.renderMedicalServices === 'function') {
+        window.renderMedicalServices();
+    }
+    if (typeof window.renderMedicationTemplates === 'function') {
+        window.renderMedicationTemplates();
+    }
+    if (typeof window.updatePaymentLiveCalculation === 'function') {
+        window.updatePaymentLiveCalculation();
+    }
+    if (typeof window.renderFinancialSettingsForm === 'function' && window.settingsStore?.config?.financial) {
+        window.renderFinancialSettingsForm(window.settingsStore.config.financial);
     }
 };
 
