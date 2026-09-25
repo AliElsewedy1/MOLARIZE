@@ -67,6 +67,8 @@
                             placeholder="Search patient by name, phone or ID... (Ctrl+K)" 
                             data-ar="ابحث عن مريض بالاسم، الهاتف، أو الرقم... (Ctrl+K)" 
                             data-en="Search patient by name, phone or ID... (Ctrl+K)"
+                            data-ar-placeholder="ابحث عن مريض بالاسم، الهاتف، أو الرقم... (Ctrl+K)"
+                            data-en-placeholder="Search patient by name, phone or ID... (Ctrl+K)"
                             style="padding-left: 36px; padding-right: 64px; border-radius: 8px; font-size: 0.88rem; width: 100%;">
                         <kbd style="position: absolute; right: 10px; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-muted); font-family: monospace; pointer-events: none;">Ctrl K</kbd>
                     </div>
@@ -248,7 +250,7 @@
 
             <!-- Search Bar -->
             <div class="search-container" style="margin-top: 1.5rem;">
-                <input type="text" id="patientSearchInput" class="search-input" data-ar="بحث بالاسم، رقم الهاتف، أو رقم الملف..." data-en="Search by name, phone, or ID..." placeholder="Search by name, phone, or ID...">
+                <input type="text" id="patientSearchInput" class="search-input" data-ar="بحث بالاسم، رقم الهاتف، أو رقم الملف..." data-en="Search by name, phone, or ID..." data-ar-placeholder="بحث بالاسم، رقم الهاتف، أو رقم الملف..." data-en-placeholder="Search by name, phone, or ID..." placeholder="Search by name, phone, or ID...">
             </div>
 
             <!-- قسم الجدول -->
@@ -401,7 +403,7 @@
             <p data-ar="تتبع كميات المواد والأدوات الطبية وتنبيهات النواقص." data-en="Track medical supplies, materials, and low-stock alerts.">Track medical supplies, materials, and low-stock alerts.</p>
 
             <div class="search-container" style="margin-top: 1.5rem;">
-                <input type="text" id="inventorySearchInput" class="search-input" data-ar="بحث باسم المادة..." data-en="Search item name..." placeholder="Search item name...">
+                <input type="text" id="inventorySearchInput" class="search-input" data-ar="بحث باسم المادة..." data-en="Search item name..." data-ar-placeholder="بحث باسم المادة..." data-en-placeholder="Search item name..." placeholder="Search item name...">
             </div>
 
             <div class="table-container" style="margin-top: 1rem;">
@@ -456,10 +458,10 @@
                             </button>
                         </div>
                         <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.9rem; color: var(--text-muted);">
-                            <div><strong>ID:</strong> <span id="profilePatientId"></span></div>
-                            <div><strong>Age:</strong> <span id="profilePatientAge"></span></div>
-                            <div><strong>Gender:</strong> <span id="profilePatientGender"></span></div>
-                            <div><strong>Phone:</strong> <span id="profilePatientPhone"></span></div>
+                            <div><strong data-ar="رقم الملف:" data-en="ID:">ID:</strong> <span id="profilePatientId"></span></div>
+                            <div><strong data-ar="العمر:" data-en="Age:">Age:</strong> <span id="profilePatientAge"></span></div>
+                            <div><strong data-ar="النوع:" data-en="Gender:">Gender:</strong> <span id="profilePatientGender"></span></div>
+                            <div><strong data-ar="الهاتف:" data-en="Phone:">Phone:</strong> <span id="profilePatientPhone"></span></div>
                         </div>
                         <div style="display: flex; gap: 0.5rem; margin-top: 0.6rem; align-items: center; flex-wrap: wrap;">
                             <a id="profileCallLink" href="#" class="btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" title="Call">
@@ -557,7 +559,7 @@
 
             <div class="patient-timeline-container" id="patientTimelineContainer">
                 <!-- Timeline items injected via JS -->
-                <div style="text-align: center; color: var(--text-muted); padding: 2rem;">Loading timeline...</div>
+                <div style="text-align: center; color: var(--text-muted); padding: 2rem;" data-ar="جاري تحميل المسار الزمني..." data-en="Loading timeline...">Loading timeline...</div>
             </div>
 
             <!-- Legacy Table bodies required by some existing JS logic before being pushed to timeline -->
@@ -594,7 +596,7 @@
                 </div>
                 <div class="input-group">
                     <label for="patientAge" data-ar="العمر:" data-en="Age:">Age:</label>
-                    <input type="number" id="patientAge" required>
+                    <input type="number" id="patientAge">
                 </div>
                 <div class="input-group">
                     <label for="patientPhone" data-ar="رقم الهاتف:" data-en="Phone Number:">Phone Number:</label>
@@ -653,7 +655,7 @@
 
                 <div class="input-group">
                     <label for="lastVisit" data-ar="آخر زيارة:" data-en="Last Visit:">Last Visit:</label>
-                    <input type="date" id="lastVisit" required>
+                    <input type="date" id="lastVisit">
                 </div>
                 <div class="input-group">
                     <label for="patientNotes" data-ar="ملاحظات (اختياري):" data-en="Notes (Optional):">Notes (Optional):</label>
@@ -683,11 +685,11 @@
                     <!-- Quick Treatment Templates -->
                     <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.4rem;">
                         <span style="font-size: 0.75rem; color: var(--text-muted); width: 100%;" data-ar="قوالب سريعة:" data-en="Quick templates:">Quick templates:</span>
-                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Composite Filling (حشو تجميلي)" data-cost="500">حشو تجميلي</button>
-                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Root Canal Treatment (علاج عصب)" data-cost="1200">علاج عصب</button>
-                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Teeth Scaling & Polishing (تنظيف وتلميع)" data-cost="400">تنظيف وتلميع</button>
-                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Simple Extraction (خلع بسيط)" data-cost="350">خلع بسيط</button>
-                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Zirconia Crown (طربوش زيركون)" data-cost="1800">طربوش زيركون</button>
+                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Composite Filling" data-cost="500" data-ar="حشو تجميلي" data-en="Composite Filling">Composite Filling</button>
+                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Root Canal Treatment" data-cost="1200" data-ar="علاج عصب" data-en="Root Canal">Root Canal</button>
+                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Teeth Scaling & Polishing" data-cost="400" data-ar="تنظيف وتلميع" data-en="Teeth Scaling">Teeth Scaling</button>
+                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Simple Extraction" data-cost="350" data-ar="خلع بسيط" data-en="Simple Extraction">Simple Extraction</button>
+                        <button type="button" class="btn-outline quick-fill-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-val="Zirconia Crown" data-cost="1800" data-ar="طربوش زيركون" data-en="Zirconia Crown">Zirconia Crown</button>
                     </div>
                 </div>
                 <div class="input-group">
@@ -800,11 +802,11 @@
                     <!-- Quick Medication Templates -->
                     <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
                         <span style="font-size: 0.75rem; color: var(--text-muted); width: 100%;" data-ar="أدوية شائعة بنقرة واحدة:" data-en="Quick common meds:">Quick common meds:</span>
-                        <button type="button" class="btn-outline quick-med-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-med="Augmentin 1g tab (1 tab every 12 hrs)">أوجمنتين 1 جم</button>
-                        <button type="button" class="btn-outline quick-med-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-med="Cataflam 50mg tab (1 tab after meals TID)">كتافلام 50 مجم</button>
-                        <button type="button" class="btn-outline quick-med-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-med="Panadol Extra (1-2 tab when needed)">بانادول إكسترا</button>
-                        <button type="button" class="btn-outline quick-med-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-med="Flagyl 500mg tab (1 tab TID)">فلاجيل 500 مجم</button>
-                        <button type="button" class="btn-outline quick-med-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-med="Chlorhexidine 0.12% Mouthwash (Rinse BID)">غسول كلورهيكسيدين</button>
+                        <button type="button" class="btn-outline quick-med-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-med="Augmentin 1g tab (1 tab every 12 hrs)" data-ar="أوجمنتين 1 جم" data-en="Augmentin 1g">Augmentin 1g</button>
+                        <button type="button" class="btn-outline quick-med-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-med="Cataflam 50mg tab (1 tab after meals TID)" data-ar="كتافلام 50 مجم" data-en="Cataflam 50mg">Cataflam 50mg</button>
+                        <button type="button" class="btn-outline quick-med-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-med="Panadol Extra (1-2 tab when needed)" data-ar="بانادول إكسترا" data-en="Panadol Extra">Panadol Extra</button>
+                        <button type="button" class="btn-outline quick-med-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-med="Flagyl 500mg tab (1 tab TID)" data-ar="فلاجيل 500 مجم" data-en="Flagyl 500mg">Flagyl 500mg</button>
+                        <button type="button" class="btn-outline quick-med-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-med="Chlorhexidine 0.12% Mouthwash (Rinse BID)" data-ar="غسول كلورهيكسيدين" data-en="Chlorhexidine Mouthwash">Chlorhexidine Mouthwash</button>
                     </div>
 
                     <textarea id="prescMeds" rows="4" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);"></textarea>
@@ -819,39 +821,162 @@
 
     <!-- Modal for Appointments -->
     <div id="appointmentModal" class="modal">
-        <div class="modal-content">
-            <h3 data-ar="إضافة موعد" data-en="Add Appointment">Add Appointment</h3>
-            <form id="appointmentForm">
-                <input type="hidden" id="appointmentId">
-                <div class="input-group" style="position: relative;">
-                    <label for="apptPatientName" data-ar="المريض (بحث بالاسم، الهاتف، أو الرقم):" data-en="Patient (Search Name, Phone, ID):">Patient (Search Name, Phone, ID):</label>
-                    <input type="text" id="apptPatientName" autocomplete="off" placeholder="Search..." required>
-                    <input type="hidden" id="apptPatientId">
-                    <div id="apptPatientDropdown" class="autocomplete-dropdown" style="display: none;"></div>
-                    <button type="button" id="btnQuickAddPatient" class="btn-outline" style="margin-top: 0.5rem; width: 100%; font-size: 0.85rem;" data-ar="+ تسجيل مريض جديد" data-en="+ Register New Patient">+ Register New Patient</button>
+        <div class="modal-content" style="max-width: 520px; max-height: 90vh; overflow-y: auto;">
+            <!-- Appointment Details View -->
+            <div id="appointmentFormContainer">
+                <h3 data-ar="إضافة موعد" data-en="Add Appointment">Add Appointment</h3>
+                <form id="appointmentForm">
+                    <input type="hidden" id="appointmentId">
+                    <div class="input-group" style="position: relative;">
+                        <label for="apptPatientName" data-ar="المريض (بحث بالاسم، الهاتف، أو الرقم):" data-en="Patient (Search Name, Phone, ID):">Patient (Search Name, Phone, ID):</label>
+                        <input type="text" id="apptPatientName" autocomplete="off" placeholder="Search..." required>
+                        <input type="hidden" id="apptPatientId">
+                        <div id="apptPatientDropdown" class="autocomplete-dropdown" style="display: none;"></div>
+                        <button type="button" id="btnQuickAddPatient" class="btn-outline" style="margin-top: 0.5rem; width: 100%; font-size: 0.88rem;" data-ar="+ تسجيل مريض جديد" data-en="+ Register New Patient">+ Register New Patient</button>
+                    </div>
+                    <div class="input-group">
+                        <label for="apptDate" data-ar="التاريخ:" data-en="Date:">Date:</label>
+                        <input type="date" id="apptDate" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="apptTime" data-ar="الوقت:" data-en="Time:">Time:</label>
+                        <input type="time" id="apptTime" required>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="cancelApptBtn" data-ar="إلغاء" data-en="Cancel">Cancel</button>
+                        <button type="submit" class="btn-primary" data-ar="حفظ" data-en="Save">Save</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Full Patient Registration View Embedded Inside Appointment Modal -->
+            <div id="embeddedPatientFormContainer" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.15rem; color: var(--primary-color);" data-ar="📋 استمارة مريض جديد كاملة" data-en="📋 Full Patient Registration">📋 استمارة مريض جديد كاملة</h3>
+                        <p style="margin: 0.25rem 0 0; font-size: 0.8rem; color: var(--text-muted);" data-ar="سيتم حفظ المريض واختياره تلقائياً في الموعد" data-en="Patient will be saved and selected for appointment">سيتم حفظ المريض واختياره تلقائياً في الموعد</p>
+                    </div>
+                    <button type="button" id="btnBackToAppointment" class="btn-secondary" style="padding: 0.4rem 0.75rem; font-size: 0.82rem;" data-ar="🔙 رجوع للموعد" data-en="🔙 Back">🔙 رجوع للموعد</button>
                 </div>
-                <div class="input-group">
-                    <label for="apptDate" data-ar="التاريخ:" data-en="Date:">Date:</label>
-                    <input type="date" id="apptDate" required>
-                </div>
-                <div class="input-group">
-                    <label for="apptTime" data-ar="الوقت:" data-en="Time:">Time:</label>
-                    <input type="time" id="apptTime" required>
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn-secondary" id="cancelApptBtn" data-ar="إلغاء" data-en="Cancel">Cancel</button>
-                    <button type="submit" class="btn-primary" data-ar="حفظ" data-en="Save">Save</button>
-                </div>
-            </form>
+                
+                <form id="embeddedPatientForm">
+                    <div class="input-group">
+                        <label for="embeddedPatientName" data-ar="اسم المريض:" data-en="Patient Name:">Patient Name:</label>
+                        <input type="text" id="embeddedPatientName" required placeholder="Full patient name" data-ar-placeholder="اسم المريض بالكامل" data-en-placeholder="Full patient name">
+                    </div>
+                    <div class="input-group">
+                        <label for="embeddedPatientGender" data-ar="النوع:" data-en="Gender:">Gender:</label>
+                        <select id="embeddedPatientGender" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);">
+                            <option value="Male" data-ar="ذكر" data-en="Male">Male</option>
+                            <option value="Female" data-ar="أنثى" data-en="Female">Female</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="embeddedPatientAge" data-ar="العمر:" data-en="Age:">Age:</label>
+                        <input type="number" id="embeddedPatientAge" placeholder="e.g. 32" data-ar-placeholder="مثال: 32" data-en-placeholder="e.g. 32">
+                    </div>
+                    <div class="input-group">
+                        <label for="embeddedPatientPhone" data-ar="رقم الهاتف الأساسي:" data-en="Primary Phone:">Primary Phone:</label>
+                        <input type="tel" id="embeddedPatientPhone" required placeholder="01xxxxxxxxx" data-ar-placeholder="01xxxxxxxxx" data-en-placeholder="01xxxxxxxxx">
+                    </div>
+                    <div class="input-group">
+                        <label for="embeddedPatientPhone2" data-ar="رقم هاتف إضافي (اختياري):" data-en="Phone 2 (Optional):">Phone 2 (Optional):</label>
+                        <input type="tel" id="embeddedPatientPhone2" placeholder="01xxxxxxxxx" data-ar-placeholder="01xxxxxxxxx" data-en-placeholder="01xxxxxxxxx">
+                    </div>
+                    <div class="input-group" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 120px;">
+                            <label for="embeddedCallPref" data-ar="رقم المكالمات:" data-en="Call Number:">Call Number:</label>
+                            <select id="embeddedCallPref" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);">
+                                <option value="phone1" data-ar="الرقم الأول" data-en="Phone 1">Phone 1</option>
+                                <option value="phone2" data-ar="الرقم الإضافي" data-en="Phone 2">Phone 2</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1; min-width: 120px;">
+                            <label for="embeddedWaPref" data-ar="رقم الواتساب:" data-en="WhatsApp Number:">WhatsApp Number:</label>
+                            <select id="embeddedWaPref" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);">
+                                <option value="phone1" data-ar="الرقم الأول" data-en="Phone 1">Phone 1</option>
+                                <option value="phone2" data-ar="الرقم الإضافي" data-en="Phone 2">Phone 2</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label data-ar="التحذيرات الطبية:" data-en="Medical Alerts:">Medical Alerts:</label>
+                        <div class="medical-alerts-container" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                            <label class="alert-toggle">
+                                <input type="checkbox" value="Diabetes" class="embedded-alert-checkbox">
+                                <span class="alert-chip" data-ar="سكر" data-en="Diabetes">Diabetes</span>
+                            </label>
+                            <label class="alert-toggle">
+                                <input type="checkbox" value="Hypertension" class="embedded-alert-checkbox">
+                                <span class="alert-chip" data-ar="ضغط دم" data-en="Hypertension">Hypertension</span>
+                            </label>
+                            <label class="alert-toggle">
+                                <input type="checkbox" value="Bleeding" class="embedded-alert-checkbox">
+                                <span class="alert-chip" data-ar="سيولة" data-en="Bleeding">Bleeding</span>
+                            </label>
+                            <label class="alert-toggle">
+                                <input type="checkbox" value="Heart Disease" class="embedded-alert-checkbox">
+                                <span class="alert-chip" data-ar="أمراض قلب" data-en="Heart Disease">Heart Disease</span>
+                            </label>
+                            <label class="alert-toggle">
+                                <input type="checkbox" value="Allergies" class="embedded-alert-checkbox">
+                                <span class="alert-chip" data-ar="حساسية" data-en="Allergies">Allergies</span>
+                            </label>
+                            <label class="alert-toggle">
+                                <input type="checkbox" value="Pregnancy" class="embedded-alert-checkbox">
+                                <span class="alert-chip" data-ar="حمل" data-en="Pregnancy">Pregnancy</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="embeddedLastVisit" data-ar="آخر زيارة:" data-en="Last Visit:">Last Visit:</label>
+                        <input type="date" id="embeddedLastVisit">
+                    </div>
+                    <div class="input-group">
+                        <label for="embeddedPatientNotes" data-ar="ملاحظات (اختياري):" data-en="Notes (Optional):">Notes (Optional):</label>
+                        <textarea id="embeddedPatientNotes" rows="2" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);"></textarea>
+                    </div>
+
+                    <div class="modal-actions" style="margin-top: 1.25rem;">
+                        <button type="button" class="btn-secondary" id="cancelEmbeddedPatientBtn" data-ar="إلغاء والرجوع للموعد" data-en="Cancel & Back">Cancel & Back</button>
+                        <button type="submit" class="btn-primary" id="saveEmbeddedPatientBtn" data-ar="💾 حفظ المريض واختياره في الموعد" data-en="💾 Save & Select for Appt">💾 Save & Select for Appt</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
-    <script src="toast.js"></script>
-    <script src="script.js"></script>
-    <script type="module" src="firebase-app-data.js"></script>
-    <script type="module" src="firebase-patients.js"></script>
-    <script type="module" src="firebase-inventory.js"></script>
 
+
+    <!-- Modal for Appointment Details & Cancellation -->
+    <div id="appointmentActionModal" class="modal">
+        <div class="modal-content" style="max-width: 440px; text-align: start;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;" data-ar="📅 تفاصيل وإلغاء الموعد" data-en="📅 Appointment Details & Cancel">📅 Appointment Details & Cancel</h3>
+                <button type="button" id="closeApptActionModalBtn" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+            </div>
+            
+            <div style="background: var(--bg-secondary); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem; border: 1px solid var(--border-color);">
+                <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem;" id="actionModalPatientName">-</div>
+                <div style="display: flex; flex-direction: column; gap: 0.4rem; color: var(--text-muted); font-size: 0.9rem;">
+                    <div>📅 <strong style="color: var(--text-primary);" data-ar="التاريخ:" data-en="Date:">Date:</strong> <span id="actionModalDate">-</span></div>
+                    <div>🕒 <strong style="color: var(--text-primary);" data-ar="الوقت:" data-en="Time:">Time:</strong> <span id="actionModalTime">-</span></div>
+                    <div id="actionModalPhoneWrapper" style="display: none;">📱 <strong style="color: var(--text-primary);" data-ar="الهاتف:" data-en="Phone:">Phone:</strong> <span id="actionModalPhone">-</span></div>
+                </div>
+            </div>
+
+            <div style="background: rgba(239, 68, 68, 0.1); border-right: 4px solid var(--status-error); padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1.25rem; font-size: 0.88rem; color: var(--text-primary);" data-ar="هل أنت متأكد من رغبتك في إلغاء وحذف هذا الموعد نهائياً؟" data-en="Are you sure you want to cancel and delete this appointment?">
+                Are you sure you want to cancel and delete this appointment?
+            </div>
+
+            <div class="modal-actions" style="display: flex; gap: 0.75rem;">
+                <button type="button" class="btn-secondary" id="cancelApptActionDismissBtn" style="flex: 1;" data-ar="إبقاء الموعد" data-en="Keep Appointment">Keep Appointment</button>
+                <button type="button" id="confirmDeleteApptBtn" class="btn-primary" style="flex: 1; background: var(--status-error); border-color: var(--status-error);" data-ar="🗑️ إلغاء الموعد نهائياً" data-en="🗑️ Cancel Appointment">🗑️ Cancel Appointment</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal for Visits -->
     <div id="visitModal" class="modal">
@@ -862,19 +987,19 @@
                 <div class="input-group">
                     <label for="visitChiefComplaint" data-ar="الشكوى الأساسية (Chief Complaint):" data-en="Chief Complaint:">Chief Complaint:</label>
                     <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.4rem;">
-                        <button type="button" class="btn-outline quick-complaint-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Severe toothache with cold & hot drinks (ألم شديد مع المشروبات الباردة والساخنة)">ألم شديد بالسن</button>
-                        <button type="button" class="btn-outline quick-complaint-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Bleeding gums & calculus buildup (نزيف اللثة وتراكم الجير)">نزيف لثة وتراكم جير</button>
-                        <button type="button" class="btn-outline quick-complaint-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Broken tooth / lost filling (كسر بالسن أو سقوط حشوة قديمة)">كسر بالسن / حشوة</button>
-                        <button type="button" class="btn-outline quick-complaint-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Routine dental checkup (كشف دوري واطمئنان)">فحص دوري</button>
+                        <button type="button" class="btn-outline quick-complaint-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Severe toothache with cold & hot drinks" data-ar="ألم شديد بالسن" data-en="Severe Toothache">Severe Toothache</button>
+                        <button type="button" class="btn-outline quick-complaint-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Bleeding gums & calculus buildup" data-ar="نزيف لثة وتراكم جير" data-en="Bleeding Gums">Bleeding Gums</button>
+                        <button type="button" class="btn-outline quick-complaint-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Broken tooth / lost filling" data-ar="كسر بالسن / حشوة" data-en="Broken Tooth">Broken Tooth</button>
+                        <button type="button" class="btn-outline quick-complaint-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Routine dental checkup" data-ar="فحص دوري" data-en="Routine Checkup">Routine Checkup</button>
                     </div>
                     <input type="text" id="visitChiefComplaint" required>
                 </div>
                 <div class="input-group">
                     <label for="visitNotes" data-ar="التشخيص والملاحظات (Clinical Notes):" data-en="Diagnosis & Notes:">Diagnosis & Notes:</label>
                     <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.4rem;">
-                        <button type="button" class="btn-outline quick-notes-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Irreversible pulpitis. Indicated for root canal treatment.">عصب غير رجعي (RCT)</button>
-                        <button type="button" class="btn-outline quick-notes-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Class II dental caries. Cavity prepped and composite restoration done.">تسوس عميق (حشو تجميلي)</button>
-                        <button type="button" class="btn-outline quick-notes-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Generalized marginal gingivitis. Full ultrasonic scaling performed.">تنظيف جير بالموجات فوق الصوتية</button>
+                        <button type="button" class="btn-outline quick-notes-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Irreversible pulpitis. Indicated for root canal treatment." data-ar="عصب غير رجعي (RCT)" data-en="Irreversible Pulpitis (RCT)">Irreversible Pulpitis (RCT)</button>
+                        <button type="button" class="btn-outline quick-notes-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Class II dental caries. Cavity prepped and composite restoration done." data-ar="تسوس عميق (حشو تجميلي)" data-en="Class II Caries (Composite)">Class II Caries (Composite)</button>
+                        <button type="button" class="btn-outline quick-notes-btn" style="padding: 2px 7px; font-size: 0.75rem;" data-text="Generalized marginal gingivitis. Full ultrasonic scaling performed." data-ar="تنظيف جير" data-en="Full Ultrasonic Scaling">Full Ultrasonic Scaling</button>
                     </div>
                     <textarea id="visitNotes" rows="4" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);" required></textarea>
                 </div>
@@ -916,5 +1041,10 @@
         </div>
     </div>
 
+    <script src="toast.js"></script>
+    <script src="script.js"></script>
+    <script type="module" src="firebase-app-data.js"></script>
+    <script type="module" src="firebase-patients.js"></script>
+    <script type="module" src="firebase-inventory.js"></script>
 </body>
 </html>

@@ -15,6 +15,8 @@ window.openNewPatientModal = function() {
     if (pForm) pForm.reset();
     const pId = document.getElementById('patientId');
     if (pId) pId.value = '';
+    const lastVisitEl = document.getElementById('lastVisit');
+    if (lastVisitEl) lastVisitEl.value = new Date().toISOString().split('T')[0];
     const modalTitle = document.getElementById('patientModalTitle');
     const isAr = document.documentElement.lang === 'ar';
     if (modalTitle) {
@@ -139,25 +141,26 @@ function renderPatients(patientsToRender = currentPatients) {
     let displayPhone = patient.phone || '-';
     if (patient.phone2) displayPhone += ` / ${patient.phone2}`;
 
+    const isAr = document.documentElement.lang === 'ar';
     row.style.cursor = 'pointer';
     row.innerHTML = `
       <td onclick="window.openPatientProfile('${patient.id}')" style="cursor: pointer;">${displayId}</td>
       <td onclick="window.openPatientProfile('${patient.id}')" style="font-weight: 600; color: var(--brand-primary); cursor: pointer; text-decoration: underline; text-decoration-color: transparent; transition: text-decoration-color 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;" onmouseover="this.style.textDecorationColor='var(--brand-primary)'" onmouseout="this.style.textDecorationColor='transparent'">${patient.name || 'Unknown'}</td>
       <td>
         <span onclick="window.openPatientProfile('${patient.id}')" style="white-space: nowrap; cursor: pointer;">${displayPhone}</span>
-        <a href="tel:${cleanCallPhone}" style="color:var(--brand-primary); text-decoration:none; margin-left:0.5rem; display:inline-flex; align-items:center;" title="Call">
+        <a href="tel:${cleanCallPhone}" style="color:var(--brand-primary); text-decoration:none; margin-left:0.5rem; display:inline-flex; align-items:center;" title="${isAr ? 'اتصال' : 'Call'}">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
         </a>
-        <a href="https://wa.me/${waLinkPhone}" target="_blank" style="color:#25D366; text-decoration:none; margin-left:0.5rem; display:inline-flex; align-items:center;" title="WhatsApp">
+        <a href="https://wa.me/${waLinkPhone}" target="_blank" style="color:#25D366; text-decoration:none; margin-left:0.5rem; display:inline-flex; align-items:center;" title="${isAr ? 'واتساب' : 'WhatsApp'}">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
         </a>
       </td>
       <td onclick="window.openPatientProfile('${patient.id}')">${patient.lastVisit || '-'}</td>
       <td>
-        <button class="btn-action btn-edit" onclick="window.editPatient('${patient.id}')" style="display:inline-flex; align-items:center; gap:3px;" title="تعديل بيانات المريض / Edit">
-            ⚙️ <span data-ar="تعديل" data-en="Edit">Edit</span>
+        <button class="btn-action btn-edit" onclick="window.editPatient('${patient.id}')" style="display:inline-flex; align-items:center; gap:3px;" title="${isAr ? 'تعديل بيانات المريض' : 'Edit Patient'}">
+            ⚙️ <span>${isAr ? 'تعديل' : 'Edit'}</span>
         </button>
-        <button class="btn-action btn-delete" onclick="window.deletePatient('${patient.id}')" title="حذف / Delete">Delete</button>
+        <button class="btn-action btn-delete" onclick="window.deletePatient('${patient.id}')" title="${isAr ? 'حذف' : 'Delete'}">${isAr ? 'حذف' : 'Delete'}</button>
       </td>
     `;
     tbody.appendChild(row);
@@ -223,32 +226,39 @@ if (patientForm) {
         const name = document.getElementById('patientName').value.trim();
         const phone = document.getElementById('patientPhone').value.trim();
         const gender = document.getElementById('patientGender').value;
-        const lastVisit = document.getElementById('lastVisit').value;
+        const lastVisit = document.getElementById('lastVisit').value || new Date().toISOString().split('T')[0];
 
         const age = document.getElementById('patientAge').value;
         const phone2 = document.getElementById('patientPhone2').value.trim();
         const callPref = document.getElementById('callPref').value;
         const waPref = document.getElementById('waPref').value;
         const notes = document.getElementById('patientNotes').value.trim();
+        const isAr = document.documentElement.lang === 'ar';
 
-        // Validation for 3 words
-        if (name.split(/\s+/).length < 3) {
-            alert('يرجى إدخال اسم المريض الثلاثي (3 كلمات على الأقل). / Please enter the full name (at least 3 words).');
+        // Validation for name
+        if (!name || name.length < 2) {
+            if (window.showToast) {
+                window.showToast(isAr ? 'يرجى إدخال اسم المريض (حرفين على الأقل)' : 'Please enter patient name (at least 2 letters)', 'warning');
+            }
             return;
         }
 
-        // Validation for 11 digits
+        // Validation for phone
         const cleanPhoneSubmit = phone.replace(/\D/g, '');
-        if (cleanPhoneSubmit.length !== 11) {
-            alert('يجب أن يكون رقم الهاتف مكون من 11 رقماً. / Phone number must be exactly 11 digits.');
+        if (cleanPhoneSubmit.length < 7) {
+            if (window.showToast) {
+                window.showToast(isAr ? 'يرجى إدخال رقم هاتف صحيح (7 أرقام على الأقل)' : 'Please enter a valid phone number (at least 7 digits)', 'warning');
+            }
             return;
         }
 
         // Validation for phone 2 if provided
         if (phone2) {
             const cleanPhone2Submit = phone2.replace(/\D/g, '');
-            if (cleanPhone2Submit.length !== 11) {
-                alert('يجب أن يكون رقم الهاتف الإضافي مكون من 11 رقماً. / Additional phone number must be exactly 11 digits.');
+            if (cleanPhone2Submit.length < 7) {
+                if (window.showToast) {
+                    window.showToast(isAr ? 'يرجى إدخال رقم هاتف إضافي صحيح' : 'Please enter a valid additional phone number', 'warning');
+                }
                 return;
             }
         }
@@ -258,9 +268,11 @@ if (patientForm) {
         submitBtn.innerText = '...';
         submitBtn.disabled = true;
 
+        let savedPatientId = idField;
+
         try {
             if (!currentUserUid) {
-                alert("User not authenticated.");
+                if (window.showToast) window.showToast(isAr ? 'المستخدم غير مسجل دخول' : 'User not authenticated', 'error');
                 return;
             }
             if (idField) {
@@ -296,7 +308,7 @@ if (patientForm) {
 
                 // 2. Add the patient
                 const patientsRef = collection(db, "users", currentUserUid, "patients");
-                await addDoc(patientsRef, {
+                const newDoc = await addDoc(patientsRef, {
                     name: name,
                     phone: phone,
                     phone2: phone2,
@@ -310,6 +322,8 @@ if (patientForm) {
                     displayId: newDisplayId.toString(),
                     createdAt: new Date().toISOString()
                 });
+
+                savedPatientId = newDoc.id;
 
                 // 3. Update the counter
                 await setDoc(counterRef, { patientCount: newDisplayId }, { merge: true });
@@ -328,7 +342,6 @@ if (patientForm) {
                 window.updateDashboardStats();
             }
 
-            const isAr = document.documentElement.lang === 'ar';
             if (window.showToast) {
                 window.showToast(idField ? 
                     (isAr ? 'تم حفظ تعديلات المريض بنجاح' : 'Patient details updated successfully!') : 
@@ -337,9 +350,32 @@ if (patientForm) {
 
             if(window.closeModalAndPopState) window.closeModalAndPopState(patientModal);
             else patientModal.classList.remove('show');
+
+            // If there is a pending appointment flow, restore the appointment modal with the newly saved patient
+            if (window.pendingAppointmentData) {
+                const apptModal = document.getElementById('appointmentModal');
+                const apptPatientInput = document.getElementById('apptPatientName');
+                const apptPatientId = document.getElementById('apptPatientId');
+                const apptDate = document.getElementById('apptDate');
+                const apptTime = document.getElementById('apptTime');
+                const apptId = document.getElementById('appointmentId');
+
+                if (apptModal && apptPatientInput && apptPatientId) {
+                    apptPatientInput.value = name;
+                    apptPatientId.value = savedPatientId || '';
+                    if (apptDate && window.pendingAppointmentData.date) apptDate.value = window.pendingAppointmentData.date;
+                    if (apptTime && window.pendingAppointmentData.time) apptTime.value = window.pendingAppointmentData.time;
+                    if (apptId && window.pendingAppointmentData.appointmentId) apptId.value = window.pendingAppointmentData.appointmentId;
+
+                    apptModal.classList.add('show');
+                    if (window.showToast) {
+                        window.showToast(isAr ? 'تم تحديد المريض المسجل في الموعد!' : 'Patient selected for appointment!', 'info');
+                    }
+                    window.pendingAppointmentData = null;
+                }
+            }
         } catch (e) {
             console.error("Error saving patient: ", e);
-            const isAr = document.documentElement.lang === 'ar';
             if (window.showToast) {
                 window.showToast(isAr ? 'حدث خطأ أثناء حفظ بيانات المريض' : 'Error saving patient data. Please try again.', 'error');
             } else {
@@ -452,20 +488,20 @@ window.openPatientProfile = function(patientId) {
     if (!patient) return;
 
     // Set Info
+    const isArabic = (document.documentElement.lang || 'en') === 'ar';
     document.getElementById('profilePatientName').innerText = patient.name;
     document.getElementById('profilePatientId').innerText = patient.displayId || patient.id.substring(0, 6);
     document.getElementById('profilePatientAge').innerText = patient.age || '-';
-    document.getElementById('profilePatientGender').innerText = patient.gender || '-';
+    document.getElementById('profilePatientGender').innerText = window.formatGender ? window.formatGender(patient.gender, isArabic) : (patient.gender || '-');
     document.getElementById('profilePatientPhone').innerText = patient.phone;
 
     // Medical Alerts logic
     const alertsBox = document.getElementById('profileMedicalAlertsBox');
     const alertsText = document.getElementById('profileMedicalAlerts');
     if (patient.medicalAlerts && patient.medicalAlerts.trim() !== '') {
-        alertsText.innerText = patient.medicalAlerts;
+        alertsText.innerText = window.translateMedicalAlerts ? window.translateMedicalAlerts(patient.medicalAlerts, isArabic) : patient.medicalAlerts;
         const alertLabel = alertsBox.querySelector('strong');
         if (alertLabel) {
-            const isArabic = document.documentElement.getAttribute('lang') === 'ar';
             alertLabel.innerText = isArabic ? alertLabel.getAttribute('data-ar') || '⚠️ تنبيه طبي:' : alertLabel.getAttribute('data-en') || '⚠️ Medical Alert:';
         }
         alertsBox.style.display = 'flex';
@@ -484,8 +520,7 @@ window.openPatientProfile = function(patientId) {
 
     if (callLink) callLink.href = cleanCall ? `tel:${cleanCall}` : '#';
     if (waLink) {
-        const isAr = document.documentElement.lang === 'ar';
-        const defaultMsg = isAr ? 
+        const defaultMsg = isArabic ? 
             `مرحباً ${patient.name}، معك عيادة الأسنان بخصوص موعدكم القادم.` : 
             `Hello ${patient.name}, this is your dental clinic regarding your upcoming appointment.`;
         waLink.href = cleanWa ? `https://wa.me/${fullWa}?text=${encodeURIComponent(defaultMsg)}` : '#';
@@ -506,6 +541,28 @@ window.openPatientProfile = function(patientId) {
     loadOdontogram(patientId);
     loadPatientTimeline(patientId);
     loadPatientGallery(patientId);
+};
+
+window.updateProfileUI = function() {
+    if (!currentProfilePatientId) return;
+    const isArabic = (document.documentElement.lang || 'en') === 'ar';
+    const patient = (window.currentPatients || []).find(p => p.id === currentProfilePatientId);
+    if (!patient) return;
+    const pGender = document.getElementById('profilePatientGender');
+    if (pGender) pGender.innerText = window.formatGender ? window.formatGender(patient.gender, isArabic) : (patient.gender || '-');
+    const alertsBox = document.getElementById('profileMedicalAlertsBox');
+    const alertsText = document.getElementById('profileMedicalAlerts');
+    if (patient.medicalAlerts && patient.medicalAlerts.trim() !== '') {
+        if (alertsText) alertsText.innerText = window.translateMedicalAlerts ? window.translateMedicalAlerts(patient.medicalAlerts, isArabic) : patient.medicalAlerts;
+        if (alertsBox) {
+            const alertLabel = alertsBox.querySelector('strong');
+            if (alertLabel) alertLabel.innerText = isArabic ? alertLabel.getAttribute('data-ar') || '⚠️ تنبيه طبي:' : alertLabel.getAttribute('data-en') || '⚠️ Medical Alert:';
+        }
+    }
+    const allergyText = document.getElementById('prescAllergyText');
+    if (allergyText && patient.medicalAlerts) {
+        allergyText.innerText = window.translateMedicalAlerts ? window.translateMedicalAlerts(patient.medicalAlerts, isArabic) : patient.medicalAlerts;
+    }
 };
 
 window.printPatientSummary = function() {
@@ -882,12 +939,14 @@ window.loadPatientTimeline = async function(patientId) {
 
 function renderTimeline(filter = 'all') {
     const container = document.getElementById('patientTimelineContainer');
+    if (!container) return;
     container.innerHTML = '';
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
 
     const filtered = currentTimelineEvents.filter(e => filter === 'all' || e.type === filter);
 
     if (filtered.length === 0) {
-        container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 2rem;">No events found.</div>';
+        container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 2rem;">${isAr ? 'لا توجد أحداث مسجلة في المسار الزمني' : 'No events found in timeline.'}</div>`;
         return;
     }
 
@@ -898,60 +957,75 @@ function renderTimeline(filter = 'all') {
         let icon = '';
         let title = '';
         let details = '';
-        const displayDate = new Date(event.date).toLocaleDateString() + ' ' + new Date(event.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const eventDateObj = new Date(event.date);
+        const timePart = eventDateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const displayDate = window.formatDate ? `${window.formatDate(event.date)} ${timePart}` : `${eventDateObj.toLocaleDateString()} ${timePart}`;
 
         if (event.type === 'visit') {
             icon = '🔵';
-            title = 'Clinical Visit';
+            title = isAr ? 'زيارة كشف وعيادة' : 'Clinical Visit';
             details = `
-                <p><strong>Chief Complaint:</strong> ${escapeHtml(event.data.complaint)}</p>
-                <p style="white-space: pre-wrap;"><strong>Notes:</strong><br>${escapeHtml(event.data.notes)}</p>
+                <p><strong>${isAr ? 'الشكوى الأساسية:' : 'Chief Complaint:'}</strong> ${escapeHtml(event.data.complaint)}</p>
+                <p style="white-space: pre-wrap;"><strong>${isAr ? 'الملاحظات والتشخيص:' : 'Notes:'}</strong><br>${escapeHtml(event.data.notes)}</p>
                 <div style="margin-top: 1rem;">
-                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.editVisit('${event.id}')">Edit</button>
-                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; color: var(--status-error); border-color: var(--status-error);" onclick="window.deleteVisit('${event.id}')">Delete</button>
+                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.editVisit('${event.id}')">${isAr ? 'تعديل' : 'Edit'}</button>
+                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; color: var(--status-error); border-color: var(--status-error);" onclick="window.deleteVisit('${event.id}')">${isAr ? 'حذف' : 'Delete'}</button>
                 </div>
             `;
         } else if (event.type === 'treatment') {
             icon = '🟣';
-            const typeStr = event.data.type || event.data.treatmentType;
-            title = 'Treatment: ' + typeStr;
+            const typeStr = event.data.type || event.data.treatmentType || '';
+            title = isAr ? ('خطة علاج: ' + typeStr) : ('Treatment: ' + typeStr);
             const total = parseFloat(event.data.cost) || 0;
             const paid = parseFloat(event.data.paidAmount) || 0;
             const rem = total - paid;
+            const statusLabel = isAr ? 
+                (event.data.status === 'Completed' ? 'مكتمل' : (event.data.status === 'In Progress' ? 'جاري المعالجة' : 'قيد الانتظار')) :
+                (event.data.status || 'Pending');
 
             details = `
-                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
-                    <span><strong>Total:</strong> ${total}</span>
-                    <span><strong>Paid:</strong> ${paid}</span>
-                    <span style="color: ${rem > 0 ? 'var(--status-error)' : 'var(--status-completed)'}"><strong>Remaining:</strong> ${rem}</span>
-                    <span><strong>Status:</strong> <span class="status-badge ${event.data.status === 'Completed' ? 'status-completed' : (event.data.status === 'In Progress' ? 'status-inprogress' : 'status-pending')}">${event.data.status}</span></span>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px;">
+                    <span><strong>${isAr ? 'الإجمالي:' : 'Total:'}</strong> ${window.formatCurrency ? window.formatCurrency(total) : total}</span>
+                    <span><strong>${isAr ? 'المدفوع:' : 'Paid:'}</strong> ${window.formatCurrency ? window.formatCurrency(paid) : paid}</span>
+                    <span style="color: ${rem > 0 ? 'var(--status-error)' : 'var(--status-completed)'}"><strong>${isAr ? 'المتبقي:' : 'Remaining:'}</strong> ${window.formatCurrency ? window.formatCurrency(rem) : rem}</span>
+                    <span><strong>${isAr ? 'الحالة:' : 'Status:'}</strong> <span class="status-badge ${event.data.status === 'Completed' ? 'status-completed' : (event.data.status === 'In Progress' ? 'status-inprogress' : 'status-pending')}">${statusLabel}</span></span>
                 </div>
                 <div>
-                    ${rem > 0 ? `<button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.openPaymentModal('${event.id}', '${currentProfilePatientId}', '${document.getElementById('profilePatientName').innerText}', '${typeStr}')">Pay Now</button>` : ''}
-                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.editTreatment('${event.id}')">Edit</button>
-                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; color: var(--status-error); border-color: var(--status-error);" onclick="window.deleteTreatment('${event.id}')">Delete</button>
+                    ${rem > 0 ? `<button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.openPaymentModal('${event.id}', '${currentProfilePatientId}', '${document.getElementById('profilePatientName').innerText}', '${typeStr}')">${isAr ? 'سداد الآن' : 'Pay Now'}</button>` : ''}
+                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.editTreatment('${event.id}')">${isAr ? 'تعديل' : 'Edit'}</button>
+                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; color: var(--status-error); border-color: var(--status-error);" onclick="window.deleteTreatment('${event.id}')">${isAr ? 'حذف' : 'Delete'}</button>
                 </div>
             `;
         } else if (event.type === 'payment') {
             icon = '🟢';
-            title = 'Payment Received';
+            title = isAr ? 'سند قبض / دفعة نقدية' : 'Payment Received';
+            let methodDisplay = event.data.method || '-';
+            const mLower = String(event.data.method || '').toLowerCase();
+            if (mLower === 'cash' || mLower.includes('نقد') || mLower.includes('كاش')) {
+                methodDisplay = isAr ? 'نقداً / كاش' : 'Cash';
+            } else if (mLower === 'visa' || mLower.includes('بطاق') || mLower.includes('فيزا') || mLower.includes('card')) {
+                methodDisplay = isAr ? 'بطاقة / فيزا' : 'Card / Visa';
+            } else if (mLower.includes('vodafone') || mLower.includes('فودافون') || mLower.includes('wallet')) {
+                methodDisplay = isAr ? 'محفظة إلكترونية' : 'E-Wallet';
+            }
+
             details = `
-                <p><strong>Amount:</strong> <span style="color: var(--status-completed); font-weight: bold;">${event.data.amount}</span></p>
-                <p><strong>Method:</strong> ${event.data.method}</p>
-                <p><strong>For Treatment:</strong> ${event.data.treatmentName}</p>
+                <p><strong>${isAr ? 'المبلغ:' : 'Amount:'}</strong> <span style="color: var(--status-completed); font-weight: bold;">${window.formatCurrency ? window.formatCurrency(event.data.amount) : event.data.amount}</span></p>
+                <p><strong>${isAr ? 'طريقة الدفع:' : 'Method:'}</strong> ${methodDisplay}</p>
+                <p><strong>${isAr ? 'لخطة علاج:' : 'For Treatment:'}</strong> ${event.data.treatmentName || '-'}</p>
                 <div style="margin-top: 1rem;">
-                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.editPayment('${event.id}')">Edit</button>
-                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; color: var(--status-error); border-color: var(--status-error);" onclick="window.deletePayment('${event.id}', '${event.data.treatmentId}', ${parseFloat(event.data.amount) || 0})">Delete</button>
+                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.editPayment('${event.id}')">${isAr ? 'تعديل' : 'Edit'}</button>
+                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; color: var(--status-error); border-color: var(--status-error);" onclick="window.deletePayment('${event.id}', '${event.data.treatmentId}', ${parseFloat(event.data.amount) || 0})">${isAr ? 'حذف' : 'Delete'}</button>
                 </div>
             `;
         } else if (event.type === 'prescription') {
             icon = '💊';
-            title = 'Prescription';
+            title = isAr ? 'روشتة طبية' : 'Prescription';
             details = `
-                <p style="white-space: pre-wrap;"><strong>Medications:</strong><br>${escapeHtml(event.data.medications)}</p>
+                <p style="white-space: pre-wrap;"><strong>${isAr ? 'الأدوية والجرعات:' : 'Medications:'}</strong><br>${escapeHtml(event.data.medications)}</p>
                 <div style="margin-top: 1rem;">
-                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.editPrescription('${event.id}')">Edit</button>
-                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; color: var(--status-error); border-color: var(--status-error);" onclick="window.deletePrescription('${event.id}')">Delete</button>
+                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="window.editPrescription('${event.id}')">${isAr ? 'تعديل' : 'Edit'}</button>
+                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; color: var(--status-error); border-color: var(--status-error);" onclick="window.deletePrescription('${event.id}')">${isAr ? 'حذف' : 'Delete'}</button>
                 </div>
             `;
         }
@@ -967,6 +1041,7 @@ function renderTimeline(filter = 'all') {
         container.appendChild(el);
     });
 }
+window.renderTimeline = renderTimeline;
 
 // Attach filter listeners
 document.querySelectorAll('.filter-chips .chip').forEach(chip => {
@@ -1032,7 +1107,8 @@ if (paymentForm) {
                     const newPaid = (currentPaid - originalPaymentAmount) + amount;
                     await updateDoc(tRef, { paidAmount: newPaid });
                 }
-                alert('Payment updated successfully');
+                const isAr = (document.documentElement.lang || 'en') === 'ar';
+                if (window.showToast) window.showToast(isAr ? 'تم تحديث الدفعة بنجاح' : 'Payment updated successfully', 'success');
             } else {
                 // CREATE NEW PAYMENT
                 const paymentsRef = collection(db, 'users', user.uid, 'payments');
@@ -1054,14 +1130,16 @@ if (paymentForm) {
                     const currentPaid = parseFloat(tDoc.data().paidAmount) || 0;
                     await updateDoc(tRef, { paidAmount: currentPaid + amount });
                 }
-                alert('Payment added successfully');
+                const isAr = (document.documentElement.lang || 'en') === 'ar';
+                if (window.showToast) window.showToast(isAr ? 'تم تسجيل الدفعة بنجاح' : 'Payment recorded successfully', 'success');
             }
 
             window.closeModalAndPopState(document.getElementById('paymentModal'));
             loadPatientTimeline(pId);
         } catch (error) {
             console.error("Error saving payment", error);
-            alert("Error saving payment.");
+            const isAr = (document.documentElement.lang || 'en') === 'ar';
+            if (window.showToast) window.showToast(isAr ? 'حدث خطأ أثناء حفظ الدفعة' : 'Error saving payment', 'error');
         }
     });
 

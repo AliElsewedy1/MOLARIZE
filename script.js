@@ -48,31 +48,167 @@ themeToggle.addEventListener('click', () => {
 
 const langToggle = document.getElementById('langToggle');
 
-langToggle.addEventListener('click', () => {
-    const currentLang = htmlElement.getAttribute('lang');
+window.formatCurrency = function(amount) {
+    const isEn = (document.documentElement.lang || 'en') === 'en';
+    const val = Number(amount) || 0;
+    if (isEn) {
+        return `EGP ${val.toLocaleString('en-US')}`;
+    }
+    return `${val.toLocaleString('ar-EG')} ج.م`;
+};
+
+window.formatDate = function(dateStr) {
+    if (!dateStr) return '-';
+    const isEn = (document.documentElement.lang || 'en') === 'en';
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        return d.toLocaleDateString(isEn ? 'en-US' : 'ar-EG', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    } catch (e) {
+        return dateStr;
+    }
+};
+
+window.formatTime = function(timeStr) {
+    if (!timeStr) return '-';
+    const isEn = (document.documentElement.lang || 'en') === 'en';
+    if (/^\d{1,2}:\d{2}$/.test(timeStr)) {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        const ampmEn = hours >= 12 ? 'PM' : 'AM';
+        const ampmAr = hours >= 12 ? 'م' : 'ص';
+        const formattedHours = hours % 12 || 12;
+        return isEn ? `${formattedHours}:${minutes.toString().padStart(2, '0')} ${ampmEn}` : `${formattedHours}:${minutes.toString().padStart(2, '0')} ${ampmAr}`;
+    }
+    return timeStr;
+};
+
+window.translateMedicalAlerts = function(alertsString, isAr) {
+    if (!alertsString || typeof alertsString !== 'string') return '';
+    const mapEnToAr = {
+        'Diabetes': 'سكر',
+        'Hypertension': 'ضغط دم',
+        'Bleeding': 'سيولة',
+        'Heart Disease': 'أمراض قلب',
+        'Allergies': 'حساسية',
+        'Pregnancy': 'حمل'
+    };
+    const mapArToEn = {
+        'سكر': 'Diabetes',
+        'ضغط دم': 'Hypertension',
+        'ضغط': 'Hypertension',
+        'سيولة': 'Bleeding',
+        'أمراض قلب': 'Heart Disease',
+        'قلب': 'Heart Disease',
+        'حساسية': 'Allergies',
+        'حمل': 'Pregnancy'
+    };
+    return alertsString.split(/,\s*/).map(p => {
+        const trimmed = p.trim();
+        if (isAr) return mapEnToAr[trimmed] || trimmed;
+        return mapArToEn[trimmed] || trimmed;
+    }).join(', ');
+};
+
+window.formatGender = function(gender, isAr) {
+    if (!gender) return '-';
+    const g = String(gender).trim().toLowerCase();
+    if (g === 'male' || g === 'ذكر') return isAr ? 'ذكر' : 'Male';
+    if (g === 'female' || g === 'أنثى') return isAr ? 'أنثى' : 'Female';
+    return gender;
+};
+
+window.applyLanguage = function(lang) {
+    const isEn = lang === 'en';
+    htmlElement.setAttribute('lang', isEn ? 'en' : 'ar');
+    htmlElement.setAttribute('dir', isEn ? 'ltr' : 'rtl');
+    try {
+        localStorage.setItem('preferredLang', isEn ? 'en' : 'ar');
+    } catch(e) {}
+
+    if (langToggle) {
+        langToggle.innerText = isEn ? 'عربي / Arabic' : 'English / إنجليزي';
+    }
+
+    // 1. Text elements
     const elementsToTranslate = document.querySelectorAll('[data-ar], [data-en]');
+    elementsToTranslate.forEach(el => {
+        const text = isEn ? (el.getAttribute('data-en') || el.getAttribute('data-ar')) : (el.getAttribute('data-ar') || el.getAttribute('data-en'));
+        if (text) {
+            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                el.placeholder = text;
+            } else if (el.tagName === 'OPTION') {
+                el.textContent = text;
+            } else if (el.children.length === 0) {
+                el.textContent = text;
+            } else {
+                el.innerText = text;
+            }
+        }
+    });
 
-    if (currentLang === 'ar') {
-        htmlElement.setAttribute('lang', 'en');
-        htmlElement.setAttribute('dir', 'ltr'); 
-        
-        elementsToTranslate.forEach(el => {
-            el.innerText = el.getAttribute('data-en');
-        });
-    } else {
-        htmlElement.setAttribute('lang', 'ar');
-        htmlElement.setAttribute('dir', 'rtl'); 
-        
-        elementsToTranslate.forEach(el => {
-            el.innerText = el.getAttribute('data-ar');
-        });
-    }
+    // 2. Placeholder attributes
+    document.querySelectorAll('[data-ar-placeholder], [data-en-placeholder]').forEach(el => {
+        const ph = isEn ? (el.getAttribute('data-en-placeholder') || el.getAttribute('data-ar-placeholder')) : (el.getAttribute('data-ar-placeholder') || el.getAttribute('data-en-placeholder'));
+        if (ph) el.placeholder = ph;
+    });
 
-    // Refresh dashboard stats to update JS-rendered translations
-    if (typeof updateDashboardStats === 'function') {
-        updateDashboardStats();
+    // 3. Title attributes
+    document.querySelectorAll('[data-ar-title], [data-en-title]').forEach(el => {
+        const titleText = isEn ? (el.getAttribute('data-en-title') || el.getAttribute('data-ar-title')) : (el.getAttribute('data-ar-title') || el.getAttribute('data-en-title'));
+        if (titleText) el.title = titleText;
+    });
+
+    // 4. Select options
+    document.querySelectorAll('option[data-ar], option[data-en]').forEach(opt => {
+        opt.textContent = isEn ? (opt.getAttribute('data-en') || opt.getAttribute('data-ar')) : (opt.getAttribute('data-ar') || opt.getAttribute('data-en'));
+    });
+
+    // 5. Re-render dynamic modules
+    if (typeof window.updateDashboardStats === 'function') {
+        window.updateDashboardStats();
     }
-});
+    if (typeof window.renderPatients === 'function' && window.currentPatients) {
+        window.renderPatients();
+    }
+    if (typeof window.renderInventory === 'function') {
+        window.renderInventory();
+    }
+    if (typeof window.renderTreatments === 'function') {
+        window.renderTreatments();
+    }
+    if (typeof window.renderTodayAppointments === 'function') {
+        window.renderTodayAppointments();
+    }
+    if (typeof window.renderOutstandingBalancesTable === 'function') {
+        window.renderOutstandingBalancesTable();
+    }
+    if (typeof window.refreshCurrentDayAppointmentsList === 'function') {
+        window.refreshCurrentDayAppointmentsList();
+    }
+    if (typeof window.renderTimeline === 'function') {
+        window.renderTimeline();
+    }
+    if (typeof window.updateProfileUI === 'function') {
+        window.updateProfileUI();
+    }
+};
+
+if (langToggle) {
+    langToggle.addEventListener('click', () => {
+        const currentLang = htmlElement.getAttribute('lang') || 'en';
+        window.applyLanguage(currentLang === 'en' ? 'ar' : 'en');
+    });
+}
+
+// Initialize on DOM load
+const savedLang = (function() {
+    try { return localStorage.getItem('preferredLang'); } catch(e) { return null; }
+})() || 'en';
+window.applyLanguage(savedLang);
 
 // Patient Management Logic has been moved to firebase-patients.js
 // to use Firebase Firestore instead of Local Storage.

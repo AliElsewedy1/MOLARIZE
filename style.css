@@ -368,6 +368,13 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    cursor: pointer;
+    transition: filter 0.15s ease, box-shadow 0.15s ease;
+}
+.timeline-block:hover {
+    filter: brightness(1.18);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    z-index: 5;
 }
 
 /* Calendar Container */

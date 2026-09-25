@@ -44,21 +44,24 @@ function setupInventoryListener(uid) {
 
 // Render Table
 function renderInventoryTable(items) {
+    if (!inventoryTableBody) return;
     inventoryTableBody.innerHTML = '';
+    const isAr = document.documentElement.lang === 'ar';
+
     items.forEach(item => {
         const isLowStock = parseInt(item.stock) <= parseInt(item.alertLimit);
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
                 ${item.itemName}
-                ${isLowStock ? '<span class="status-badge status-error" style="font-size: 0.7em; margin-left: 5px;">Low Stock</span>' : ''}
+                ${isLowStock ? `<span class="status-badge status-error" style="font-size: 0.7em; margin-inline-start: 5px;">${isAr ? 'مخزون منخفض' : 'Low Stock'}</span>` : ''}
             </td>
             <td>${item.category}</td>
             <td style="${isLowStock ? 'color: var(--status-error); font-weight: bold;' : ''}">${item.stock}</td>
             <td>${item.alertLimit}</td>
             <td>
-                <button class="btn-outline edit-btn" data-id="${item.id}">Edit</button>
-                <button class="btn-outline delete-btn" style="color: var(--status-error); border-color: var(--status-error);" data-id="${item.id}">Delete</button>
+                <button class="btn-outline edit-btn" data-id="${item.id}">${isAr ? 'تعديل' : 'Edit'}</button>
+                <button class="btn-outline delete-btn" style="color: var(--status-error); border-color: var(--status-error);" data-id="${item.id}">${isAr ? 'حذف' : 'Delete'}</button>
             </td>
         `;
         inventoryTableBody.appendChild(tr);
@@ -72,6 +75,7 @@ function renderInventoryTable(items) {
         btn.addEventListener('click', handleDeleteItem);
     });
 }
+window.renderInventory = () => renderInventoryTable(currentInventory);
 
 // Add/Update Item
 inventoryForm.addEventListener('submit', async (e) => {
@@ -102,9 +106,16 @@ inventoryForm.addEventListener('submit', async (e) => {
             });
         }
         window.closeModalAndPopState(inventoryModal);
+        const isAr = document.documentElement.lang === 'ar';
+        if (window.showToast) {
+            window.showToast(isAr ? 'تم حفظ عنصر المخزون بنجاح' : 'Inventory item saved successfully', 'success');
+        }
     } catch (error) {
         console.error("Error saving inventory item:", error);
-        alert("An error occurred while saving the item.");
+        const isAr = document.documentElement.lang === 'ar';
+        if (window.showToast) {
+            window.showToast(isAr ? 'حدث خطأ أثناء حفظ العنصر' : 'An error occurred while saving the item', 'error');
+        }
     }
 });
 
@@ -126,15 +137,21 @@ function handleEditItem(e) {
 
 // Delete Item
 async function handleDeleteItem(e) {
-    if (!confirm("Are you sure you want to delete this item?")) return;
+    const isAr = document.documentElement.lang === 'ar';
+    if (!confirm(isAr ? 'هل أنت متأكد من رغبتك في حذف هذا العنصر؟' : 'Are you sure you want to delete this item?')) return;
     const id = e.target.getAttribute('data-id');
     const user = auth.currentUser;
     if (user && id) {
         try {
             await deleteDoc(doc(db, 'users', user.uid, 'inventory', id));
+            if (window.showToast) {
+                window.showToast(isAr ? 'تم حذف العنصر بنجاح' : 'Item deleted successfully', 'success');
+            }
         } catch (error) {
             console.error("Error deleting item:", error);
-            alert("Error deleting item.");
+            if (window.showToast) {
+                window.showToast(isAr ? 'حدث خطأ أثناء حذف العنصر' : 'Error deleting item', 'error');
+            }
         }
     }
 }

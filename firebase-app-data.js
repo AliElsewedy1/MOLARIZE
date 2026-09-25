@@ -1,5 +1,5 @@
 // This file handles Appointments, Treatment Plans, and Dashboard Stats using Firebase Firestore.
-import { db, auth, onAuthStateChanged, signOut, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot } from "./firebase-config.js";
+import { db, auth, onAuthStateChanged, signOut, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, setDoc, getDoc, onSnapshot } from "./firebase-config.js";
 
 let currentUserUid = null;
 let calendarInstance = null;
@@ -34,6 +34,10 @@ const appointmentForm = document.getElementById('appointmentForm');
 window.openNewAppointmentModal = function() {
     const aModal = document.getElementById('appointmentModal');
     const aForm = document.getElementById('appointmentForm');
+    const apptContainer = document.getElementById('appointmentFormContainer');
+    const embeddedContainer = document.getElementById('embeddedPatientFormContainer');
+    if (apptContainer) apptContainer.style.display = 'block';
+    if (embeddedContainer) embeddedContainer.style.display = 'none';
     if (aForm) aForm.reset();
     const aId = document.getElementById('appointmentId');
     if (aId) aId.value = '';
@@ -256,28 +260,33 @@ function getStatusText(status) {
         if (status === 'In Progress') return 'جاري المعالجة';
         return 'قيد الانتظار';
     }
-    return status;
+    if (status === 'Completed') return 'Completed';
+    if (status === 'In Progress') return 'In Progress';
+    return 'Pending';
 }
 
 function renderTreatments() {
     if (!treatmentsTableBody) return;
     treatmentsTableBody.innerHTML = '';
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
 
     currentTreatments.forEach(treatment => {
         const row = document.createElement('tr');
+        const costFormatted = window.formatCurrency ? window.formatCurrency(treatment.cost) : `$${treatment.cost}`;
         row.innerHTML = `
             <td>${treatment.patientName}</td>
             <td>${treatment.type}</td>
-            <td>$${treatment.cost}</td>
+            <td style="font-weight: 600;">${costFormatted}</td>
             <td><span class="status-badge ${getStatusBadgeClass(treatment.status)}">${getStatusText(treatment.status)}</span></td>
             <td>
-                <button class="btn-action btn-edit" onclick="window.editTreatment('${treatment.id}')">Edit</button>
-                <button class="btn-action btn-delete" onclick="window.deleteTreatment('${treatment.id}')">Delete</button>
+                <button class="btn-action btn-edit" onclick="window.editTreatment('${treatment.id}')">${isAr ? 'تعديل' : 'Edit'}</button>
+                <button class="btn-action btn-delete" onclick="window.deleteTreatment('${treatment.id}')">${isAr ? 'حذف' : 'Delete'}</button>
             </td>
         `;
         treatmentsTableBody.appendChild(row);
     });
 }
+window.renderTreatments = renderTreatments;
 
 if (treatmentForm) {
     treatmentForm.addEventListener('submit', async (event) => {
@@ -428,23 +437,191 @@ if (apptPatientInput) {
     });
 
 
+    const appointmentFormContainer = document.getElementById('appointmentFormContainer');
+    const embeddedPatientFormContainer = document.getElementById('embeddedPatientFormContainer');
+    const embeddedPatientForm = document.getElementById('embeddedPatientForm');
+    const btnBackToAppointment = document.getElementById('btnBackToAppointment');
+    const cancelEmbeddedPatientBtn = document.getElementById('cancelEmbeddedPatientBtn');
+    const saveEmbeddedPatientBtn = document.getElementById('saveEmbeddedPatientBtn');
+
+    const embeddedPatientName = document.getElementById('embeddedPatientName');
+    const embeddedPatientGender = document.getElementById('embeddedPatientGender');
+    const embeddedPatientAge = document.getElementById('embeddedPatientAge');
+    const embeddedPatientPhone = document.getElementById('embeddedPatientPhone');
+    const embeddedPatientPhone2 = document.getElementById('embeddedPatientPhone2');
+    const embeddedCallPref = document.getElementById('embeddedCallPref');
+    const embeddedWaPref = document.getElementById('embeddedWaPref');
+    const embeddedLastVisit = document.getElementById('embeddedLastVisit');
+    const embeddedPatientNotes = document.getElementById('embeddedPatientNotes');
+
+    function showAppointmentView() {
+        if (embeddedPatientFormContainer) embeddedPatientFormContainer.style.display = 'none';
+        if (appointmentFormContainer) appointmentFormContainer.style.display = 'block';
+    }
+
+    function showEmbeddedPatientView() {
+        if (appointmentFormContainer) appointmentFormContainer.style.display = 'none';
+        if (embeddedPatientFormContainer) {
+            embeddedPatientFormContainer.style.display = 'block';
+            if (apptPatientInput && apptPatientInput.value.trim()) {
+                embeddedPatientName.value = apptPatientInput.value.trim();
+            }
+            if (embeddedLastVisit && !embeddedLastVisit.value) {
+                embeddedLastVisit.value = new Date().toISOString().split('T')[0];
+            }
+            // Scroll modal to top
+            const modalContent = appointmentModal.querySelector('.modal-content');
+            if (modalContent) modalContent.scrollTop = 0;
+            embeddedPatientPhone.focus();
+        }
+    }
+
     if (btnQuickAddPatient) {
         btnQuickAddPatient.addEventListener('click', () => {
-            // Close appointment modal
-            if(window.closeModalAndPopState) window.closeModalAndPopState(appointmentModal);
-            else appointmentModal.classList.remove('show');
+            if (apptPatientDropdown) apptPatientDropdown.style.display = 'none';
+            showEmbeddedPatientView();
+        });
+    }
 
-            // Open patient modal
-            const openPatientBtn = document.getElementById('openModalBtn');
-            if (openPatientBtn) openPatientBtn.click();
+    if (btnBackToAppointment) {
+        btnBackToAppointment.addEventListener('click', showAppointmentView);
+    }
 
-            // Pre-fill name if typed
-            setTimeout(() => {
-                const patNameInput = document.getElementById('patientName');
-                if (patNameInput && apptPatientInput.value) {
-                    patNameInput.value = apptPatientInput.value;
+    if (cancelEmbeddedPatientBtn) {
+        cancelEmbeddedPatientBtn.addEventListener('click', showAppointmentView);
+    }
+
+    if (embeddedPatientForm) {
+        embeddedPatientForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = (embeddedPatientName.value || '').trim();
+            const phone = (embeddedPatientPhone.value || '').trim();
+            const phone2 = (embeddedPatientPhone2.value || '').trim();
+            const gender = embeddedPatientGender ? embeddedPatientGender.value : 'Male';
+            const age = embeddedPatientAge ? embeddedPatientAge.value.trim() : '';
+            const callPref = embeddedCallPref ? embeddedCallPref.value : 'phone1';
+            const waPref = embeddedWaPref ? embeddedWaPref.value : 'phone1';
+            const lastVisit = (embeddedLastVisit && embeddedLastVisit.value) ? embeddedLastVisit.value : new Date().toISOString().split('T')[0];
+            const notes = (embeddedPatientNotes && embeddedPatientNotes.value) ? embeddedPatientNotes.value.trim() : '';
+
+            const selectedAlerts = Array.from(document.querySelectorAll('.embedded-alert-checkbox:checked'))
+                .map(cb => cb.value)
+                .join(', ');
+
+            const isAr = document.documentElement.lang === 'ar';
+
+            if (!name || name.length < 2) {
+                if (window.showToast) window.showToast(isAr ? 'يرجى إدخال اسم المريض (حرفين على الأقل)' : 'Please enter patient name', 'warning');
+                embeddedPatientName.focus();
+                return;
+            }
+
+            const cleanPhone = phone.replace(/\D/g, '');
+            if (cleanPhone.length < 7) {
+                if (window.showToast) window.showToast(isAr ? 'يرجى إدخال رقم هاتف صحيح (7 أرقام على الأقل)' : 'Valid phone required (at least 7 digits)', 'warning');
+                embeddedPatientPhone.focus();
+                return;
+            }
+
+            if (phone2) {
+                const cleanPhone2 = phone2.replace(/\D/g, '');
+                if (cleanPhone2.length < 7) {
+                    if (window.showToast) window.showToast(isAr ? 'يرجى إدخال رقم هاتف إضافي صحيح' : 'Valid additional phone required', 'warning');
+                    embeddedPatientPhone2.focus();
+                    return;
                 }
-            }, 100);
+            }
+
+            if (!currentUserUid) {
+                if (window.showToast) window.showToast(isAr ? 'المستخدم غير مسجل دخول' : 'User not authenticated', 'error');
+                return;
+            }
+
+            const submitBtn = saveEmbeddedPatientBtn || embeddedPatientForm.querySelector('button[type="submit"]');
+            const prevText = submitBtn ? submitBtn.innerText : '';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerText = '...';
+            }
+
+            try {
+                // 1. Get sequential displayId from counter
+                const counterRef = doc(db, "users", currentUserUid, "metadata", "counters");
+                const counterDoc = await getDoc(counterRef);
+                let currentCount = 0;
+                if (counterDoc.exists() && counterDoc.data().patientCount) {
+                    currentCount = counterDoc.data().patientCount;
+                }
+                const newDisplayId = currentCount + 1;
+
+                // 2. Add complete patient document
+                const patientsRef = collection(db, "users", currentUserUid, "patients");
+                const newDoc = await addDoc(patientsRef, {
+                    name: name,
+                    phone: phone,
+                    phone2: phone2,
+                    gender: gender,
+                    age: age,
+                    callPref: callPref,
+                    waPref: waPref,
+                    medicalAlerts: selectedAlerts,
+                    lastVisit: lastVisit,
+                    notes: notes,
+                    displayId: newDisplayId.toString(),
+                    createdAt: new Date().toISOString()
+                });
+
+                // 3. Update counter
+                await setDoc(counterRef, { patientCount: newDisplayId }, { merge: true });
+
+                const newPatientObj = {
+                    id: newDoc.id,
+                    name: name,
+                    phone: phone,
+                    phone2: phone2,
+                    gender: gender,
+                    age: age,
+                    callPref: callPref,
+                    waPref: waPref,
+                    medicalAlerts: selectedAlerts,
+                    displayId: newDisplayId.toString(),
+                    lastVisit: lastVisit
+                };
+
+                if (window.currentPatients) {
+                    window.currentPatients.push(newPatientObj);
+                }
+
+                // 4. Return to appointment view and select patient
+                showAppointmentView();
+                apptPatientInput.value = name;
+                apptPatientId.value = newDoc.id;
+                if (apptPatientDropdown) apptPatientDropdown.style.display = 'none';
+
+                // Reset embedded form
+                embeddedPatientForm.reset();
+
+                if (window.showToast) {
+                    window.showToast(isAr ? `تم حفظ ملف المريض (${name}) برقم #${newDisplayId} واختياره في الموعد!` : `Patient (${name}) saved and selected!`, 'success');
+                }
+
+                // Refresh patients list in background
+                if (window.loadPatients) {
+                    window.loadPatients();
+                }
+                if (typeof window.updateDashboardStats === 'function') {
+                    window.updateDashboardStats();
+                }
+            } catch (err) {
+                console.error('Error saving embedded patient:', err);
+                if (window.showToast) window.showToast(isAr ? 'حدث خطأ أثناء حفظ ملف المريض' : 'Error saving patient', 'error');
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = prevText;
+                }
+            }
         });
     }
 
@@ -461,6 +638,10 @@ if (apptPatientInput) {
 
 if (openAppointmentModalBtn) {
     openAppointmentModalBtn.addEventListener('click', () => {
+        const apptContainer = document.getElementById('appointmentFormContainer');
+        const embeddedContainer = document.getElementById('embeddedPatientFormContainer');
+        if (apptContainer) apptContainer.style.display = 'block';
+        if (embeddedContainer) embeddedContainer.style.display = 'none';
         appointmentForm.reset();
         document.getElementById('appointmentId').value = '';
         appointmentModal.classList.add('show');
@@ -546,16 +727,142 @@ if (appointmentForm) {
     });
 }
 
-window.deleteAppointmentFromCalendar = async function(id) {
-    if (confirm('Delete this appointment?')) {
+// ---------------------------------------------------------
+// Appointment Action & Cancellation Modal Logic
+// ---------------------------------------------------------
+let activeAppointmentToDelete = null;
+
+const appointmentActionModal = document.getElementById('appointmentActionModal');
+const closeApptActionModalBtn = document.getElementById('closeApptActionModalBtn');
+const cancelApptActionDismissBtn = document.getElementById('cancelApptActionDismissBtn');
+const confirmDeleteApptBtn = document.getElementById('confirmDeleteApptBtn');
+const actionModalPatientName = document.getElementById('actionModalPatientName');
+const actionModalDate = document.getElementById('actionModalDate');
+const actionModalTime = document.getElementById('actionModalTime');
+const actionModalPhone = document.getElementById('actionModalPhone');
+const actionModalPhoneWrapper = document.getElementById('actionModalPhoneWrapper');
+
+window.openAppointmentActionModal = function(apptOrId) {
+    let appt = null;
+    if (typeof apptOrId === 'string') {
+        appt = currentAppointments.find(a => a.id === apptOrId);
+    } else {
+        appt = apptOrId;
+    }
+
+    if (!appt) {
+        console.warn("Appointment not found:", apptOrId);
+        return;
+    }
+
+    activeAppointmentToDelete = appt;
+
+    if (actionModalPatientName) actionModalPatientName.innerText = appt.patientName || '-';
+    if (actionModalDate) actionModalDate.innerText = appt.date || '-';
+    if (actionModalTime) actionModalTime.innerText = appt.time || '-';
+
+    // Find patient phone if available
+    const patient = (window.currentPatients || []).find(p => p.id === appt.patientId || p.name === appt.patientName);
+    if (patient && patient.phone && actionModalPhone && actionModalPhoneWrapper) {
+        actionModalPhone.innerText = patient.phone;
+        actionModalPhoneWrapper.style.display = 'block';
+    } else if (actionModalPhoneWrapper) {
+        actionModalPhoneWrapper.style.display = 'none';
+    }
+
+    if (appointmentActionModal) {
+        appointmentActionModal.classList.add('show');
+        history.pushState({ modal: 'appointmentAction' }, '', window.location.hash);
+    }
+};
+
+window.deleteAppointmentFromCalendar = function(id) {
+    window.openAppointmentActionModal(id);
+};
+
+if (closeApptActionModalBtn) {
+    closeApptActionModalBtn.addEventListener('click', () => {
+        if (window.closeModalAndPopState) window.closeModalAndPopState(appointmentActionModal);
+        else appointmentActionModal.classList.remove('show');
+    });
+}
+
+if (cancelApptActionDismissBtn) {
+    cancelApptActionDismissBtn.addEventListener('click', () => {
+        if (window.closeModalAndPopState) window.closeModalAndPopState(appointmentActionModal);
+        else appointmentActionModal.classList.remove('show');
+    });
+}
+
+if (appointmentActionModal) {
+    window.addEventListener('click', (e) => {
+        if (e.target === appointmentActionModal) {
+            if (window.closeModalAndPopState) window.closeModalAndPopState(appointmentActionModal);
+            else appointmentActionModal.classList.remove('show');
+        }
+    });
+}
+
+if (confirmDeleteApptBtn) {
+    confirmDeleteApptBtn.addEventListener('click', async () => {
+        if (!activeAppointmentToDelete) return;
+        const apptId = activeAppointmentToDelete.id;
+        const uid = currentUserUid || (auth.currentUser ? auth.currentUser.uid : null);
+        const isAr = (document.documentElement.lang || 'en') === 'ar';
+
+        if (!uid) {
+            if (window.showToast) window.showToast(isAr ? 'المستخدم غير مسجل دخول' : 'User not authenticated', 'error');
+            return;
+        }
+
+        confirmDeleteApptBtn.disabled = true;
+        const prevText = confirmDeleteApptBtn.innerText;
+        confirmDeleteApptBtn.innerText = isAr ? '... جاري الإلغاء' : 'Cancelling...';
+
         try {
-            await deleteDoc(doc(db, "users", currentUserUid, "appointments", id));
-            await loadAppointments();
-            updateDashboardStats(); // Update stats
+            await deleteDoc(doc(db, "users", uid, "appointments", apptId));
+            
+            // Remove from local array
+            currentAppointments = currentAppointments.filter(a => a.id !== apptId);
+
+            // Close modal
+            if (window.closeModalAndPopState) window.closeModalAndPopState(appointmentActionModal);
+            else appointmentActionModal.classList.remove('show');
+
+            // Refresh FullCalendar
+            if (calendarInstance) {
+                calendarInstance.removeAllEvents();
+                calendarInstance.addEventSource(formatEventsForCalendar());
+            }
+
+            // Refresh timelines & stats
+            renderTodayAppointments();
+            updateDashboardStats();
+
+            // Refresh day list view if currently active
+            if (typeof window.refreshCurrentDayAppointmentsList === 'function') {
+                window.refreshCurrentDayAppointmentsList();
+            }
+
+            // Refresh patient profile timeline if open
+            if (typeof window.loadPatientTimeline === 'function' && window.currentProfilePatientId) {
+                window.loadPatientTimeline(window.currentProfilePatientId);
+            }
+
+            if (window.showToast) {
+                window.showToast(isAr ? 'تم إلغاء الموعد وحذفه بنجاح' : 'Appointment cancelled successfully', 'success');
+            }
         } catch (e) {
             console.error("Error deleting appointment: ", e);
+            if (window.showToast) {
+                window.showToast(isAr ? 'حدث خطأ أثناء إلغاء الموعد' : 'Error cancelling appointment', 'error');
+            }
+        } finally {
+            confirmDeleteApptBtn.disabled = false;
+            confirmDeleteApptBtn.innerText = prevText;
+            activeAppointmentToDelete = null;
         }
-    }
+    });
 }
 
 // ---------------------------------------------------------
@@ -634,11 +941,12 @@ async function updateDashboardStats() {
     const totalRev = currentTreatments
         .filter(t => t.status === 'Completed')
         .reduce((sum, t) => sum + (t.cost || 0), 0);
-    if(weeklyRevenue) weeklyRevenue.innerText = `$${totalRev}`;
+    const revFormatted = window.formatCurrency ? window.formatCurrency(totalRev) : `$${totalRev}`;
+    if(weeklyRevenue) weeklyRevenue.innerText = revFormatted;
 
     // Update KPI Card: Monthly Revenue
     const kpiRevenue = document.getElementById('kpi-month-revenue');
-    if (kpiRevenue) kpiRevenue.innerText = `$${totalRev}`;
+    if (kpiRevenue) kpiRevenue.innerText = revFormatted;
 
     // Update KPI Card: Low Stock Alerts
     const kpiStock = document.getElementById('kpi-low-stock');
@@ -666,7 +974,7 @@ async function updateDashboardStats() {
     // Render Recent Patients List (Last 5 Added)
     if(homeRecentPatients) {
         homeRecentPatients.innerHTML = '';
-        const isAr = document.documentElement.lang === 'ar';
+        const isAr = (document.documentElement.lang || 'en') === 'ar';
 
         if(allPatients.length === 0) {
             homeRecentPatients.innerHTML = `
@@ -729,8 +1037,9 @@ async function updateDashboardStats() {
                 if (p.phone2) displayPhone += ` / ${p.phone2}`;
 
                 const ageText = p.age ? `• ${p.age} ${isAr ? 'سنة' : 'yrs'}` : '';
+                const translatedAlerts = window.translateMedicalAlerts ? window.translateMedicalAlerts(p.medicalAlerts, isAr) : p.medicalAlerts;
                 const alertBadge = (p.medicalAlerts && p.medicalAlerts.trim()) ? 
-                    `<span class="status-badge status-error" style="font-size: 0.72rem; padding: 2px 6px;">⚠️ ${p.medicalAlerts}</span>` : '';
+                    `<span class="status-badge status-error" style="font-size: 0.72rem; padding: 2px 6px;">⚠️ ${translatedAlerts}</span>` : '';
 
                 homeRecentPatients.innerHTML += `
                 <div class="list-item" style="cursor: pointer; transition: background-color 0.2s, transform 0.2s;" onclick="if(window.openPatientProfile) window.openPatientProfile('${p.id}')">
@@ -739,7 +1048,7 @@ async function updateDashboardStats() {
                             <span class="status-badge" style="background-color: rgba(45, 212, 191, 0.15); color: var(--brand-primary); font-size: 0.75rem; padding: 2px 7px; border-radius: 4px; font-weight: 700;">
                                 #${p.displayId || '-'}
                             </span>
-                            <span class="list-item-title" style="font-size: 1.05rem;">${p.name || 'Unknown'}</span>
+                            <span class="list-item-title" style="font-size: 1.05rem;">${p.name || (isAr ? 'غير محدد' : 'Unknown')}</span>
                             <span style="font-size: 0.85rem; color: var(--text-muted);">${ageText}</span>
                             ${alertBadge}
                         </div>
@@ -764,11 +1073,13 @@ async function updateDashboardStats() {
     // Refresh today & tomorrow visual timeline natively on stat refresh
     renderTodayAppointments();
 }
+window.updateDashboardStats = updateDashboardStats;
 
 function renderTimelineEvents(eventsContainer, dateString) {
     if (!eventsContainer) return;
     const dayAppts = currentAppointments.filter(a => a.date === dateString);
     eventsContainer.innerHTML = '';
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
 
     dayAppts.forEach(appt => {
         if(!appt.time) return;
@@ -786,8 +1097,13 @@ function renderTimelineEvents(eventsContainer, dateString) {
             block.className = 'timeline-block';
             block.style.left = `${leftPercent}%`;
             block.style.width = `${widthPercent}%`;
+            block.style.cursor = 'pointer';
             block.innerHTML = `✓ ${appt.time}`;
-            block.title = `${appt.patientName} at ${appt.time}`;
+            block.title = isAr ? `${appt.patientName} (${appt.time}) - اضغط للتفاصيل أو الإلغاء` : `${appt.patientName} (${appt.time}) - Click for details or to cancel`;
+            block.addEventListener('click', (e) => {
+                e.stopPropagation();
+                window.openAppointmentActionModal(appt);
+            });
 
             eventsContainer.appendChild(block);
         }
@@ -804,6 +1120,7 @@ function renderTodayAppointments() {
     const tomorrow = new Date(tmrw.getTime() - localOffset).toISOString().split('T')[0];
     renderTimelineEvents(tomorrowTimelineEvents, tomorrow);
 }
+window.renderTodayAppointments = renderTodayAppointments;
 
 function initCalendar() {
     const calendarEl = document.getElementById('calendar');
@@ -820,8 +1137,7 @@ function initCalendar() {
         slotMaxTime: '22:00:00',
         events: formatEventsForCalendar(),
         eventClick: function(info) {
-            // Ask to delete on click for simplicity
-            window.deleteAppointmentFromCalendar(info.event.id);
+            window.openAppointmentActionModal(info.event.id);
         },
         windowResize: function(arg) {
             if (window.innerWidth < 768) {
@@ -863,12 +1179,13 @@ function initChart() {
     const statusSuccess = getComputedStyle(document.documentElement).getPropertyValue('--status-success').trim() || '#34D399';
     const statusPending = getComputedStyle(document.documentElement).getPropertyValue('--status-pending').trim() || '#FBBF24';
 
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
     revenueChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['Pending', 'In Progress', 'Completed (Revenue)'],
+            labels: isAr ? ['قيد الانتظار', 'جاري المعالجة', 'مكتمل (الإيرادات)'] : ['Pending', 'In Progress', 'Completed (Revenue)'],
             datasets: [{
-                label: 'Treatment Value ($)',
+                label: isAr ? 'قيمة العلاج (ج.م)' : 'Treatment Value (EGP)',
                 data: [pending, inProgress, completed],
                 backgroundColor: [statusPending, brandPrimary, statusSuccess],
                 borderWidth: 1
@@ -885,52 +1202,66 @@ function initChart() {
         }
     });
 }
-
+window.initChart = initChart;
 
 // --- Ledger Logic ---
 let globalPaymentsList = [];
+
+function renderLedgerRows() {
+    const tbody = document.getElementById('ledger-table-body');
+    if (!tbody || !globalPaymentsList) return;
+    tbody.innerHTML = '';
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+
+    let todayRev = 0;
+    let monthRev = 0;
+
+    const today = new Date();
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+
+    globalPaymentsList.forEach(data => {
+        const amount = parseFloat(data.amount) || 0;
+        const dateIso = new Date(data.date).toISOString();
+
+        if (dateIso >= startOfDay) todayRev += amount;
+        if (dateIso >= startOfMonth) monthRev += amount;
+
+        let methodDisplay = data.method || '-';
+        const mLower = String(data.method || '').toLowerCase();
+        if (mLower === 'cash' || mLower.includes('نقد') || mLower.includes('كاش')) {
+            methodDisplay = isAr ? 'نقداً / كاش' : 'Cash';
+        } else if (mLower === 'visa' || mLower.includes('بطاق') || mLower.includes('فيزا') || mLower.includes('card')) {
+            methodDisplay = isAr ? 'بطاقة / فيزا' : 'Card / Visa';
+        } else if (mLower.includes('vodafone') || mLower.includes('فودافون') || mLower.includes('wallet')) {
+            methodDisplay = isAr ? 'محفظة إلكترونية' : 'E-Wallet';
+        }
+
+        tbody.innerHTML += `
+            <tr>
+                <td>${window.formatDate ? window.formatDate(data.date) : data.date}</td>
+                <td>${data.patientName}</td>
+                <td>${data.treatmentName}</td>
+                <td style="color: var(--status-completed); font-weight: bold;">${window.formatCurrency ? window.formatCurrency(amount) : amount}</td>
+                <td>${methodDisplay}</td>
+            </tr>
+        `;
+    });
+
+    if (document.getElementById('ledger-today-revenue')) {
+        document.getElementById('ledger-today-revenue').innerText = window.formatCurrency ? window.formatCurrency(todayRev) : todayRev;
+        document.getElementById('ledger-month-revenue').innerText = window.formatCurrency ? window.formatCurrency(monthRev) : monthRev;
+    }
+}
+window.renderLedgerRows = renderLedgerRows;
 
 function setupGlobalLedger() {
     const user = auth.currentUser;
     if (!user) return;
     const ledgerRef = collection(db, 'users', user.uid, 'payments');
     onSnapshot(ledgerRef, (snapshot) => {
-        const tbody = document.getElementById('ledger-table-body');
-        if(!tbody) return;
-        tbody.innerHTML = '';
-
-        let todayRev = 0;
-        let monthRev = 0;
-
-        const today = new Date();
-        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
-        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
-
         globalPaymentsList = snapshot.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => new Date(b.date) - new Date(a.date));
-
-        globalPaymentsList.forEach(data => {
-            const amount = parseFloat(data.amount) || 0;
-            const dateIso = new Date(data.date).toISOString();
-
-            if (dateIso >= startOfDay) todayRev += amount;
-            if (dateIso >= startOfMonth) monthRev += amount;
-
-            tbody.innerHTML += `
-                <tr>
-                    <td>${data.date}</td>
-                    <td>${data.patientName}</td>
-                    <td>${data.treatmentName}</td>
-                    <td style="color: var(--status-completed); font-weight: bold;">${amount}</td>
-                    <td>${data.method}</td>
-                </tr>
-            `;
-        });
-
-        if (document.getElementById('ledger-today-revenue')) {
-            document.getElementById('ledger-today-revenue').innerText = todayRev;
-            document.getElementById('ledger-month-revenue').innerText = monthRev;
-        }
-
+        renderLedgerRows();
         renderOutstandingBalancesTable();
     });
 }
@@ -941,7 +1272,7 @@ function renderOutstandingBalancesTable() {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    const isAr = document.documentElement.lang === 'ar';
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
     let totalOutstanding = 0;
     const pendingWithBalance = currentTreatments.filter(t => {
         const cost = parseFloat(t.cost) || 0;
@@ -951,6 +1282,8 @@ function renderOutstandingBalancesTable() {
 
     if (pendingWithBalance.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">${isAr ? 'لا توجد مبالغ متبقية، كل الحسابات مسددة بالكامل 🎉' : 'No outstanding balances found! All paid in full 🎉'}</td></tr>`;
+        const outDisplay = document.getElementById('ledger-outstanding');
+        if (outDisplay) outDisplay.innerText = window.formatCurrency ? window.formatCurrency(0) : '0';
         return;
     }
 
@@ -964,9 +1297,9 @@ function renderOutstandingBalancesTable() {
             <tr>
                 <td style="font-weight: 600; color: var(--brand-primary); cursor: pointer;" onclick="if(window.openPatientProfile && '${t.patientId}') window.openPatientProfile('${t.patientId}')">${t.patientName}</td>
                 <td>${t.treatmentType || t.type}</td>
-                <td>${cost}</td>
-                <td style="color: var(--status-completed);">${paid}</td>
-                <td style="color: var(--status-error); font-weight: bold;">${rem}</td>
+                <td>${window.formatCurrency ? window.formatCurrency(cost) : cost}</td>
+                <td style="color: var(--status-completed);">${window.formatCurrency ? window.formatCurrency(paid) : paid}</td>
+                <td style="color: var(--status-error); font-weight: bold;">${window.formatCurrency ? window.formatCurrency(rem) : rem}</td>
                 <td>
                     <button class="btn-primary" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;" onclick="if(window.openPaymentModal) window.openPaymentModal('${t.id}', '${t.patientId || ''}', '${t.patientName}', '${t.treatmentType || t.type}')">${isAr ? 'تحصيل الآن' : 'Pay Now'}</button>
                 </td>
@@ -975,8 +1308,9 @@ function renderOutstandingBalancesTable() {
     });
 
     const outDisplay = document.getElementById('ledger-outstanding');
-    if (outDisplay) outDisplay.innerText = totalOutstanding;
+    if (outDisplay) outDisplay.innerText = window.formatCurrency ? window.formatCurrency(totalOutstanding) : totalOutstanding;
 }
+window.renderOutstandingBalancesTable = renderOutstandingBalancesTable;
 
 // Payments Ledger & Outstanding Tabs Toggle
 const tabLedgerAll = document.getElementById('tabLedgerAll');
@@ -1042,7 +1376,13 @@ const mainCalendarWrapper = document.getElementById('mainCalendarWrapper');
 const dayAppointmentsTableBody = document.getElementById('dayAppointmentsTableBody');
 const dayListTitle = document.getElementById('dayListTitle');
 
+let lastFocusedDayIso = null;
+let lastFocusedDayTitle = '';
+
 function renderFocusedDayList(targetDateIso, titleText) {
+    lastFocusedDayIso = targetDateIso;
+    lastFocusedDayTitle = titleText;
+
     if (!dayAppointmentsTableBody) return;
     dayAppointmentsTableBody.innerHTML = '';
     if (dayListTitle) dayListTitle.innerText = titleText;
@@ -1071,9 +1411,10 @@ function renderFocusedDayList(targetDateIso, titleText) {
 
         const waLink = cleanPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(reminderMsg)}` : '#';
 
+        const formattedTime = window.formatTime ? window.formatTime(appt.time) : appt.time;
         dayAppointmentsTableBody.innerHTML += `
             <tr>
-                <td style="font-weight: 700; color: var(--brand-primary);">${appt.time}</td>
+                <td style="font-weight: 700; color: var(--brand-primary);">${formattedTime}</td>
                 <td style="font-weight: 600; cursor: pointer;" onclick="if(window.openPatientProfile && '${appt.patientId || ''}') window.openPatientProfile('${appt.patientId}')">${appt.patientName}</td>
                 <td>${phone}</td>
                 <td>
@@ -1083,12 +1424,23 @@ function renderFocusedDayList(targetDateIso, titleText) {
                     </a>` : `<span style="color: var(--text-muted); font-size: 0.8rem;">-</span>`}
                 </td>
                 <td>
-                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; color: var(--status-error); border-color: var(--status-error);" onclick="window.deleteAppointmentFromCalendar('${appt.id}')">${isAr ? 'إلغاء الموعد' : 'Cancel'}</button>
+                    <button class="btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; color: var(--status-error); border-color: var(--status-error);" onclick="window.openAppointmentActionModal('${appt.id}')">${isAr ? 'إلغاء الموعد' : 'Cancel'}</button>
                 </td>
             </tr>
         `;
     });
 }
+
+window.refreshCurrentDayAppointmentsList = function() {
+    if (dayAppointmentsListView && dayAppointmentsListView.style.display !== 'none' && lastFocusedDayIso) {
+        const isAr = (document.documentElement.lang || 'en') === 'ar';
+        const isToday = lastFocusedDayIso === new Date().toISOString().split('T')[0];
+        const title = isToday ? 
+            (isAr ? 'مواعيد اليوم (مع تذكير الواتساب)' : "Today's Appointments (with WhatsApp Reminder)") :
+            (isAr ? 'مواعيد الغد (مع تذكير الواتساب)' : "Tomorrow's Appointments (with WhatsApp Reminder)");
+        renderFocusedDayList(lastFocusedDayIso, title);
+    }
+};
 
 if (filterCalAll && filterCalToday && filterCalTomorrow) {
     filterCalAll.addEventListener('click', () => {
