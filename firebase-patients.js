@@ -519,27 +519,27 @@ window.deletePatient = async function(id, event) {
         if (event.preventDefault) event.preventDefault();
     }
 
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+
     if (!id || typeof id !== 'string') {
-        id = window.currentProfilePatientId || (document.getElementById('patientId') ? document.getElementById('patientId').value : null);
+        id = window.currentProfilePatientId || currentProfilePatientId || (document.getElementById('patientId') ? document.getElementById('patientId').value : null);
     }
 
     if (!id) {
-        console.warn("No valid patient ID provided for deletion.");
+        const errMsg = isAr ? 'تعذر تحديد ملف المريض لمسحه' : 'Could not identify patient profile to delete';
+        if (window.showToast) window.showToast(errMsg, 'error');
+        else alert(errMsg);
         return;
     }
 
     const user = auth.currentUser;
     if (!user) {
-        const isAr = document.documentElement.lang === 'ar';
-        if (window.showToast) {
-            window.showToast(isAr ? 'يرجى تسجيل الدخول أولاً' : 'Please authenticate first', 'error');
-        } else {
-            alert(isAr ? 'يرجى تسجيل الدخول أولاً' : 'Please authenticate first');
-        }
+        const authMsg = isAr ? 'يرجى تسجيل الدخول أولاً' : 'Please authenticate first';
+        if (window.showToast) window.showToast(authMsg, 'error');
+        else alert(authMsg);
         return;
     }
     const uid = user.uid;
-    const isAr = document.documentElement.lang === 'ar';
 
     const patient = (currentPatients || []).find(p => p.id === id);
     const patientName = patient ? patient.name : '';
@@ -552,6 +552,12 @@ window.deletePatient = async function(id, event) {
         try {
             await deleteDoc(doc(db, "users", uid, "patients", id));
 
+            // Immediately update memory array
+            currentPatients = (currentPatients || []).filter(p => p.id !== id);
+            if (window.currentPatients) {
+                window.currentPatients = window.currentPatients.filter(p => p.id !== id);
+            }
+
             // Close patient modal if open
             const pModal = document.getElementById('patientModal');
             if (pModal && pModal.classList.contains('show')) {
@@ -560,7 +566,7 @@ window.deletePatient = async function(id, event) {
             }
 
             // If deleting current profile patient, switch back to patients list section
-            if (window.currentProfilePatientId === id) {
+            if (window.currentProfilePatientId === id || currentProfilePatientId === id) {
                 window.currentProfilePatientId = null;
                 currentProfilePatientId = null;
                 const patientsSec = document.getElementById('patients-section');
@@ -582,11 +588,9 @@ window.deletePatient = async function(id, event) {
             }
         } catch (e) {
             console.error("Error deleting patient: ", e);
-            if (window.showToast) {
-                window.showToast(isAr ? 'حدث خطأ أثناء مسح ملف المريض' : 'Error deleting patient profile', 'error');
-            } else {
-                alert(isAr ? 'حدث خطأ أثناء مسح ملف المريض' : 'Error deleting patient profile');
-            }
+            const errStr = isAr ? 'حدث خطأ أثناء مسح ملف المريض' : 'Error deleting patient profile';
+            if (window.showToast) window.showToast(errStr, 'error');
+            else alert(errStr);
         }
     }
 };

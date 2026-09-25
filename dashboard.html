@@ -617,7 +617,7 @@
                                 </svg>
                                 <span data-ar="تعديل" data-en="Edit">Edit</span>
                             </button>
-                            <button id="deletePatientProfileBtn" class="btn-danger" style="padding: 0.3rem 0.65rem; font-size: 0.85rem; border-radius: 8px; border: 1px solid #ef4444; background: rgba(239, 68, 68, 0.12); color: #ef4444; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; transition: all 0.2s;" onclick="if(window.deletePatient && window.currentProfilePatientId) window.deletePatient(window.currentProfilePatientId, event);" title="مسح ملف المريض / Delete Patient Profile" data-ar-title="مسح ملف المريض" data-en-title="Delete Patient Profile">
+                            <button id="deletePatientProfileBtn" class="btn-danger" style="padding: 0.3rem 0.65rem; font-size: 0.85rem; border-radius: 8px; border: 1px solid #ef4444; background: rgba(239, 68, 68, 0.12); color: #ef4444; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; transition: all 0.2s;" onclick="window.deletePatient(window.currentProfilePatientId, event);" title="مسح ملف المريض / Delete Patient Profile" data-ar-title="مسح ملف المريض" data-en-title="Delete Patient Profile">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;">
                                     <polyline points="3 6 5 6 21 6"></polyline>
                                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
