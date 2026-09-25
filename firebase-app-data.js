@@ -742,16 +742,29 @@ const actionModalTime = document.getElementById('actionModalTime');
 const actionModalPhone = document.getElementById('actionModalPhone');
 const actionModalPhoneWrapper = document.getElementById('actionModalPhoneWrapper');
 
-window.openAppointmentActionModal = function(apptOrId) {
+window.openAppointmentActionModal = async function(apptOrId) {
     let appt = null;
     if (typeof apptOrId === 'string') {
         appt = currentAppointments.find(a => a.id === apptOrId);
+        if (!appt && (currentUserUid || auth.currentUser)) {
+            const uid = currentUserUid || auth.currentUser.uid;
+            try {
+                const snap = await getDoc(doc(db, "users", uid, "appointments", apptOrId));
+                if (snap.exists()) {
+                    appt = { id: snap.id, ...snap.data() };
+                }
+            } catch(e) { console.error(e); }
+        }
     } else {
         appt = apptOrId;
     }
 
     if (!appt) {
         console.warn("Appointment not found:", apptOrId);
+        if (window.showToast) {
+            const isAr = (document.documentElement.lang || 'en') === 'ar';
+            window.showToast(isAr ? 'لم يتم العثور على بيانات الموعد' : 'Appointment not found', 'warning');
+        }
         return;
     }
 

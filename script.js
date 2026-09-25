@@ -274,6 +274,26 @@ if (sidebarLinks.length > 0) {
     });
 }
 
+// Global function to navigate to Home/Dashboard
+window.goToHome = function() {
+    // 1. Close any open modal
+    document.querySelectorAll('.modal.show').forEach(m => {
+        m.classList.remove('show');
+    });
+    // 2. Close mobile menu
+    if (typeof closeMobileMenu === 'function') closeMobileMenu();
+    // 3. Trigger Home link click
+    const homeLink = document.querySelector('.sidebar-link[data-target="dashboard-section"]');
+    if (homeLink) {
+        homeLink.click();
+    } else {
+        document.querySelectorAll('.app-section').forEach(sec => sec.style.display = 'none');
+        const dash = document.getElementById('dashboard-section');
+        if (dash) dash.style.display = 'block';
+        window.location.hash = '#dashboard-section';
+    }
+};
+
 // Helper to safely close modals and pop the modal state
 window.closeModalAndPopState = function(modalElement) {
     modalElement.classList.remove('show');
