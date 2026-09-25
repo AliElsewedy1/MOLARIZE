@@ -297,9 +297,32 @@
             </div>
             <p data-ar="هنا يمكنك عرض وتعديل بيانات المرضى المسجلين بالعيادة." data-en="Here you can view and edit registered patients' data.">Here you can view and edit registered patients' data.</p>
 
-            <!-- Search Bar -->
-            <div class="search-container" style="margin-top: 1.5rem;">
-                <input type="text" id="patientSearchInput" class="search-input" data-ar="بحث بالاسم، رقم الهاتف، أو رقم الملف..." data-en="Search by name, phone, or ID..." data-ar-placeholder="بحث بالاسم، رقم الهاتف، أو رقم الملف..." data-en-placeholder="Search by name, phone, or ID..." placeholder="Search by name, phone, or ID...">
+            <!-- Dual Search Bar: Name/Phone + Separate File ID Search -->
+            <div class="patient-search-container" style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+                    <!-- Search by Name or Phone -->
+                    <div style="flex: 2; min-width: 250px; position: relative;">
+                        <span style="position: absolute; inset-inline-start: 14px; top: 50%; transform: translateY(-50%); font-size: 1.05rem; color: var(--text-muted); pointer-events: none;">🔍</span>
+                        <input type="text" id="patientSearchInput" class="search-input" style="padding-inline-start: 2.6rem;" data-ar="بحث باسم المريض أو رقم الهاتف..." data-en="Search by patient name or phone..." data-ar-placeholder="بحث باسم المريض أو رقم الهاتف..." data-en-placeholder="Search by patient name or phone..." placeholder="Search by patient name or phone...">
+                    </div>
+
+                    <!-- Separate Search by File ID -->
+                    <div style="flex: 1; min-width: 200px; position: relative;">
+                        <span style="position: absolute; inset-inline-start: 14px; top: 50%; transform: translateY(-50%); font-size: 1.05rem; color: var(--brand-primary); pointer-events: none;">📁</span>
+                        <input type="text" id="patientIdSearchInput" class="search-input" style="padding-inline-start: 2.6rem; border-color: rgba(2, 132, 199, 0.4);" data-ar="بحث منفصل برقم الملف (ID)..." data-en="Search by File ID (e.g. P001)..." data-ar-placeholder="بحث منفصل برقم الملف (ID)..." data-en-placeholder="Search by File ID (e.g. P001)..." placeholder="Search by File ID (e.g. P001)...">
+                    </div>
+
+                    <!-- Clear Filter Button -->
+                    <button type="button" id="clearPatientSearchBtn" class="btn-outline" style="display: none; align-items: center; gap: 6px; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.88rem; cursor: pointer;" data-ar="✕ إلغاء الفلتر" data-en="✕ Clear Filter">
+                        ✕ <span data-ar="إلغاء الفلتر" data-en="Clear Filter">Clear Filter</span>
+                    </button>
+                </div>
+
+                <!-- Active Filter & Count Bar -->
+                <div id="patientSearchResultsSummary" style="display: none; align-items: center; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); padding: 0.35rem 0.75rem; background: var(--bg-primary); border-radius: 6px; border: 1px dashed var(--border-color);">
+                    <div id="patientSearchResultsCount">0 patients found</div>
+                    <div style="font-size: 0.8rem; color: var(--brand-primary);" data-ar="الفلترة الفورية نشطة" data-en="Live filtering active">Live filtering active</div>
+                </div>
             </div>
 
             <!-- قسم الجدول -->
@@ -877,10 +900,44 @@
                 <form id="appointmentForm">
                     <input type="hidden" id="appointmentId">
                     <div class="input-group" style="position: relative;">
-                        <label for="apptPatientName" data-ar="المريض (بحث بالاسم، الهاتف، أو الرقم):" data-en="Patient (Search Name, Phone, ID):">Patient (Search Name, Phone, ID):</label>
-                        <input type="text" id="apptPatientName" autocomplete="off" placeholder="Search..." required>
+                        <label data-ar="المريض (بحث منفصل بالاسم/الهاتف أو برقم الملف):" data-en="Patient (Search Name/Phone or File ID):">Patient (Search Name/Phone or File ID):</label>
+                        
+                        <!-- Dual Search: Name/Phone + Separate File ID Search -->
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                            <!-- Search by Name or Phone -->
+                            <div style="flex: 2; min-width: 170px; position: relative;">
+                                <span style="position: absolute; inset-inline-start: 12px; top: 50%; transform: translateY(-50%); font-size: 0.95rem; color: var(--text-muted); pointer-events: none;">🔍</span>
+                                <input type="text" id="apptPatientName" autocomplete="off" style="padding-inline-start: 2.3rem;" placeholder="اسم المريض أو رقم الهاتف..." data-ar-placeholder="اسم المريض أو رقم الهاتف..." data-en-placeholder="Search name or phone..." required>
+                            </div>
+
+                            <!-- Separate Search by File ID -->
+                            <div style="flex: 1; min-width: 130px; position: relative;">
+                                <span style="position: absolute; inset-inline-start: 12px; top: 50%; transform: translateY(-50%); font-size: 0.95rem; color: var(--brand-primary); pointer-events: none;">📁</span>
+                                <input type="text" id="apptPatientFileId" autocomplete="off" style="padding-inline-start: 2.3rem; border-color: rgba(2, 132, 199, 0.4);" placeholder="رقم الملف (ID)..." data-ar-placeholder="رقم الملف (ID)..." data-en-placeholder="File ID (e.g. 1)...">
+                            </div>
+
+                            <!-- Clear Filter / Selection Button -->
+                            <button type="button" id="clearApptPatientSearchBtn" class="btn-outline" style="display: none; align-items: center; gap: 4px; padding: 0.65rem 0.75rem; border-radius: 6px; font-size: 0.82rem; cursor: pointer; color: var(--status-error); border-color: var(--border-color);" data-ar="✕ مسح" data-en="✕ Clear">
+                                ✕ <span data-ar="مسح" data-en="Clear">Clear</span>
+                            </button>
+                        </div>
+
                         <input type="hidden" id="apptPatientId">
+
+                        <!-- Selected Patient Confirmation Card -->
+                        <div id="apptSelectedPatientCard" style="display: none; align-items: center; justify-content: space-between; padding: 0.45rem 0.75rem; background: rgba(2, 132, 199, 0.08); border: 1px solid var(--brand-primary); border-radius: 6px; margin-top: 0.5rem; font-size: 0.84rem;">
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <span style="color: var(--status-completed); font-size: 0.95rem; font-weight: bold;">✓</span>
+                                <span style="font-weight: 700; color: var(--text-primary);" id="apptSelectedPatientName">-</span>
+                                <span class="status-badge status-primary" style="font-size: 0.75rem; padding: 1px 7px;" id="apptSelectedPatientBadge">#--</span>
+                                <span style="color: var(--text-muted); font-size: 0.8rem;" id="apptSelectedPatientPhone"></span>
+                            </div>
+                            <button type="button" id="btnChangeApptPatient" style="background: none; border: none; color: var(--status-error); cursor: pointer; font-size: 0.8rem; font-weight: 600; padding: 2px 6px;" title="تغيير المريض" data-ar="✕ تغيير" data-en="✕ Change">✕ تغيير</button>
+                        </div>
+
+                        <!-- Dropdown Autocomplete Container -->
                         <div id="apptPatientDropdown" class="autocomplete-dropdown" style="display: none;"></div>
+                        
                         <button type="button" id="btnQuickAddPatient" class="btn-outline" style="margin-top: 0.5rem; width: 100%; font-size: 0.88rem;" data-ar="+ تسجيل مريض جديد" data-en="+ Register New Patient">+ Register New Patient</button>
                     </div>
                     <div class="input-group">

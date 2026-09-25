@@ -31,7 +31,7 @@ const cancelApptBtn = document.getElementById('cancelApptBtn');
 const appointmentForm = document.getElementById('appointmentForm');
 
 // Helper to open New Appointment modal from anywhere
-window.openNewAppointmentModal = function(prefillDate) {
+window.openNewAppointmentModal = function(prefillDate, prefillPatient) {
     const aModal = document.getElementById('appointmentModal');
     const aForm = document.getElementById('appointmentForm');
     const apptContainer = document.getElementById('appointmentFormContainer');
@@ -41,8 +41,22 @@ window.openNewAppointmentModal = function(prefillDate) {
     if (aForm) aForm.reset();
     const aId = document.getElementById('appointmentId');
     if (aId) aId.value = '';
-    const aDropdown = document.getElementById('apptPatientDropdown');
-    if (aDropdown) aDropdown.style.display = 'none';
+    
+    if (typeof window.resetApptPatientSelection === 'function') {
+        window.resetApptPatientSelection();
+    }
+
+    if (prefillPatient) {
+        if (typeof prefillPatient === 'object') {
+            if (typeof window.selectPatientForAppointment === 'function') window.selectPatientForAppointment(prefillPatient);
+        } else if (typeof prefillPatient === 'string') {
+            const p = (window.currentPatients || []).find(x => x.id === prefillPatient || x.name === prefillPatient);
+            if (p && typeof window.selectPatientForAppointment === 'function') {
+                window.selectPatientForAppointment(p);
+            }
+        }
+    }
+
     if (prefillDate) {
         const dateInput = document.getElementById('apptDate');
         if (dateInput) dateInput.value = prefillDate;
@@ -387,255 +401,384 @@ window.deleteTreatment = async function(id) {
 // ---------------------------------------------------------
 
 // ---------------------------------------------------------
-// Autocomplete for Appointments
+// ---------------------------------------------------------
+// Autocomplete & Dual Patient Search for Appointments
 // ---------------------------------------------------------
 const apptPatientInput = document.getElementById('apptPatientName');
+const apptPatientFileIdInput = document.getElementById('apptPatientFileId');
 const apptPatientId = document.getElementById('apptPatientId');
 const apptPatientDropdown = document.getElementById('apptPatientDropdown');
+const clearApptPatientSearchBtn = document.getElementById('clearApptPatientSearchBtn');
+const apptSelectedPatientCard = document.getElementById('apptSelectedPatientCard');
+const apptSelectedPatientName = document.getElementById('apptSelectedPatientName');
+const apptSelectedPatientBadge = document.getElementById('apptSelectedPatientBadge');
+const apptSelectedPatientPhone = document.getElementById('apptSelectedPatientPhone');
+const btnChangeApptPatient = document.getElementById('btnChangeApptPatient');
 const btnQuickAddPatient = document.getElementById('btnQuickAddPatient');
 
-if (apptPatientInput) {
-    apptPatientInput.addEventListener('input', (e) => {
-        const val = e.target.value.toLowerCase().trim();
+function selectPatientForAppointment(patient) {
+    if (!patient) return;
+    if (apptPatientInput) apptPatientInput.value = patient.name || '';
+    if (apptPatientFileIdInput) apptPatientFileIdInput.value = patient.displayId || '';
+    if (apptPatientId) apptPatientId.value = patient.id || '';
+
+    if (apptSelectedPatientCard) {
+        if (apptSelectedPatientName) apptSelectedPatientName.innerText = patient.name || '-';
+        if (apptSelectedPatientBadge) apptSelectedPatientBadge.innerText = `#${patient.displayId || '-'}`;
+        if (apptSelectedPatientPhone) {
+            const phone = patient.phone ? `📱 ${patient.phone}` : '';
+            apptSelectedPatientPhone.innerText = phone;
+        }
+        apptSelectedPatientCard.style.display = 'flex';
+    }
+
+    if (clearApptPatientSearchBtn) {
+        clearApptPatientSearchBtn.style.display = 'inline-flex';
+    }
+
+    if (apptPatientDropdown) {
+        apptPatientDropdown.style.display = 'none';
         apptPatientDropdown.innerHTML = '';
-        apptPatientId.value = ''; // Reset ID on new typing
+    }
+}
+window.selectPatientForAppointment = selectPatientForAppointment;
 
-        if (!val) {
-            apptPatientDropdown.style.display = 'none';
-            return;
+function resetApptPatientSelection() {
+    if (apptPatientInput) apptPatientInput.value = '';
+    if (apptPatientFileIdInput) apptPatientFileIdInput.value = '';
+    if (apptPatientId) apptPatientId.value = '';
+    if (apptSelectedPatientCard) apptSelectedPatientCard.style.display = 'none';
+    if (clearApptPatientSearchBtn) clearApptPatientSearchBtn.style.display = 'none';
+    if (apptPatientDropdown) {
+        apptPatientDropdown.style.display = 'none';
+        apptPatientDropdown.innerHTML = '';
+    }
+}
+window.resetApptPatientSelection = resetApptPatientSelection;
+
+function filterApptPatients() {
+    if (!apptPatientDropdown) return;
+    const nameTerm = (apptPatientInput ? apptPatientInput.value : '').trim().toLowerCase();
+    const idTerm = (apptPatientFileIdInput ? apptPatientFileIdInput.value : '').trim().toLowerCase();
+    const isFiltered = Boolean(nameTerm || idTerm);
+
+    if (clearApptPatientSearchBtn) {
+        clearApptPatientSearchBtn.style.display = isFiltered ? 'inline-flex' : 'none';
+    }
+
+    if (!isFiltered) {
+        apptPatientDropdown.style.display = 'none';
+        apptPatientDropdown.innerHTML = '';
+        if (apptPatientId) apptPatientId.value = '';
+        if (apptSelectedPatientCard) apptSelectedPatientCard.style.display = 'none';
+        return;
+    }
+
+    const patients = window.currentPatients || [];
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+
+    const matches = patients.filter(p => {
+        let matchNameOrPhone = true;
+        let matchId = true;
+
+        if (nameTerm) {
+            const name = (p.name || '').toLowerCase();
+            const phone = String(p.phone || '').toLowerCase();
+            const phone2 = String(p.phone2 || '').toLowerCase();
+            matchNameOrPhone = name.includes(nameTerm) || phone.includes(nameTerm) || phone2.includes(nameTerm);
         }
 
-        // We assume window.currentPatients exists from firebase-patients.js
-        const patients = window.currentPatients || [];
+        if (idTerm) {
+            const displayId = String(p.displayId || '').toLowerCase();
+            const docId = String(p.id || '').toLowerCase();
+            const cleanNumericId = displayId.replace(/\D/g, '');
+            const cleanSearchNum = idTerm.replace(/\D/g, '');
 
-        const matches = patients.filter(p => {
-            const nameMatch = p.name && p.name.toLowerCase().includes(val);
-            const phoneMatch = p.phone && p.phone.includes(val);
-            const idMatch = p.displayId && p.displayId.toLowerCase().includes(val);
-            return nameMatch || phoneMatch || idMatch;
-        });
-
-        if (matches.length > 0) {
-            matches.forEach(p => {
-                const item = document.createElement('div');
-                item.className = 'autocomplete-item';
-                item.innerHTML = `
-                    <div class="autocomplete-name">${p.name}</div>
-                    <div class="autocomplete-details">
-                        <span>ID: ${p.displayId || '-'}</span>
-                        <span>📱 ${p.phone || '-'}</span>
-                    </div>
-                `;
-                item.addEventListener('click', () => {
-                    apptPatientInput.value = p.name;
-                    apptPatientId.value = p.id; // store document ID
-                    apptPatientDropdown.style.display = 'none';
-                });
-                apptPatientDropdown.appendChild(item);
-            });
-            apptPatientDropdown.style.display = 'block';
-        } else {
-            apptPatientDropdown.innerHTML = '<div style="padding: 1rem; color: var(--text-muted); text-align: center;">No patients found.</div>';
-            apptPatientDropdown.style.display = 'block';
+            const directMatch = displayId.includes(idTerm) || docId.includes(idTerm);
+            const numMatch = cleanSearchNum ? (cleanNumericId.includes(cleanSearchNum) || parseInt(cleanNumericId, 10) === parseInt(cleanSearchNum, 10)) : false;
+            matchId = directMatch || numMatch;
         }
+
+        return matchNameOrPhone && matchId;
     });
 
+    if (matches.length > 0) {
+        apptPatientDropdown.innerHTML = matches.map(p => {
+            return `
+            <div class="autocomplete-item" data-patient-id="${p.id}" style="padding: 10px 14px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background-color 0.15s;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                    <div style="font-weight: 700; color: var(--text-primary); font-size: 0.93rem;">
+                        ${p.name}
+                        ${p.age ? `<span style="font-size: 0.78rem; color: var(--text-muted); font-weight: normal;">(${p.age} ${isAr ? 'سنة' : 'yrs'})</span>` : ''}
+                    </div>
+                    <span class="status-badge status-primary" style="font-size: 0.75rem; padding: 2px 7px;">📁 #${p.displayId || '-'}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 3px;">
+                    <span>📱 ${p.phone || '-'} ${p.phone2 ? ` / ${p.phone2}` : ''}</span>
+                    ${p.medicalAlerts ? `<span class="status-badge status-error" style="font-size: 0.68rem; padding: 1px 5px;">⚠️ ${p.medicalAlerts}</span>` : ''}
+                </div>
+            </div>
+            `;
+        }).join('');
 
-    const appointmentFormContainer = document.getElementById('appointmentFormContainer');
-    const embeddedPatientFormContainer = document.getElementById('embeddedPatientFormContainer');
-    const embeddedPatientForm = document.getElementById('embeddedPatientForm');
-    const btnBackToAppointment = document.getElementById('btnBackToAppointment');
-    const cancelEmbeddedPatientBtn = document.getElementById('cancelEmbeddedPatientBtn');
-    const saveEmbeddedPatientBtn = document.getElementById('saveEmbeddedPatientBtn');
-
-    const embeddedPatientName = document.getElementById('embeddedPatientName');
-    const embeddedPatientGender = document.getElementById('embeddedPatientGender');
-    const embeddedPatientAge = document.getElementById('embeddedPatientAge');
-    const embeddedPatientPhone = document.getElementById('embeddedPatientPhone');
-    const embeddedPatientPhone2 = document.getElementById('embeddedPatientPhone2');
-    const embeddedCallPref = document.getElementById('embeddedCallPref');
-    const embeddedWaPref = document.getElementById('embeddedWaPref');
-    const embeddedLastVisit = document.getElementById('embeddedLastVisit');
-    const embeddedPatientNotes = document.getElementById('embeddedPatientNotes');
-
-    function showAppointmentView() {
-        if (embeddedPatientFormContainer) embeddedPatientFormContainer.style.display = 'none';
-        if (appointmentFormContainer) appointmentFormContainer.style.display = 'block';
-    }
-
-    function showEmbeddedPatientView() {
-        if (appointmentFormContainer) appointmentFormContainer.style.display = 'none';
-        if (embeddedPatientFormContainer) {
-            embeddedPatientFormContainer.style.display = 'block';
-            if (apptPatientInput && apptPatientInput.value.trim()) {
-                embeddedPatientName.value = apptPatientInput.value.trim();
-            }
-            if (embeddedLastVisit && !embeddedLastVisit.value) {
-                embeddedLastVisit.value = new Date().toISOString().split('T')[0];
-            }
-            // Scroll modal to top
-            const modalContent = appointmentModal.querySelector('.modal-content');
-            if (modalContent) modalContent.scrollTop = 0;
-            embeddedPatientPhone.focus();
-        }
-    }
-
-    if (btnQuickAddPatient) {
-        btnQuickAddPatient.addEventListener('click', () => {
-            if (apptPatientDropdown) apptPatientDropdown.style.display = 'none';
-            showEmbeddedPatientView();
+        apptPatientDropdown.querySelectorAll('.autocomplete-item').forEach(el => {
+            el.addEventListener('click', () => {
+                const pId = el.getAttribute('data-patient-id');
+                const p = patients.find(x => x.id === pId);
+                if (p) {
+                    selectPatientForAppointment(p);
+                }
+            });
         });
+
+        apptPatientDropdown.style.display = 'block';
+    } else {
+        apptPatientDropdown.innerHTML = `<div style="padding: 0.85rem; color: var(--text-muted); text-align: center; font-size: 0.85rem;">${isAr ? 'لم يتم العثور على مريض مطابق' : 'No patients found.'}</div>`;
+        apptPatientDropdown.style.display = 'block';
     }
+}
 
-    if (btnBackToAppointment) {
-        btnBackToAppointment.addEventListener('click', showAppointmentView);
-    }
+if (apptPatientInput) {
+    apptPatientInput.addEventListener('input', () => {
+        if (apptPatientId) apptPatientId.value = '';
+        if (apptSelectedPatientCard) apptSelectedPatientCard.style.display = 'none';
+        filterApptPatients();
+    });
 
-    if (cancelEmbeddedPatientBtn) {
-        cancelEmbeddedPatientBtn.addEventListener('click', showAppointmentView);
-    }
-
-    if (embeddedPatientForm) {
-        embeddedPatientForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const name = (embeddedPatientName.value || '').trim();
-            const phone = (embeddedPatientPhone.value || '').trim();
-            const phone2 = (embeddedPatientPhone2.value || '').trim();
-            const gender = embeddedPatientGender ? embeddedPatientGender.value : 'Male';
-            const age = embeddedPatientAge ? embeddedPatientAge.value.trim() : '';
-            const callPref = embeddedCallPref ? embeddedCallPref.value : 'phone1';
-            const waPref = embeddedWaPref ? embeddedWaPref.value : 'phone1';
-            const lastVisit = (embeddedLastVisit && embeddedLastVisit.value) ? embeddedLastVisit.value : new Date().toISOString().split('T')[0];
-            const notes = (embeddedPatientNotes && embeddedPatientNotes.value) ? embeddedPatientNotes.value.trim() : '';
-
-            const selectedAlerts = Array.from(document.querySelectorAll('.embedded-alert-checkbox:checked'))
-                .map(cb => cb.value)
-                .join(', ');
-
-            const isAr = document.documentElement.lang === 'ar';
-
-            if (!name || name.length < 2) {
-                if (window.showToast) window.showToast(isAr ? 'يرجى إدخال اسم المريض (حرفين على الأقل)' : 'Please enter patient name', 'warning');
-                embeddedPatientName.focus();
-                return;
-            }
-
-            const cleanPhone = phone.replace(/\D/g, '');
-            if (cleanPhone.length < 7) {
-                if (window.showToast) window.showToast(isAr ? 'يرجى إدخال رقم هاتف صحيح (7 أرقام على الأقل)' : 'Valid phone required (at least 7 digits)', 'warning');
-                embeddedPatientPhone.focus();
-                return;
-            }
-
-            if (phone2) {
-                const cleanPhone2 = phone2.replace(/\D/g, '');
-                if (cleanPhone2.length < 7) {
-                    if (window.showToast) window.showToast(isAr ? 'يرجى إدخال رقم هاتف إضافي صحيح' : 'Valid additional phone required', 'warning');
-                    embeddedPatientPhone2.focus();
-                    return;
-                }
-            }
-
-            if (!currentUserUid) {
-                if (window.showToast) window.showToast(isAr ? 'المستخدم غير مسجل دخول' : 'User not authenticated', 'error');
-                return;
-            }
-
-            const submitBtn = saveEmbeddedPatientBtn || embeddedPatientForm.querySelector('button[type="submit"]');
-            const prevText = submitBtn ? submitBtn.innerText : '';
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.innerText = '...';
-            }
-
-            try {
-                // 1. Get sequential displayId from counter
-                const counterRef = doc(db, "users", currentUserUid, "metadata", "counters");
-                const counterDoc = await getDoc(counterRef);
-                let currentCount = 0;
-                if (counterDoc.exists() && counterDoc.data().patientCount) {
-                    currentCount = counterDoc.data().patientCount;
-                }
-                const newDisplayId = currentCount + 1;
-
-                // 2. Add complete patient document
-                const patientsRef = collection(db, "users", currentUserUid, "patients");
-                const newDoc = await addDoc(patientsRef, {
-                    name: name,
-                    phone: phone,
-                    phone2: phone2,
-                    gender: gender,
-                    age: age,
-                    callPref: callPref,
-                    waPref: waPref,
-                    medicalAlerts: selectedAlerts,
-                    lastVisit: lastVisit,
-                    notes: notes,
-                    displayId: newDisplayId.toString(),
-                    createdAt: new Date().toISOString()
-                });
-
-                // 3. Update counter
-                await setDoc(counterRef, { patientCount: newDisplayId }, { merge: true });
-
-                const newPatientObj = {
-                    id: newDoc.id,
-                    name: name,
-                    phone: phone,
-                    phone2: phone2,
-                    gender: gender,
-                    age: age,
-                    callPref: callPref,
-                    waPref: waPref,
-                    medicalAlerts: selectedAlerts,
-                    displayId: newDisplayId.toString(),
-                    lastVisit: lastVisit
-                };
-
-                if (window.currentPatients) {
-                    window.currentPatients.push(newPatientObj);
-                }
-
-                // 4. Return to appointment view and select patient
-                showAppointmentView();
-                apptPatientInput.value = name;
-                apptPatientId.value = newDoc.id;
-                if (apptPatientDropdown) apptPatientDropdown.style.display = 'none';
-
-                // Reset embedded form
-                embeddedPatientForm.reset();
-
-                if (window.showToast) {
-                    window.showToast(isAr ? `تم حفظ ملف المريض (${name}) برقم #${newDisplayId} واختياره في الموعد!` : `Patient (${name}) saved and selected!`, 'success');
-                }
-
-                // Refresh patients list in background
-                if (window.loadPatients) {
-                    window.loadPatients();
-                }
-                if (typeof window.updateDashboardStats === 'function') {
-                    window.updateDashboardStats();
-                }
-            } catch (err) {
-                console.error('Error saving embedded patient:', err);
-                if (window.showToast) window.showToast(isAr ? 'حدث خطأ أثناء حفظ ملف المريض' : 'Error saving patient', 'error');
-            } finally {
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerText = prevText;
-                }
-            }
-        });
-    }
-
-    // Hide dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-        if (e.target !== apptPatientInput && e.target !== apptPatientDropdown && !apptPatientDropdown.contains(e.target)) {
-            apptPatientDropdown.style.display = 'none';
+    apptPatientInput.addEventListener('focus', () => {
+        if (apptPatientInput.value.trim() || (apptPatientFileIdInput && apptPatientFileIdInput.value.trim())) {
+            filterApptPatients();
         }
     });
 }
+
+if (apptPatientFileIdInput) {
+    apptPatientFileIdInput.addEventListener('input', () => {
+        if (apptPatientId) apptPatientId.value = '';
+        if (apptSelectedPatientCard) apptSelectedPatientCard.style.display = 'none';
+        filterApptPatients();
+    });
+
+    apptPatientFileIdInput.addEventListener('focus', () => {
+        if (apptPatientFileIdInput.value.trim() || (apptPatientInput && apptPatientInput.value.trim())) {
+            filterApptPatients();
+        }
+    });
+}
+
+if (clearApptPatientSearchBtn) {
+    clearApptPatientSearchBtn.addEventListener('click', () => {
+        resetApptPatientSelection();
+        if (apptPatientInput) apptPatientInput.focus();
+    });
+}
+
+if (btnChangeApptPatient) {
+    btnChangeApptPatient.addEventListener('click', () => {
+        resetApptPatientSelection();
+        if (apptPatientInput) apptPatientInput.focus();
+    });
+}
+
+const appointmentFormContainer = document.getElementById('appointmentFormContainer');
+const embeddedPatientFormContainer = document.getElementById('embeddedPatientFormContainer');
+const embeddedPatientForm = document.getElementById('embeddedPatientForm');
+const btnBackToAppointment = document.getElementById('btnBackToAppointment');
+const cancelEmbeddedPatientBtn = document.getElementById('cancelEmbeddedPatientBtn');
+const saveEmbeddedPatientBtn = document.getElementById('saveEmbeddedPatientBtn');
+
+const embeddedPatientName = document.getElementById('embeddedPatientName');
+const embeddedPatientGender = document.getElementById('embeddedPatientGender');
+const embeddedPatientAge = document.getElementById('embeddedPatientAge');
+const embeddedPatientPhone = document.getElementById('embeddedPatientPhone');
+const embeddedPatientPhone2 = document.getElementById('embeddedPatientPhone2');
+const embeddedCallPref = document.getElementById('embeddedCallPref');
+const embeddedWaPref = document.getElementById('embeddedWaPref');
+const embeddedLastVisit = document.getElementById('embeddedLastVisit');
+const embeddedPatientNotes = document.getElementById('embeddedPatientNotes');
+
+function showAppointmentView() {
+    if (embeddedPatientFormContainer) embeddedPatientFormContainer.style.display = 'none';
+    if (appointmentFormContainer) appointmentFormContainer.style.display = 'block';
+}
+
+function showEmbeddedPatientView() {
+    if (appointmentFormContainer) appointmentFormContainer.style.display = 'none';
+    if (embeddedPatientFormContainer) {
+        embeddedPatientFormContainer.style.display = 'block';
+        if (apptPatientInput && apptPatientInput.value.trim()) {
+            embeddedPatientName.value = apptPatientInput.value.trim();
+        }
+        if (embeddedLastVisit && !embeddedLastVisit.value) {
+            embeddedLastVisit.value = new Date().toISOString().split('T')[0];
+        }
+        // Scroll modal to top
+        const modalContent = appointmentModal.querySelector('.modal-content');
+        if (modalContent) modalContent.scrollTop = 0;
+        embeddedPatientPhone.focus();
+    }
+}
+
+if (btnQuickAddPatient) {
+    btnQuickAddPatient.addEventListener('click', () => {
+        if (apptPatientDropdown) apptPatientDropdown.style.display = 'none';
+        showEmbeddedPatientView();
+    });
+}
+
+if (btnBackToAppointment) {
+    btnBackToAppointment.addEventListener('click', showAppointmentView);
+}
+
+if (cancelEmbeddedPatientBtn) {
+    cancelEmbeddedPatientBtn.addEventListener('click', showAppointmentView);
+}
+
+if (embeddedPatientForm) {
+    embeddedPatientForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const name = (embeddedPatientName.value || '').trim();
+        const phone = (embeddedPatientPhone.value || '').trim();
+        const phone2 = (embeddedPatientPhone2.value || '').trim();
+        const gender = embeddedPatientGender ? embeddedPatientGender.value : 'Male';
+        const age = embeddedPatientAge ? embeddedPatientAge.value.trim() : '';
+        const callPref = embeddedCallPref ? embeddedCallPref.value : 'phone1';
+        const waPref = embeddedWaPref ? embeddedWaPref.value : 'phone1';
+        const lastVisit = (embeddedLastVisit && embeddedLastVisit.value) ? embeddedLastVisit.value : new Date().toISOString().split('T')[0];
+        const notes = (embeddedPatientNotes && embeddedPatientNotes.value) ? embeddedPatientNotes.value.trim() : '';
+
+        const selectedAlerts = Array.from(document.querySelectorAll('.embedded-alert-checkbox:checked'))
+            .map(cb => cb.value)
+            .join(', ');
+
+        const isAr = document.documentElement.lang === 'ar';
+
+        if (!name || name.length < 2) {
+            if (window.showToast) window.showToast(isAr ? 'يرجى إدخال اسم المريض (حرفين على الأقل)' : 'Please enter patient name', 'warning');
+            embeddedPatientName.focus();
+            return;
+        }
+
+        const cleanPhone = phone.replace(/\D/g, '');
+        if (cleanPhone.length < 7) {
+            if (window.showToast) window.showToast(isAr ? 'يرجى إدخال رقم هاتف صحيح (7 أرقام على الأقل)' : 'Valid phone required (at least 7 digits)', 'warning');
+            embeddedPatientPhone.focus();
+            return;
+        }
+
+        if (phone2) {
+            const cleanPhone2 = phone2.replace(/\D/g, '');
+            if (cleanPhone2.length < 7) {
+                if (window.showToast) window.showToast(isAr ? 'يرجى إدخال رقم هاتف إضافي صحيح' : 'Valid additional phone required', 'warning');
+                embeddedPatientPhone2.focus();
+                return;
+            }
+        }
+
+        if (!currentUserUid) {
+            if (window.showToast) window.showToast(isAr ? 'المستخدم غير مسجل دخول' : 'User not authenticated', 'error');
+            return;
+        }
+
+        const submitBtn = saveEmbeddedPatientBtn || embeddedPatientForm.querySelector('button[type="submit"]');
+        const prevText = submitBtn ? submitBtn.innerText : '';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerText = '...';
+        }
+
+        try {
+            // 1. Get sequential displayId from counter
+            const counterRef = doc(db, "users", currentUserUid, "metadata", "counters");
+            const counterDoc = await getDoc(counterRef);
+            let currentCount = 0;
+            if (counterDoc.exists() && counterDoc.data().patientCount) {
+                currentCount = counterDoc.data().patientCount;
+            }
+            const newDisplayId = currentCount + 1;
+
+            // 2. Add complete patient document
+            const patientsRef = collection(db, "users", currentUserUid, "patients");
+            const newDoc = await addDoc(patientsRef, {
+                name: name,
+                phone: phone,
+                phone2: phone2,
+                gender: gender,
+                age: age,
+                callPref: callPref,
+                waPref: waPref,
+                medicalAlerts: selectedAlerts,
+                lastVisit: lastVisit,
+                notes: notes,
+                displayId: newDisplayId.toString(),
+                createdAt: new Date().toISOString()
+            });
+
+            // 3. Update counter
+            await setDoc(counterRef, { patientCount: newDisplayId }, { merge: true });
+
+            const newPatientObj = {
+                id: newDoc.id,
+                name: name,
+                phone: phone,
+                phone2: phone2,
+                gender: gender,
+                age: age,
+                callPref: callPref,
+                waPref: waPref,
+                medicalAlerts: selectedAlerts,
+                displayId: newDisplayId.toString(),
+                lastVisit: lastVisit
+            };
+
+            if (window.currentPatients) {
+                window.currentPatients.push(newPatientObj);
+            }
+
+            // 4. Return to appointment view and select patient
+            showAppointmentView();
+            selectPatientForAppointment(newPatientObj);
+
+            // Reset embedded form
+            embeddedPatientForm.reset();
+
+            if (window.showToast) {
+                window.showToast(isAr ? `تم حفظ ملف المريض (${name}) برقم #${newDisplayId} واختياره في الموعد!` : `Patient (${name}) saved and selected!`, 'success');
+            }
+
+            // Refresh patients list in background
+            if (window.loadPatients) {
+                window.loadPatients();
+            }
+            if (typeof window.updateDashboardStats === 'function') {
+                window.updateDashboardStats();
+            }
+        } catch (err) {
+            console.error('Error saving embedded patient:', err);
+            if (window.showToast) window.showToast(isAr ? 'حدث خطأ أثناء حفظ ملف المريض' : 'Error saving patient', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerText = prevText;
+            }
+        }
+    });
+}
+
+// Hide dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    if (
+        apptPatientDropdown &&
+        apptPatientDropdown.style.display !== 'none' &&
+        e.target !== apptPatientInput &&
+        e.target !== apptPatientFileIdInput &&
+        e.target !== apptPatientDropdown &&
+        !apptPatientDropdown.contains(e.target)
+    ) {
+        apptPatientDropdown.style.display = 'none';
+    }
+});
 
 // Appointments & Schedule Logic
 // ---------------------------------------------------------
@@ -648,6 +791,7 @@ if (openAppointmentModalBtn) {
         if (embeddedContainer) embeddedContainer.style.display = 'none';
         appointmentForm.reset();
         document.getElementById('appointmentId').value = '';
+        resetApptPatientSelection();
         appointmentModal.classList.add('show');
         history.pushState({ modal: 'appointment' }, '', window.location.hash);
     });
@@ -702,15 +846,32 @@ if (appointmentForm) {
     appointmentForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         const idField = document.getElementById('appointmentId').value;
-        const patientName = document.getElementById('apptPatientName').value;
+        const patientName = (document.getElementById('apptPatientName').value || '').trim();
         const date = document.getElementById('apptDate').value;
         const time = document.getElementById('apptTime').value;
         const submitBtn = appointmentForm.querySelector('button[type="submit"]');
+        const isAr = (document.documentElement.lang || 'en') === 'ar';
+
+        if (!patientName) {
+            if (window.showToast) window.showToast(isAr ? 'يرجى اختيار أو كتابة اسم المريض' : 'Please select or enter patient name', 'warning');
+            return;
+        }
 
         submitBtn.disabled = true;
 
         try {
-            const pId = document.getElementById('apptPatientId').value;
+            let pId = document.getElementById('apptPatientId').value;
+            const fileIdVal = (document.getElementById('apptPatientFileId')?.value || '').trim();
+
+            // Auto-match patient from currentPatients if pId is empty
+            if (!pId && window.currentPatients) {
+                const matched = window.currentPatients.find(p => 
+                    (fileIdVal && p.displayId === fileIdVal) || 
+                    (p.name && p.name.trim().toLowerCase() === patientName.toLowerCase())
+                );
+                if (matched) pId = matched.id;
+            }
+
             if (idField) {
                 const apptRef = doc(db, "users", currentUserUid, "appointments", idField);
                 await updateDoc(apptRef, { patientName, patientId: pId, date, time });
@@ -720,11 +881,16 @@ if (appointmentForm) {
             }
             await loadAppointments();
             updateDashboardStats(); // Update stats
+            if (window.showToast) {
+                window.showToast(isAr ? 'تم حفظ الموعد بنجاح!' : 'Appointment saved successfully!', 'success');
+            }
             if(window.closeModalAndPopState) window.closeModalAndPopState(appointmentModal);
             else appointmentModal.classList.remove('show');
+            resetApptPatientSelection();
         } catch (e) {
             console.error("Error saving appointment: ", e);
-            alert("Error saving appointment.");
+            if (window.showToast) window.showToast(isAr ? 'حدث خطأ أثناء حفظ الموعد' : 'Error saving appointment', 'error');
+            else alert("Error saving appointment.");
         } finally {
             submitBtn.disabled = false;
         }

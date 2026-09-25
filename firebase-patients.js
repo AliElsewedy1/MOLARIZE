@@ -168,20 +168,80 @@ function renderPatients(patientsToRender = currentPatients) {
 }
 window.renderPatients = renderPatients;
 
-// Search Logic
+// Search & Filtering Logic (Name/Phone and Separate File ID)
+function filterPatientsList() {
+    const searchInput = document.getElementById('patientSearchInput');
+    const idSearchInput = document.getElementById('patientIdSearchInput');
+    const clearBtn = document.getElementById('clearPatientSearchBtn');
+    const summaryBox = document.getElementById('patientSearchResultsSummary');
+    const countBadge = document.getElementById('patientSearchResultsCount');
+    
+    const generalTerm = (searchInput ? searchInput.value : '').trim().toLowerCase();
+    const idTerm = (idSearchInput ? idSearchInput.value : '').trim().toLowerCase();
+    const isFiltered = Boolean(generalTerm || idTerm);
+
+    if (clearBtn) {
+        clearBtn.style.display = isFiltered ? 'inline-flex' : 'none';
+    }
+
+    const filtered = (currentPatients || []).filter(p => {
+        let matchGeneral = true;
+        let matchId = true;
+
+        if (generalTerm) {
+            const name = (p.name || '').toLowerCase();
+            const phone = String(p.phone || '').toLowerCase();
+            const phone2 = String(p.phone2 || '').toLowerCase();
+            matchGeneral = name.includes(generalTerm) || phone.includes(generalTerm) || phone2.includes(generalTerm);
+        }
+
+        if (idTerm) {
+            const displayId = String(p.displayId || '').toLowerCase();
+            const docId = String(p.id || '').toLowerCase();
+            const cleanNumericId = displayId.replace(/\D/g, '');
+            const cleanSearchNum = idTerm.replace(/\D/g, '');
+
+            const directMatch = displayId.includes(idTerm) || docId.includes(idTerm);
+            const numMatch = cleanSearchNum ? (cleanNumericId.includes(cleanSearchNum) || parseInt(cleanNumericId, 10) === parseInt(cleanSearchNum, 10)) : false;
+            matchId = directMatch || numMatch;
+        }
+
+        return matchGeneral && matchId;
+    });
+
+    if (summaryBox && countBadge) {
+        const isAr = (document.documentElement.lang || 'en') === 'ar';
+        if (isFiltered) {
+            summaryBox.style.display = 'flex';
+            countBadge.innerText = isAr 
+                ? `تم العثور على ${filtered.length} مريض من أصل ${currentPatients.length}`
+                : `Found ${filtered.length} of ${currentPatients.length} patients`;
+        } else {
+            summaryBox.style.display = 'none';
+        }
+    }
+
+    renderPatients(filtered);
+}
+window.filterPatientsList = filterPatientsList;
+
 const patientSearchInput = document.getElementById('patientSearchInput');
 if (patientSearchInput) {
-    patientSearchInput.addEventListener('input', (e) => {
-        const searchTerm = e.target.value.toLowerCase();
+    patientSearchInput.addEventListener('input', filterPatientsList);
+}
 
-        const filtered = currentPatients.filter(p => {
-            const nameMatch = (p.name || '').toLowerCase().includes(searchTerm);
-            const phoneMatch = (p.phone || '').toLowerCase().includes(searchTerm);
-            const idMatch = (p.displayId || '').toLowerCase().includes(searchTerm);
-            return nameMatch || phoneMatch || idMatch;
-        });
+const patientIdSearchInput = document.getElementById('patientIdSearchInput');
+if (patientIdSearchInput) {
+    patientIdSearchInput.addEventListener('input', filterPatientsList);
+}
 
-        renderPatients(filtered);
+const clearPatientSearchBtn = document.getElementById('clearPatientSearchBtn');
+if (clearPatientSearchBtn) {
+    clearPatientSearchBtn.addEventListener('click', () => {
+        if (patientSearchInput) patientSearchInput.value = '';
+        if (patientIdSearchInput) patientIdSearchInput.value = '';
+        filterPatientsList();
+        if (patientSearchInput) patientSearchInput.focus();
     });
 }
 
