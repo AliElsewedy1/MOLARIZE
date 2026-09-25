@@ -1505,18 +1505,66 @@ tbody tr:nth-child(7) { animation-delay: 0.20s; }
     background: rgba(45, 212, 191, 0.08);
 }
 
-/* Mini Timeline */
-.mini-timeline {
-    padding: 0.5rem 0 0.75rem 0;
-    margin-bottom: 0.25rem;
+/* Modern Dynamic Calendar Icon Block */
+.calendar-day-icon {
+    width: 44px;
+    height: 46px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    flex-shrink: 0;
+    user-select: none;
+    transition: transform 0.2s ease;
 }
-.mini-timeline .timeline-hours {
-    font-size: 0.75rem;
-    min-width: 480px;
+
+.calendar-day-icon:hover {
+    transform: translateY(-1px);
 }
-.mini-timeline .timeline-events {
-    height: 32px;
-    min-width: 480px;
+
+.today-calendar-icon {
+    border-color: rgba(45, 212, 191, 0.4);
+}
+
+.today-calendar-icon .cal-icon-month {
+    background: var(--brand-primary);
+    color: #ffffff;
+}
+
+.tomorrow-calendar-icon {
+    border-color: rgba(245, 158, 11, 0.4);
+}
+
+.tomorrow-calendar-icon .cal-icon-month {
+    background: #f59e0b;
+    color: #ffffff;
+}
+
+.cal-icon-month {
+    width: 100%;
+    padding: 2px 0;
+    font-size: 0.62rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    text-align: center;
+    letter-spacing: 0.5px;
+    line-height: 1.15;
+}
+
+.cal-icon-day {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1;
 }
 
 /* Agenda Appointments List & Items - Vertical on Desktop/Tablet, Horizontal on Mobile */

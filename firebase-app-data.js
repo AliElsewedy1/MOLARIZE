@@ -1464,17 +1464,28 @@ function renderTodayAppointments() {
             `Total: ${total48h} appointments in next 48h (${todayAppts.length} Today • ${tomorrowAppts.length} Tomorrow)`;
     }
 
-    // Format display dates
+    // Format display dates & Calendar Icons
     const dateTodayDisp = document.getElementById('agendaTodayDateDisplay');
     const dateTmrwDisp = document.getElementById('agendaTomorrowDateDisplay');
 
+    const todayCalMonth = document.getElementById('agendaTodayCalMonth');
+    const todayCalDay = document.getElementById('agendaTodayCalDay');
+    const tmrwCalMonth = document.getElementById('agendaTomorrowCalMonth');
+    const tmrwCalDay = document.getElementById('agendaTomorrowCalDay');
+
+    if (todayCalMonth) todayCalMonth.innerText = now.toLocaleDateString(isAr ? 'ar-EG' : 'en-US', { month: 'short' });
+    if (todayCalDay) todayCalDay.innerText = now.getDate();
+
+    if (tmrwCalMonth) tmrwCalMonth.innerText = tmrw.toLocaleDateString(isAr ? 'ar-EG' : 'en-US', { month: 'short' });
+    if (tmrwCalDay) tmrwCalDay.innerText = tmrw.getDate();
+
     if (dateTodayDisp) {
         const formattedToday = now.toLocaleDateString(isAr ? 'ar-EG' : 'en-US', { weekday: 'long', day: 'numeric', month: 'short' });
-        dateTodayDisp.innerText = isAr ? `اليوم • ${formattedToday}` : `Today • ${formattedToday}`;
+        dateTodayDisp.innerText = formattedToday;
     }
     if (dateTmrwDisp) {
         const formattedTmrw = tmrw.toLocaleDateString(isAr ? 'ar-EG' : 'en-US', { weekday: 'long', day: 'numeric', month: 'short' });
-        dateTmrwDisp.innerText = isAr ? `غداً • ${formattedTmrw}` : `Tomorrow • ${formattedTmrw}`;
+        dateTmrwDisp.innerText = formattedTmrw;
     }
 
     // Wire quick add buttons
