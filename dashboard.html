@@ -132,42 +132,101 @@
                 </div>
             </div>
 
-            <!-- Today's Schedule -->
-            <div class="home-card full-width">
-                <div class="card-header-flex">
-                    <div class="header-title">
-                        <span>🕒</span>
-                        <h3 data-ar="اليوم" data-en="Today">Today</h3>
-                        <span class="status-badge status-inprogress" id="home-appointments-today" style="margin-left: 0.5rem; background-color: var(--brand-primary); color: white;">0</span>
+            <!-- Unified Today & Tomorrow Schedule Hub -->
+            <div class="home-card full-width unified-agenda-card" id="unifiedAgendaSection">
+                <div class="card-header-flex agenda-header-wrapper" style="flex-wrap: wrap; gap: 0.75rem;">
+                    <div class="header-title" style="display: flex; align-items: center; gap: 0.6rem;">
+                        <span style="font-size: 1.4rem;">🗓️</span>
+                        <div>
+                            <h3 data-ar="أجندة المواعيد: اليوم وغداً" data-en="Daily Agenda: Today & Tomorrow" style="margin: 0; font-size: 1.15rem; font-weight: 700;">Daily Agenda: Today & Tomorrow</h3>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;" id="agendaTotalSummary" data-ar="متابعة وتنظيم مواعيد العيادة للـ 48 ساعة القادمة" data-en="Managing clinic appointments for the next 48 hours">Managing clinic appointments for the next 48 hours</div>
+                        </div>
                     </div>
-                    <a href="#" class="nav-link" data-target-section="schedule-section" data-ar="عرض كل المواعيد →" data-en="View all appointments →">View all appointments →</a>
-                </div>
-                <div class="timeline-container">
-                    <div class="timeline-hours">
-                        <span>8</span><span>09</span><span>10</span><span>11</span><span>12</span>
-                        <span>13</span><span>14</span><span>15</span><span>16</span><span>17</span>
-                        <span>18</span><span>19</span><span>20</span><span>21</span>
-                    </div>
-                    <div class="timeline-events" id="home-timeline-events"></div>
-                </div>
-            </div>
 
-            <!-- Tomorrow's Schedule -->
-            <div class="home-card full-width">
-                <div class="card-header-flex">
-                    <div class="header-title">
-                        <span>📅</span>
-                        <h3 data-ar="غداً" data-en="Tomorrow">Tomorrow</h3>
+                    <!-- Segmented Tabs / Filter Controls -->
+                    <div class="agenda-filter-tabs" style="display: flex; gap: 0.4rem;">
+                        <button type="button" class="agenda-tab-btn active" id="tabAgendaAll" onclick="if(window.filterAgendaView) window.filterAgendaView('all')" data-ar="🌟 الكل" data-en="🌟 All">
+                            🌟 All
+                        </button>
+                        <button type="button" class="agenda-tab-btn" id="tabAgendaToday" onclick="if(window.filterAgendaView) window.filterAgendaView('today')">
+                            <span data-ar="🕒 اليوم" data-en="🕒 Today">🕒 Today</span>
+                            <span class="agenda-tab-count today-count-pill" id="tabCountToday">0</span>
+                        </button>
+                        <button type="button" class="agenda-tab-btn" id="tabAgendaTomorrow" onclick="if(window.filterAgendaView) window.filterAgendaView('tomorrow')">
+                            <span data-ar="📅 غداً" data-en="📅 Tomorrow">📅 Tomorrow</span>
+                            <span class="agenda-tab-count tomorrow-count-pill" id="tabCountTomorrow">0</span>
+                        </button>
                     </div>
-                    <a href="#" class="nav-link" data-target-section="schedule-section" data-ar="عرض كل المواعيد →" data-en="View all appointments →">View all appointments →</a>
+
+                    <div class="agenda-header-actions" style="display: flex; align-items: center; gap: 0.6rem;">
+                        <button class="btn-primary" style="padding: 0.45rem 0.85rem; font-size: 0.84rem; display: inline-flex; align-items: center; gap: 4px;" onclick="if(window.openNewAppointmentModal) window.openNewAppointmentModal(); else document.getElementById('openAppointmentModalBtn')?.click();">
+                            <span>+</span> <span data-ar="حجز موعد" data-en="Book Appointment">Book Appointment</span>
+                        </button>
+                        <a href="#" class="nav-link" data-target-section="schedule-section" data-ar="جدول المواعيد الكامل ←" data-en="Full Calendar →" style="font-size: 0.88rem;">Full Calendar →</a>
+                    </div>
                 </div>
-                <div class="timeline-container">
-                    <div class="timeline-hours">
-                        <span>8</span><span>09</span><span>10</span><span>11</span><span>12</span>
-                        <span>13</span><span>14</span><span>15</span><span>16</span><span>17</span>
-                        <span>18</span><span>19</span><span>20</span><span>21</span>
+
+                <!-- Dual Agenda Grid: Today & Tomorrow -->
+                <div class="agenda-dual-grid" id="agendaDualGrid">
+                    <!-- Today Panel -->
+                    <div class="agenda-day-panel today-panel" id="agendaTodayPanel">
+                        <div class="agenda-panel-header today-accent">
+                            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                                <span class="agenda-day-icon">🕒</span>
+                                <div>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                        <h4 data-ar="مواعيد اليوم" data-en="Today's Appointments" style="margin: 0; font-size: 1.05rem; font-weight: 700;">Today's Appointments</h4>
+                                        <span class="agenda-day-badge today-badge" id="badgeTodayCount">0</span>
+                                    </div>
+                                    <div class="agenda-day-date" id="agendaTodayDateDisplay">--</div>
+                                </div>
+                            </div>
+                            <button type="button" class="agenda-quick-add-btn" id="btnAddApptToday" title="Add appointment today" data-ar="+ موعد لليوم" data-en="+ Today">+ Today</button>
+                        </div>
+
+                        <!-- Compact Visual Hourly Timeline -->
+                        <div class="timeline-container mini-timeline">
+                            <div class="timeline-hours">
+                                <span>08:00</span><span>10:00</span><span>12:00</span><span>14:00</span><span>16:00</span><span>18:00</span><span>20:00</span>
+                            </div>
+                            <div class="timeline-events" id="home-timeline-events"></div>
+                        </div>
+
+                        <!-- Rich Appointments List for Today -->
+                        <div class="agenda-items-list" id="homeTodayApptsList">
+                            <!-- Populated dynamically via JS -->
+                        </div>
                     </div>
-                    <div class="timeline-events" id="tomorrow-timeline-events"></div>
+
+                    <!-- Tomorrow Panel -->
+                    <div class="agenda-day-panel tomorrow-panel" id="agendaTomorrowPanel">
+                        <div class="agenda-panel-header tomorrow-accent">
+                            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                                <span class="agenda-day-icon">📅</span>
+                                <div>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                        <h4 data-ar="مواعيد غداً" data-en="Tomorrow's Appointments" style="margin: 0; font-size: 1.05rem; font-weight: 700;">Tomorrow's Appointments</h4>
+                                        <span class="agenda-day-badge tomorrow-badge" id="badgeTomorrowCount">0</span>
+                                    </div>
+                                    <div class="agenda-day-date" id="agendaTomorrowDateDisplay">--</div>
+                                </div>
+                            </div>
+                            <button type="button" class="agenda-quick-add-btn" id="btnAddApptTomorrow" title="Add appointment tomorrow" data-ar="+ موعد لغداً" data-en="+ Tomorrow">+ Tomorrow</button>
+                        </div>
+
+                        <!-- Compact Visual Hourly Timeline -->
+                        <div class="timeline-container mini-timeline">
+                            <div class="timeline-hours">
+                                <span>08:00</span><span>10:00</span><span>12:00</span><span>14:00</span><span>16:00</span><span>18:00</span><span>20:00</span>
+                            </div>
+                            <div class="timeline-events" id="tomorrow-timeline-events"></div>
+                        </div>
+
+                        <!-- Rich Appointments List for Tomorrow -->
+                        <div class="agenda-items-list" id="homeTomorrowApptsList">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
                 </div>
             </div>
 

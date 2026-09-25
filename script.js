@@ -292,6 +292,10 @@ window.goToHome = function() {
         if (dash) dash.style.display = 'block';
         window.location.hash = '#dashboard-section';
     }
+    // 4. Smooth scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const contentArea = document.querySelector('.content-area');
+    if (contentArea) contentArea.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 // Helper to safely close modals and pop the modal state

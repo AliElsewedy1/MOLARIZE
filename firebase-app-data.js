@@ -31,7 +31,7 @@ const cancelApptBtn = document.getElementById('cancelApptBtn');
 const appointmentForm = document.getElementById('appointmentForm');
 
 // Helper to open New Appointment modal from anywhere
-window.openNewAppointmentModal = function() {
+window.openNewAppointmentModal = function(prefillDate) {
     const aModal = document.getElementById('appointmentModal');
     const aForm = document.getElementById('appointmentForm');
     const apptContainer = document.getElementById('appointmentFormContainer');
@@ -43,6 +43,10 @@ window.openNewAppointmentModal = function() {
     if (aId) aId.value = '';
     const aDropdown = document.getElementById('apptPatientDropdown');
     if (aDropdown) aDropdown.style.display = 'none';
+    if (prefillDate) {
+        const dateInput = document.getElementById('apptDate');
+        if (dateInput) dateInput.value = prefillDate;
+    }
     if (aModal) {
         aModal.classList.add('show');
         history.pushState({ modal: 'appointment' }, '', window.location.hash);
@@ -1109,10 +1113,11 @@ function renderTimelineEvents(eventsContainer, dateString) {
             const block = document.createElement('div');
             block.className = 'timeline-block';
             block.style.left = `${leftPercent}%`;
-            block.style.width = `${widthPercent}%`;
+            block.style.width = `${Math.max(widthPercent, 4)}%`;
             block.style.cursor = 'pointer';
-            block.innerHTML = `✓ ${appt.time}`;
-            block.title = isAr ? `${appt.patientName} (${appt.time}) - اضغط للتفاصيل أو الإلغاء` : `${appt.patientName} (${appt.time}) - Click for details or to cancel`;
+            const formattedTime = window.formatTime ? window.formatTime(appt.time) : appt.time;
+            block.innerHTML = `✓ ${formattedTime}`;
+            block.title = isAr ? `${appt.patientName} (${formattedTime}) - اضغط للتفاصيل أو الإلغاء` : `${appt.patientName} (${formattedTime}) - Click for details or to cancel`;
             block.addEventListener('click', (e) => {
                 e.stopPropagation();
                 window.openAppointmentActionModal(appt);
@@ -1123,17 +1128,213 @@ function renderTimelineEvents(eventsContainer, dateString) {
     });
 }
 
+function renderAgendaItemsList(containerElement, appointments, targetDateIso, isToday) {
+    if (!containerElement) return;
+    containerElement.innerHTML = '';
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+
+    if (!appointments || appointments.length === 0) {
+        const emptyMsg = isToday ? 
+            (isAr ? 'لا توجد مواعيد مجدولة لليوم' : 'No appointments scheduled for today') :
+            (isAr ? 'لا توجد مواعيد مجدولة لغداً' : 'No appointments scheduled for tomorrow');
+        const emptySub = isAr ? 'يمكنك حجز موعد جديد في أي وقت' : 'You can schedule a new appointment anytime';
+        const addBtnText = isToday ? (isAr ? '+ حجز موعد لليوم' : '+ Book for Today') : (isAr ? '+ حجز موعد لغداً' : '+ Book for Tomorrow');
+
+        containerElement.innerHTML = `
+            <div class="agenda-empty-state">
+                <span style="font-size: 1.6rem; margin-bottom: 0.35rem; opacity: 0.7;">✨</span>
+                <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary);">${emptyMsg}</div>
+                <div style="font-size: 0.78rem; color: var(--text-muted); margin: 0.2rem 0 0.75rem;">${emptySub}</div>
+                <button type="button" class="btn-outline" style="font-size: 0.8rem; padding: 0.3rem 0.75rem;" onclick="window.openNewAppointmentModal('${targetDateIso}')">
+                    ${addBtnText}
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    appointments.forEach(appt => {
+        const patient = (window.currentPatients || []).find(p => p.id === appt.patientId || p.name === appt.patientName);
+        const callTargetPhone = (patient && patient.callPref === 'phone2' && patient.phone2) ? patient.phone2 : (patient ? patient.phone : appt.patientPhone);
+        const cleanCallPhone = String(callTargetPhone || '').replace(/\D/g, '');
+
+        const waTargetPhone = (patient && patient.waPref === 'phone2' && patient.phone2) ? patient.phone2 : (patient ? patient.phone : appt.patientPhone);
+        const cleanWaPhone = String(waTargetPhone || '').replace(/\D/g, '');
+        const waLinkPhone = cleanWaPhone.startsWith('0') ? '2' + cleanWaPhone : '20' + cleanWaPhone;
+
+        const formattedTime = window.formatTime ? window.formatTime(appt.time) : (appt.time || '--:--');
+        const dayWord = isToday ? (isAr ? 'اليوم' : 'today') : (isAr ? 'غداً' : 'tomorrow');
+        const waMsg = encodeURIComponent(
+            isAr ? `مرحباً ${appt.patientName || 'يا فندم'}، نود تذكيركم بموعدكم ${dayWord} الساعة ${formattedTime} في عيادة MOLARIZE للأسنان.` :
+            `Hello ${appt.patientName || ''}, this is a reminder for your appointment ${dayWord} at ${formattedTime} at MOLARIZE Dental Clinic.`
+        );
+
+        const ageText = (patient && patient.age) ? `• ${patient.age} ${isAr ? 'سنة' : 'yrs'}` : '';
+        const translatedAlerts = (patient && patient.medicalAlerts && window.translateMedicalAlerts) ? 
+            window.translateMedicalAlerts(patient.medicalAlerts, isAr) : (patient ? patient.medicalAlerts : '');
+        const alertBadge = (translatedAlerts && translatedAlerts.trim()) ? 
+            `<span class="status-badge status-error" style="font-size: 0.7rem; padding: 1px 5px;">⚠️ ${translatedAlerts}</span>` : '';
+
+        const displayPhone = patient ? (patient.phone || '-') : (appt.patientPhone || '');
+        const displayId = (patient && patient.displayId) ? patient.displayId : '-';
+
+        const itemCard = document.createElement('div');
+        itemCard.className = 'agenda-item-card';
+        itemCard.onclick = () => {
+            window.openAppointmentActionModal(appt.id || appt);
+        };
+
+        itemCard.innerHTML = `
+            <div class="agenda-item-left">
+                <div class="agenda-time-pill">
+                    <span>${formattedTime}</span>
+                </div>
+                <div class="agenda-item-info">
+                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                        <span class="agenda-item-patient-name" onclick="event.stopPropagation(); if('${appt.patientId}' && window.openPatientProfile) window.openPatientProfile('${appt.patientId}')" style="cursor: pointer;" title="${isAr ? 'عرض ملف المريض' : 'View Patient Profile'}">${appt.patientName || (isAr ? 'غير محدد' : 'Unknown')}</span>
+                        <span class="status-badge" style="background-color: rgba(45, 212, 191, 0.15); color: var(--brand-primary); font-size: 0.72rem; padding: 1px 6px; font-weight: 700;">#${displayId}</span>
+                        <span style="font-size: 0.78rem; color: var(--text-muted);">${ageText}</span>
+                        ${alertBadge}
+                    </div>
+                    <div class="agenda-item-meta">
+                        ${displayPhone ? `<span>📞 ${displayPhone}</span>` : ''}
+                        <span class="status-badge status-inprogress" style="font-size: 0.68rem; padding: 1px 6px;">${isAr ? 'مؤكد' : 'Confirmed'}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="agenda-item-actions" onclick="event.stopPropagation();">
+                ${cleanCallPhone ? `
+                <a href="tel:${cleanCallPhone}" class="agenda-action-btn" title="${isAr ? 'اتصال هاتفياً' : 'Call'}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                </a>` : ''}
+                ${cleanWaPhone ? `
+                <a href="https://wa.me/${waLinkPhone}?text=${waMsg}" target="_blank" class="agenda-action-btn agenda-action-wa" title="${isAr ? 'إرسال تذكير واتساب' : 'WhatsApp Reminder'}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+                </a>` : ''}
+                <button type="button" class="agenda-action-btn" onclick="window.openAppointmentActionModal('${appt.id || appt}')" title="${isAr ? 'إدارة الموعد والتفاصيل' : 'Manage Appointment'}">
+                    ⚙️
+                </button>
+            </div>
+        `;
+        containerElement.appendChild(itemCard);
+    });
+}
+
 function renderTodayAppointments() {
     const localOffset = new Date().getTimezoneOffset() * 60000;
-    const today = new Date(Date.now() - localOffset).toISOString().split('T')[0];
-    renderTimelineEvents(homeTimelineEvents, today);
+    const now = new Date();
+    const todayIso = new Date(Date.now() - localOffset).toISOString().split('T')[0];
 
     const tmrw = new Date();
     tmrw.setDate(tmrw.getDate() + 1);
-    const tomorrow = new Date(tmrw.getTime() - localOffset).toISOString().split('T')[0];
-    renderTimelineEvents(tomorrowTimelineEvents, tomorrow);
+    const tomorrowIso = new Date(tmrw.getTime() - localOffset).toISOString().split('T')[0];
+
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+
+    const todayAppts = currentAppointments.filter(a => a.date === todayIso);
+    const tomorrowAppts = currentAppointments.filter(a => a.date === tomorrowIso);
+
+    // Sort chronologically
+    todayAppts.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+    tomorrowAppts.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+    // Update Counts & Badges
+    const badgeToday = document.getElementById('badgeTodayCount');
+    const badgeTomorrow = document.getElementById('badgeTomorrowCount');
+    const tabCountToday = document.getElementById('tabCountToday');
+    const tabCountTomorrow = document.getElementById('tabCountTomorrow');
+    const agendaTotalSummary = document.getElementById('agendaTotalSummary');
+
+    if (badgeToday) {
+        badgeToday.innerText = isAr ? 
+            `${todayAppts.length} ${todayAppts.length === 1 ? 'موعد' : todayAppts.length === 2 ? 'موعدان' : todayAppts.length <= 10 ? 'مواعيد' : 'موعد'}` : 
+            `${todayAppts.length} ${todayAppts.length === 1 ? 'Appointment' : 'Appointments'}`;
+    }
+    if (badgeTomorrow) {
+        badgeTomorrow.innerText = isAr ? 
+            `${tomorrowAppts.length} ${tomorrowAppts.length === 1 ? 'موعد' : tomorrowAppts.length === 2 ? 'موعدان' : tomorrowAppts.length <= 10 ? 'مواعيد' : 'موعد'}` : 
+            `${tomorrowAppts.length} ${tomorrowAppts.length === 1 ? 'Appointment' : 'Appointments'}`;
+    }
+    if (tabCountToday) tabCountToday.innerText = todayAppts.length;
+    if (tabCountTomorrow) tabCountTomorrow.innerText = tomorrowAppts.length;
+
+    if (homeAppointmentsToday) homeAppointmentsToday.innerText = todayAppts.length;
+    const kpiToday = document.getElementById('kpi-today-appts');
+    if (kpiToday) kpiToday.innerText = todayAppts.length;
+
+    if (agendaTotalSummary) {
+        const total48h = todayAppts.length + tomorrowAppts.length;
+        agendaTotalSummary.innerText = isAr ? 
+            `مجموع المواعيد: ${total48h} موعد خلال 48 ساعة (${todayAppts.length} اليوم • ${tomorrowAppts.length} غداً)` : 
+            `Total: ${total48h} appointments in next 48h (${todayAppts.length} Today • ${tomorrowAppts.length} Tomorrow)`;
+    }
+
+    // Format display dates
+    const dateTodayDisp = document.getElementById('agendaTodayDateDisplay');
+    const dateTmrwDisp = document.getElementById('agendaTomorrowDateDisplay');
+
+    if (dateTodayDisp) {
+        const formattedToday = now.toLocaleDateString(isAr ? 'ar-EG' : 'en-US', { weekday: 'long', day: 'numeric', month: 'short' });
+        dateTodayDisp.innerText = isAr ? `اليوم • ${formattedToday}` : `Today • ${formattedToday}`;
+    }
+    if (dateTmrwDisp) {
+        const formattedTmrw = tmrw.toLocaleDateString(isAr ? 'ar-EG' : 'en-US', { weekday: 'long', day: 'numeric', month: 'short' });
+        dateTmrwDisp.innerText = isAr ? `غداً • ${formattedTmrw}` : `Tomorrow • ${formattedTmrw}`;
+    }
+
+    // Wire quick add buttons
+    const btnAddToday = document.getElementById('btnAddApptToday');
+    if (btnAddToday) {
+        btnAddToday.onclick = () => window.openNewAppointmentModal(todayIso);
+    }
+    const btnAddTmrw = document.getElementById('btnAddApptTomorrow');
+    if (btnAddTmrw) {
+        btnAddTmrw.onclick = () => window.openNewAppointmentModal(tomorrowIso);
+    }
+
+    // Mini Timelines
+    renderTimelineEvents(homeTimelineEvents, todayIso);
+    renderTimelineEvents(tomorrowTimelineEvents, tomorrowIso);
+
+    // Rich Lists
+    const homeTodayList = document.getElementById('homeTodayApptsList');
+    const homeTomorrowList = document.getElementById('homeTomorrowApptsList');
+
+    renderAgendaItemsList(homeTodayList, todayAppts, todayIso, true);
+    renderAgendaItemsList(homeTomorrowList, tomorrowAppts, tomorrowIso, false);
 }
 window.renderTodayAppointments = renderTodayAppointments;
+
+window.filterAgendaView = function(view) {
+    const tabAll = document.getElementById('tabAgendaAll');
+    const tabToday = document.getElementById('tabAgendaToday');
+    const tabTomorrow = document.getElementById('tabAgendaTomorrow');
+
+    const panelToday = document.getElementById('agendaTodayPanel');
+    const panelTomorrow = document.getElementById('agendaTomorrowPanel');
+    const dualGrid = document.getElementById('agendaDualGrid');
+
+    [tabAll, tabToday, tabTomorrow].forEach(t => {
+        if (t) t.classList.remove('active');
+    });
+
+    if (view === 'today') {
+        if (tabToday) tabToday.classList.add('active');
+        if (panelToday) panelToday.style.display = 'flex';
+        if (panelTomorrow) panelTomorrow.style.display = 'none';
+        if (dualGrid) dualGrid.style.gridTemplateColumns = '1fr';
+    } else if (view === 'tomorrow') {
+        if (tabTomorrow) tabTomorrow.classList.add('active');
+        if (panelToday) panelToday.style.display = 'none';
+        if (panelTomorrow) panelTomorrow.style.display = 'flex';
+        if (dualGrid) dualGrid.style.gridTemplateColumns = '1fr';
+    } else {
+        if (tabAll) tabAll.classList.add('active');
+        if (panelToday) panelToday.style.display = 'flex';
+        if (panelTomorrow) panelTomorrow.style.display = 'flex';
+        if (dualGrid) dualGrid.style.gridTemplateColumns = '';
+    }
+};
 
 function initCalendar() {
     const calendarEl = document.getElementById('calendar');

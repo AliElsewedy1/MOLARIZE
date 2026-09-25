@@ -1318,3 +1318,336 @@ tbody tr:nth-child(7) { animation-delay: 0.20s; }
     to { transform: scaleX(0); }
 }
 
+/* --- Brand Logo Pointer & Feedback --- */
+.sidebar h2, .mobile-header h2 {
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.sidebar h2:hover, .mobile-header h2:hover {
+    opacity: 0.9;
+    transform: scale(1.02);
+}
+.sidebar h2:active, .mobile-header h2:active {
+    transform: scale(0.98);
+}
+
+/* --- Unified Today & Tomorrow Agenda Hub --- */
+.unified-agenda-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 1.25rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    margin-bottom: 1.5rem;
+}
+
+.agenda-header-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+.agenda-filter-tabs {
+    display: inline-flex;
+    gap: 4px;
+    background: var(--bg-primary);
+    padding: 4px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+}
+
+.agenda-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.agenda-tab-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.agenda-tab-btn.active {
+    background: var(--brand-primary);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(45, 212, 191, 0.35);
+}
+
+.agenda-tab-count {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.today-count-pill {
+    background: rgba(45, 212, 191, 0.2);
+    color: var(--brand-primary);
+}
+.agenda-tab-btn.active .today-count-pill {
+    background: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+}
+
+.tomorrow-count-pill {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+}
+.agenda-tab-btn.active .tomorrow-count-pill {
+    background: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+}
+
+/* Dual Grid */
+.agenda-dual-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    align-items: stretch;
+}
+
+@media (max-width: 900px) {
+    .agenda-dual-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.agenda-day-panel {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.agenda-day-panel.today-panel {
+    border-color: rgba(45, 212, 191, 0.35);
+    background: linear-gradient(180deg, rgba(45, 212, 191, 0.03) 0%, var(--bg-primary) 100%);
+}
+
+.agenda-day-panel.tomorrow-panel {
+    border-color: rgba(245, 158, 11, 0.35);
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.03) 0%, var(--bg-primary) 100%);
+}
+
+.agenda-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.65rem;
+}
+
+.agenda-day-icon {
+    font-size: 1.3rem;
+}
+
+.agenda-day-badge {
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.today-badge {
+    background: rgba(45, 212, 191, 0.15);
+    color: var(--brand-primary);
+    border: 1px solid rgba(45, 212, 191, 0.3);
+}
+
+.tomorrow-badge {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.agenda-day-date {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.agenda-quick-add-btn {
+    background: transparent;
+    border: 1px dashed var(--border-color);
+    color: var(--text-muted);
+    padding: 0.3rem 0.65rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.agenda-quick-add-btn:hover {
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+    background: rgba(45, 212, 191, 0.08);
+}
+
+/* Mini Timeline */
+.mini-timeline {
+    padding: 0.5rem 0 0.75rem 0;
+    margin-bottom: 0.25rem;
+}
+.mini-timeline .timeline-hours {
+    font-size: 0.75rem;
+    min-width: 480px;
+}
+.mini-timeline .timeline-events {
+    height: 32px;
+    min-width: 480px;
+}
+
+/* Agenda Appointments List & Items */
+.agenda-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    flex: 1;
+}
+
+.agenda-item-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    padding: 0.75rem 0.85rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    cursor: pointer;
+}
+
+.agenda-item-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    border-color: var(--brand-primary);
+}
+
+.agenda-item-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.agenda-time-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 68px;
+    padding: 0.35rem 0.5rem;
+    border-radius: 7px;
+    background: rgba(45, 212, 191, 0.12);
+    color: var(--brand-primary);
+    font-weight: 700;
+    font-size: 0.82rem;
+    border: 1px solid rgba(45, 212, 191, 0.25);
+    white-space: nowrap;
+    text-align: center;
+}
+
+.tomorrow-panel .agenda-time-pill {
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.25);
+}
+
+.agenda-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+
+.agenda-item-patient-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.agenda-item-meta {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.agenda-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.agenda-action-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 0.35rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.agenda-action-btn:hover {
+    background: var(--bg-primary);
+    border-color: var(--brand-primary);
+}
+
+.agenda-action-wa {
+    color: #25D366 !important;
+    border-color: rgba(37, 211, 102, 0.35) !important;
+}
+.agenda-action-wa:hover {
+    background: rgba(37, 211, 102, 0.1) !important;
+    border-color: #25D366 !important;
+}
+
+.agenda-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    color: var(--text-muted);
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.02);
+    min-height: 120px;
+}
