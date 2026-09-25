@@ -643,6 +643,30 @@ saveOdontogramBtn.addEventListener('click', async () => {
 });
 
 const prescriptionModal = document.getElementById('prescriptionModal');
+const addProfileTreatmentBtn = document.getElementById('addProfileTreatmentBtn');
+if (addProfileTreatmentBtn) {
+    addProfileTreatmentBtn.addEventListener('click', () => {
+        const treatmentForm = document.getElementById('treatmentForm');
+        const treatmentModal = document.getElementById('treatmentModal');
+        const patientNameInput = document.getElementById('treatmentPatientName');
+        const treatmentIdInput = document.getElementById('treatmentId');
+
+        if (treatmentForm) treatmentForm.reset();
+        if (treatmentIdInput) treatmentIdInput.value = '';
+
+        if (patientNameInput && window.currentProfilePatientId) {
+            const patient = currentPatients.find(p => p.id === window.currentProfilePatientId);
+            patientNameInput.value = patient ? patient.name : '';
+            patientNameInput.setAttribute('data-target-id', window.currentProfilePatientId);
+        }
+
+        if (treatmentModal) {
+            treatmentModal.classList.add('show');
+            history.pushState({ modal: 'treatment' }, '', window.location.hash || '#patient-profile-section');
+        }
+    });
+}
+
 document.getElementById('addProfilePrescriptionBtn').addEventListener('click', () => {
     document.getElementById('prescriptionForm').reset();
     
@@ -1274,8 +1298,14 @@ window.loadPatientGallery = async function(patientId) {
             return;
         }
 
+        let currentPatientPhotos = [];
         snap.forEach(d => {
             const data = d.data();
+            currentPatientPhotos.push({ id: d.id, ...data });
+        });
+        window._currentPatientPhotos = currentPatientPhotos;
+
+        currentPatientPhotos.forEach((data, index) => {
             const dateStr = data.createdAt ? new Date(data.createdAt).toLocaleDateString() : '';
             const card = document.createElement('div');
             card.style.cssText = 'position: relative; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); background: var(--bg-surface); aspect-ratio: 1; box-shadow: var(--shadow-sm); cursor: pointer; group;';
@@ -1283,13 +1313,13 @@ window.loadPatientGallery = async function(patientId) {
                 <img src="${data.imageData}" alt="X-Ray" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                 <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.65); color: #fff; font-size: 0.72rem; padding: 4px 6px; display: flex; justify-content: space-between; align-items: center;">
                     <span>${dateStr}</span>
-                    <button class="delete-photo-btn" data-id="${d.id}" style="background: none; border: none; color: #ef4444; font-weight: bold; cursor: pointer; padding: 0 4px; font-size: 0.9rem;" title="Delete">✕</button>
+                    <button class="delete-photo-btn" data-id="${data.id}" style="background: none; border: none; color: #ef4444; font-weight: bold; cursor: pointer; padding: 0 4px; font-size: 0.9rem;" title="Delete">✕</button>
                 </div>
             `;
 
-            // Open full view in simple lightbox modal
+            // Open full view in fullscreen gallery modal
             card.querySelector('img').addEventListener('click', () => {
-                window.openImageLightbox(data.imageData, dateStr);
+                window.openFullscreenGallery(index);
             });
 
             // Delete photo
@@ -1297,7 +1327,7 @@ window.loadPatientGallery = async function(patientId) {
                 e.stopPropagation();
                 if (!confirm(isAr ? 'هل تريد حذف هذه الصورة؟' : 'Delete this image?')) return;
                 try {
-                    await deleteDoc(doc(db, 'users', user.uid, 'patients', currentProfilePatientId, 'photos', d.id));
+                    await deleteDoc(doc(db, 'users', user.uid, 'patients', currentProfilePatientId, 'photos', data.id));
                     loadPatientGallery(currentProfilePatientId);
                 } catch (delErr) {
                     console.error(delErr);
@@ -1312,28 +1342,165 @@ window.loadPatientGallery = async function(patientId) {
     }
 };
 
-window.openImageLightbox = function(src, caption) {
-    let lb = document.getElementById('imageLightboxModal');
-    if (!lb) {
-        lb = document.createElement('div');
-        lb.id = 'imageLightboxModal';
-        lb.className = 'modal';
-        lb.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem; cursor: pointer;';
-        lb.innerHTML = `
-            <div style="max-width: 90vw; max-height: 85vh; position: relative; cursor: default;" onclick="event.stopPropagation()">
-                <img id="lbImg" src="" style="max-width: 100%; max-height: 80vh; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); object-fit: contain;">
-                <div id="lbCaption" style="color: #fff; text-align: center; margin-top: 0.5rem; font-size: 0.9rem;"></div>
-                <button id="lbCloseBtn" style="position: absolute; top: -15px; right: -15px; background: #fff; border: none; border-radius: 50%; width: 32px; height: 32px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4);">✕</button>
-            </div>
-        `;
-        document.body.appendChild(lb);
-        lb.addEventListener('click', () => { lb.style.display = 'none'; });
-        lb.querySelector('#lbCloseBtn').addEventListener('click', () => { lb.style.display = 'none'; });
-    }
-    lb.querySelector('#lbImg').src = src;
-    lb.querySelector('#lbCaption').innerText = caption || '';
-    lb.style.display = 'flex';
+// --- Interactive Fullscreen Gallery Logic ---
+let activeGalleryIndex = 0;
+let isZoomed = false;
+
+window.openFullscreenGallery = function(startIndex = 0) {
+    const photos = window._currentPatientPhotos || [];
+    if (!photos.length) return;
+
+    activeGalleryIndex = Math.max(0, Math.min(startIndex, photos.length - 1));
+    const modal = document.getElementById('imageGalleryModal');
+    if (!modal) return;
+
+    modal.classList.add('show');
+    history.pushState({ modal: 'fullscreen-gallery' }, '', window.location.hash || '#patient-profile-section');
+    renderActiveGalleryItem();
+    setupGalleryControls();
 };
+
+function renderActiveGalleryItem() {
+    const photos = window._currentPatientPhotos || [];
+    if (!photos.length) return;
+
+    const current = photos[activeGalleryIndex];
+    const mainImg = document.getElementById('galleryMainImg');
+    const counter = document.getElementById('galleryCounter');
+    const dateCaption = document.getElementById('galleryDateCaption');
+    const downloadBtn = document.getElementById('galleryDownloadBtn');
+    const thumbnailsBar = document.getElementById('galleryThumbnailsBar');
+
+    // Reset Zoom
+    isZoomed = false;
+    if (mainImg) {
+        mainImg.src = current.imageData;
+        mainImg.style.transform = 'scale(1)';
+        mainImg.style.cursor = 'zoom-in';
+    }
+
+    if (counter) counter.innerText = `${activeGalleryIndex + 1} / ${photos.length}`;
+    if (dateCaption) {
+        const dateStr = current.createdAt ? new Date(current.createdAt).toLocaleString() : '';
+        dateCaption.innerText = (current.name ? current.name + ' • ' : '') + dateStr;
+    }
+
+    if (downloadBtn) {
+        downloadBtn.onclick = () => {
+            const a = document.createElement('a');
+            a.href = current.imageData;
+            a.download = current.name || `dental_xray_${activeGalleryIndex + 1}.jpg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        };
+    }
+
+    // Render Thumbnails Filmstrip
+    if (thumbnailsBar) {
+        thumbnailsBar.innerHTML = '';
+        photos.forEach((p, idx) => {
+            const thumb = document.createElement('img');
+            thumb.src = p.imageData;
+            thumb.style.cssText = `width: 50px; height: 50px; object-fit: cover; border-radius: 6px; cursor: pointer; opacity: ${idx === activeGalleryIndex ? '1' : '0.5'}; border: 2px solid ${idx === activeGalleryIndex ? 'var(--brand-primary)' : 'transparent'}; transition: opacity 0.2s, transform 0.2s;`;
+            thumb.onclick = (e) => {
+                e.stopPropagation();
+                activeGalleryIndex = idx;
+                renderActiveGalleryItem();
+            };
+            thumbnailsBar.appendChild(thumb);
+        });
+    }
+}
+
+let galleryControlsBound = false;
+function setupGalleryControls() {
+    if (galleryControlsBound) return;
+    galleryControlsBound = true;
+
+    const modal = document.getElementById('imageGalleryModal');
+    const closeBtn = document.getElementById('galleryCloseBtn');
+    const prevBtn = document.getElementById('galleryPrevBtn');
+    const nextBtn = document.getElementById('galleryNextBtn');
+    const mainImg = document.getElementById('galleryMainImg');
+    const container = document.getElementById('galleryImageContainer');
+
+    function closeGallery() {
+        if (window.closeModalAndPopState) {
+            window.closeModalAndPopState(modal);
+        } else {
+            modal.classList.remove('show');
+        }
+    }
+
+    if (closeBtn) closeBtn.onclick = closeGallery;
+
+    if (prevBtn) {
+        prevBtn.onclick = (e) => {
+            e.stopPropagation();
+            const photos = window._currentPatientPhotos || [];
+            if (!photos.length) return;
+            activeGalleryIndex = (activeGalleryIndex - 1 + photos.length) % photos.length;
+            renderActiveGalleryItem();
+        };
+    }
+
+    if (nextBtn) {
+        nextBtn.onclick = (e) => {
+            e.stopPropagation();
+            const photos = window._currentPatientPhotos || [];
+            if (!photos.length) return;
+            activeGalleryIndex = (activeGalleryIndex + 1) % photos.length;
+            renderActiveGalleryItem();
+        };
+    }
+
+    // Toggle Zoom on click
+    if (mainImg) {
+        mainImg.onclick = (e) => {
+            e.stopPropagation();
+            isZoomed = !isZoomed;
+            if (isZoomed) {
+                mainImg.style.transform = 'scale(1.85)';
+                mainImg.style.cursor = 'zoom-out';
+            } else {
+                mainImg.style.transform = 'scale(1)';
+                mainImg.style.cursor = 'zoom-in';
+            }
+        };
+    }
+
+    // Click outside image closes zoom or modal
+    if (container) {
+        container.onclick = (e) => {
+            if (e.target === container) {
+                if (isZoomed) {
+                    isZoomed = false;
+                    mainImg.style.transform = 'scale(1)';
+                    mainImg.style.cursor = 'zoom-in';
+                } else {
+                    closeGallery();
+                }
+            }
+        };
+    }
+
+    // Keyboard navigation (ArrowLeft, ArrowRight, Escape)
+    window.addEventListener('keydown', (e) => {
+        if (!modal.classList.contains('show')) return;
+        if (e.key === 'Escape') {
+            closeGallery();
+        } else if (e.key === 'ArrowLeft') {
+            const isRTL = document.documentElement.dir === 'rtl';
+            if (isRTL) nextBtn.click();
+            else prevBtn.click();
+        } else if (e.key === 'ArrowRight') {
+            const isRTL = document.documentElement.dir === 'rtl';
+            if (isRTL) prevBtn.click();
+            else nextBtn.click();
+        }
+    });
+}
 
 // --- Export Patients to CSV ---
 const exportPatientsCsvBtn = document.getElementById('exportPatientsCsvBtn');
