@@ -30,6 +30,14 @@ window.openNewPatientModal = function() {
         submitBtn.setAttribute('data-ar', 'حفظ المريض');
         submitBtn.setAttribute('data-en', 'Save Patient');
     }
+    if (pForm) {
+        pForm.querySelectorAll('[data-ar-placeholder], [data-en-placeholder]').forEach(input => {
+            const ph = isAr 
+                ? (input.getAttribute('data-ar-placeholder') || input.getAttribute('data-en-placeholder'))
+                : (input.getAttribute('data-en-placeholder') || input.getAttribute('data-ar-placeholder'));
+            if (ph) input.placeholder = ph;
+        });
+    }
     document.querySelectorAll('.alert-checkbox').forEach(cb => cb.checked = false);
     const deleteModalBtn = document.getElementById('deletePatientFromModalBtn');
     if (deleteModalBtn) deleteModalBtn.style.display = 'none';
@@ -471,11 +479,20 @@ window.editPatient = function(id) {
             modalTitle.setAttribute('data-en', 'Edit Patient Details');
         }
 
-        const submitBtn = patientForm.querySelector('button[type="submit"]');
+        const submitBtn = patientForm ? patientForm.querySelector('button[type="submit"]') : null;
         if (submitBtn) {
             submitBtn.innerText = isAr ? 'حفظ التعديلات' : 'Save Changes';
             submitBtn.setAttribute('data-ar', 'حفظ التعديلات');
             submitBtn.setAttribute('data-en', 'Save Changes');
+        }
+
+        if (patientForm) {
+            patientForm.querySelectorAll('[data-ar-placeholder], [data-en-placeholder]').forEach(input => {
+                const ph = isAr 
+                    ? (input.getAttribute('data-ar-placeholder') || input.getAttribute('data-en-placeholder'))
+                    : (input.getAttribute('data-en-placeholder') || input.getAttribute('data-ar-placeholder'));
+                if (ph) input.placeholder = ph;
+            });
         }
 
         if (patient.callPref) {
@@ -2682,6 +2699,7 @@ function setupGalleryControls() {
 }
 
 // --- Export Patients to CSV ---
+// --- Export Patients to CSV ---
 window.exportPatientsToCsv = function() {
     const isAr = (document.documentElement.lang || 'en') === 'ar';
     const patients = currentPatients || window.currentPatients || [];
@@ -2692,17 +2710,35 @@ window.exportPatientsToCsv = function() {
         return;
     }
 
-    const headers = ['Display ID', 'Name', 'Gender', 'Age', 'Phone', 'Phone 2', 'Medical Alerts', 'Last Visit', 'Notes'];
+    // Standardized 12 Complete Patient Profile Fields (Matching Template & Import exactly)
+    const headers = [
+        'Display ID',
+        'Name',
+        'Gender',
+        'Age',
+        'Phone',
+        'Phone 2',
+        'Call Preference',
+        'WhatsApp Preference',
+        'Medical Alerts',
+        'Last Visit',
+        'Notes',
+        'Created At'
+    ];
+
     const rows = patients.map(p => [
-        `"${(p.displayId || '').replace(/"/g, '""')}"`,
+        `"${(p.displayId || '').toString().replace(/"/g, '""')}"`,
         `"${(p.name || '').replace(/"/g, '""')}"`,
         `"${(p.gender || '').replace(/"/g, '""')}"`,
-        `"${(p.age || '')}"`,
+        `"${(p.age || '').toString().replace(/"/g, '""')}"`,
         `"${(p.phone || '').replace(/"/g, '""')}"`,
         `"${(p.phone2 || '').replace(/"/g, '""')}"`,
+        `"${(p.callPref || 'phone1').replace(/"/g, '""')}"`,
+        `"${(p.waPref || 'phone1').replace(/"/g, '""')}"`,
         `"${(p.medicalAlerts || '').replace(/"/g, '""')}"`,
-        `"${(p.lastVisit || '')}"`,
-        `"${(p.notes || '').replace(/"/g, '""')}"`
+        `"${(p.lastVisit || '').replace(/"/g, '""')}"`,
+        `"${(p.notes || '').replace(/"/g, '""')}"`,
+        `"${(p.createdAt || new Date().toISOString().split('T')[0]).replace(/"/g, '""')}"`
     ]);
 
     const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
@@ -2717,17 +2753,31 @@ window.exportPatientsToCsv = function() {
     URL.revokeObjectURL(url);
 
     if (window.showToast) {
-        window.showToast(isAr ? `تم تصدير بيانات ${patients.length} مريض بنجاح` : `Exported ${patients.length} patient records successfully`, 'success');
+        window.showToast(isAr ? `تم تصدير كافة تفاصيل ملفات ${patients.length} مريض بنجاح` : `Exported all profile details for ${patients.length} patients successfully`, 'success');
     }
 };
 
 // --- Download Patients CSV Template ---
 window.downloadPatientsTemplateCsv = function() {
     const isAr = (document.documentElement.lang || 'en') === 'ar';
-    const sampleHeaders = ['Display ID', 'Name', 'Gender', 'Age', 'Phone', 'Phone 2', 'Medical Alerts', 'Last Visit', 'Notes'];
+    // Exact 12 headers matching exportPatientsToCsv
+    const sampleHeaders = [
+        'Display ID',
+        'Name',
+        'Gender',
+        'Age',
+        'Phone',
+        'Phone 2',
+        'Call Preference',
+        'WhatsApp Preference',
+        'Medical Alerts',
+        'Last Visit',
+        'Notes',
+        'Created At'
+    ];
     const sampleRows = [
-        ['1', isAr ? 'أحمد محمد علي' : 'Ahmed Mohamed Ali', 'Male', '32', '01012345678', '01123456789', isAr ? 'حساسية بنسلين' : 'Penicillin Allergy', '2026-09-20', isAr ? 'مريض جديد - فحص عام' : 'New patient - General checkup'],
-        ['2', isAr ? 'سارة محمود حسن' : 'Sarah Mahmoud Hassan', 'Female', '27', '01298765432', '', isAr ? 'سكر وضغط' : 'Diabetes, Hypertension', '2026-09-22', isAr ? 'خطة علاج تقويم' : 'Ortho treatment plan']
+        ['1', isAr ? 'أحمد محمد علي' : 'Ahmed Mohamed Ali', 'Male', '32', '01012345678', '01123456789', 'phone1', 'phone1', isAr ? 'حساسية بنسلين' : 'Penicillin Allergy', '2026-09-20', isAr ? 'مريض جديد - فحص عام' : 'New patient - General checkup', '2026-09-01'],
+        ['2', isAr ? 'سارة محمود حسن' : 'Sarah Mahmoud Hassan', 'Female', '27', '01298765432', '', 'phone1', 'phone1', isAr ? 'سكر وضغط' : 'Diabetes, Hypertension', '2026-09-22', isAr ? 'خطة علاج تقويم' : 'Ortho treatment plan', '2026-09-05']
     ];
 
     const csvContent = '\uFEFF' + [
@@ -2746,7 +2796,7 @@ window.downloadPatientsTemplateCsv = function() {
     URL.revokeObjectURL(url);
 
     if (window.showToast) {
-        window.showToast(isAr ? 'تم تحميل نموذج ملف المرضى CSV بنجاح' : 'Patient CSV template downloaded successfully', 'info');
+        window.showToast(isAr ? 'تم تحميل نموذج ملف المرضى CSV المطابق لملف التصدير' : 'Patient CSV template matching export format downloaded successfully', 'info');
     }
 };
 
@@ -2826,20 +2876,23 @@ window.handlePatientsCsvFileSelected = async function(event) {
 
         const headerRow = rows[0].map(h => h.toLowerCase().trim());
         
-        // Map header indices
+        // Flexible column index detector supporting English & Arabic names
         const findColIndex = (keywords) => {
             return headerRow.findIndex(h => keywords.some(k => h.includes(k.toLowerCase())));
         };
 
-        const nameIdx = findColIndex(['name', 'اسم', 'الاسم', 'patient']);
-        const phoneIdx = findColIndex(['phone 1', 'رقم الهاتف', 'موبايل', 'هاتف', 'phone']);
-        const phone2Idx = findColIndex(['phone 2', 'هاتف 2', 'رقم إضافي', 'رقم 2', 'phone2', 'secondary']);
-        const ageIdx = findColIndex(['age', 'عمر', 'العمر', 'سن']);
-        const genderIdx = findColIndex(['gender', 'نوع', 'النوع', 'جنس', 'الجنس', 'sex']);
-        const alertsIdx = findColIndex(['alert', 'تحذير', 'امراض', 'أمراض', 'medical', 'حساسية']);
-        const notesIdx = findColIndex(['note', 'ملاحظ', 'بيانات', 'تشخيص', 'comment']);
         const displayIdIdx = findColIndex(['display id', 'رقم الملف', 'id', 'ملف', 'code']);
-        const lastVisitIdx = findColIndex(['last visit', 'اخر زيارة', 'تاريخ', 'visit', 'date']);
+        const nameIdx = findColIndex(['name', 'اسم', 'الاسم', 'patient']);
+        const genderIdx = findColIndex(['gender', 'نوع', 'النوع', 'جنس', 'الجنس', 'sex']);
+        const ageIdx = findColIndex(['age', 'عمر', 'العمر', 'سن']);
+        const phoneIdx = findColIndex(['phone 1', 'رقم الهاتف', 'موبايل', 'هاتف', 'phone']);
+        const phone2Idx = findColIndex(['phone 2', 'هاتف 2', 'رقم إضافي', 'هاتف بديل', 'phone2', 'secondary']);
+        const callPrefIdx = findColIndex(['call preference', 'تفضيل الاتصال', 'رقم المكالمات', 'call pref', 'call']);
+        const waPrefIdx = findColIndex(['whatsapp preference', 'تفضيل الواتساب', 'رقم الواتساب', 'wa pref', 'wa']);
+        const alertsIdx = findColIndex(['alert', 'تحذير', 'امراض', 'أمراض', 'medical', 'حساسية']);
+        const lastVisitIdx = findColIndex(['last visit', 'اخر زيارة', 'آخر زيارة', 'تاريخ الزيارة', 'visit']);
+        const notesIdx = findColIndex(['note', 'ملاحظ', 'بيانات', 'تشخيص', 'comment']);
+        const createdAtIdx = findColIndex(['created at', 'تاريخ التسجيل', 'تاريخ الإضافة', 'created', 'date registered']);
 
         if (nameIdx === -1) {
             if (window.showToast) window.showToast(isAr ? 'خطأ: لم يتم العثور على عمود اسم المريض (Name) في الملف' : 'Error: "Name" column not found in CSV', 'error');
@@ -2851,12 +2904,8 @@ window.handlePatientsCsvFileSelected = async function(event) {
         const counterDoc = await getDoc(counterRef);
         let maxDisplayId = counterDoc.exists() && counterDoc.data().patientCount ? parseInt(counterDoc.data().patientCount) : (currentPatients.length || 0);
 
-        // Normalize existing patients by phone and display ID for deduplication
-        const existingPhones = new Set(currentPatients.map(p => (p.phone || '').replace(/\D/g, '').slice(-9)).filter(Boolean));
-        const existingDisplayIds = new Set(currentPatients.map(p => String(p.displayId || '')));
-
         let importedCount = 0;
-        let skippedCount = 0;
+        let updatedCount = 0;
         const patientsRef = collection(db, "users", user.uid, "patients");
 
         for (let i = 1; i < rows.length; i++) {
@@ -2866,12 +2915,6 @@ window.handlePatientsCsvFileSelected = async function(event) {
 
             const rawPhone = phoneIdx !== -1 && row[phoneIdx] ? row[phoneIdx].trim() : '';
             const cleanPhoneDigits = rawPhone.replace(/\D/g, '').slice(-9);
-
-            // Deduplicate if phone already exists
-            if (cleanPhoneDigits && existingPhones.has(cleanPhoneDigits)) {
-                skippedCount++;
-                continue;
-            }
 
             const rawPhone2 = phone2Idx !== -1 && row[phone2Idx] ? row[phone2Idx].trim() : '';
             const rawAge = ageIdx !== -1 && row[ageIdx] ? row[ageIdx].trim() : '';
@@ -2883,45 +2926,83 @@ window.handlePatientsCsvFileSelected = async function(event) {
                 rawGender = 'Male';
             }
 
+            let rawCallPref = 'phone1';
+            if (callPrefIdx !== -1 && row[callPrefIdx]) {
+                const val = row[callPrefIdx].toLowerCase().trim();
+                if (val.includes('2') || val.includes('phone2') || val.includes('ثاني')) rawCallPref = 'phone2';
+            }
+
+            let rawWaPref = 'phone1';
+            if (waPrefIdx !== -1 && row[waPrefIdx]) {
+                const val = row[waPrefIdx].toLowerCase().trim();
+                if (val.includes('2') || val.includes('phone2') || val.includes('ثاني')) rawWaPref = 'phone2';
+            }
+
             const rawAlerts = alertsIdx !== -1 && row[alertsIdx] ? row[alertsIdx].trim() : '';
             const rawNotes = notesIdx !== -1 && row[notesIdx] ? row[notesIdx].trim() : '';
             const rawLastVisit = lastVisitIdx !== -1 && row[lastVisitIdx] ? row[lastVisitIdx].trim() : new Date().toISOString().split('T')[0];
+            const rawCreatedAt = createdAtIdx !== -1 && row[createdAtIdx] ? row[createdAtIdx].trim() : new Date().toISOString();
 
             let targetDisplayId = null;
             if (displayIdIdx !== -1 && row[displayIdIdx]) {
                 const parsedId = parseInt(row[displayIdIdx]);
-                if (!isNaN(parsedId) && !existingDisplayIds.has(String(parsedId))) {
+                if (!isNaN(parsedId)) {
                     targetDisplayId = parsedId;
                     if (parsedId > maxDisplayId) maxDisplayId = parsedId;
                 }
             }
 
-            if (!targetDisplayId) {
-                maxDisplayId += 1;
-                targetDisplayId = maxDisplayId;
+            // Check if patient already exists (by phone digits or displayId) to update or insert
+            const existingPatient = currentPatients.find(p => {
+                const pPhoneDigits = (p.phone || '').replace(/\D/g, '').slice(-9);
+                const hasPhoneMatch = cleanPhoneDigits && pPhoneDigits && (pPhoneDigits === cleanPhoneDigits);
+                const hasIdMatch = targetDisplayId && (String(p.displayId) === String(targetDisplayId));
+                return hasPhoneMatch || hasIdMatch;
+            });
+
+            if (existingPatient) {
+                // Update existing patient with the imported file data
+                const patientDocRef = doc(db, "users", user.uid, "patients", existingPatient.id);
+                await updateDoc(patientDocRef, {
+                    name: rawName,
+                    phone: rawPhone || existingPatient.phone,
+                    phone2: rawPhone2 || existingPatient.phone2 || '',
+                    callPref: rawCallPref,
+                    waPref: rawWaPref,
+                    age: rawAge || existingPatient.age || '',
+                    gender: rawGender,
+                    notes: rawNotes || existingPatient.notes || '',
+                    medicalAlerts: rawAlerts || existingPatient.medicalAlerts || '',
+                    lastVisit: rawLastVisit || existingPatient.lastVisit || '',
+                    updatedAt: new Date().toISOString()
+                });
+                updatedCount++;
+            } else {
+                // Create new patient
+                if (!targetDisplayId) {
+                    maxDisplayId += 1;
+                    targetDisplayId = maxDisplayId;
+                }
+
+                const newPatientData = {
+                    name: rawName,
+                    phone: rawPhone,
+                    phone2: rawPhone2,
+                    callPref: rawCallPref,
+                    waPref: rawWaPref,
+                    age: rawAge,
+                    gender: rawGender,
+                    notes: rawNotes,
+                    medicalAlerts: rawAlerts,
+                    lastVisit: rawLastVisit,
+                    displayId: targetDisplayId,
+                    createdAt: rawCreatedAt,
+                    updatedAt: new Date().toISOString()
+                };
+
+                await addDoc(patientsRef, newPatientData);
+                importedCount++;
             }
-
-            const newPatientData = {
-                name: rawName,
-                phone: rawPhone,
-                phone2: rawPhone2,
-                callPref: 'phone1',
-                waPref: 'phone1',
-                age: rawAge,
-                gender: rawGender,
-                notes: rawNotes,
-                medicalAlerts: rawAlerts,
-                lastVisit: rawLastVisit,
-                displayId: targetDisplayId,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            };
-
-            await addDoc(patientsRef, newPatientData);
-
-            if (cleanPhoneDigits) existingPhones.add(cleanPhoneDigits);
-            existingDisplayIds.add(String(targetDisplayId));
-            importedCount++;
         }
 
         // Update counter in database
@@ -2929,13 +3010,17 @@ window.handlePatientsCsvFileSelected = async function(event) {
 
         // Success Notification
         if (window.showToast) {
-            if (importedCount > 0) {
+            const parts = [];
+            if (importedCount > 0) parts.push(isAr ? `إضافة ${importedCount} مريض جديد` : `Added ${importedCount} new patients`);
+            if (updatedCount > 0) parts.push(isAr ? `تحديث ${updatedCount} مريض مسجل` : `Updated ${updatedCount} existing records`);
+
+            if (parts.length > 0) {
                 const msg = isAr 
-                    ? `تم استيراد ${importedCount} مريض بنجاح! ${skippedCount > 0 ? `(تم تخطي ${skippedCount} مكرر)` : ''}`
-                    : `Successfully imported ${importedCount} patients! ${skippedCount > 0 ? `(${skippedCount} skipped as duplicates)` : ''}`;
+                    ? `تم بنجاح: ${parts.join(' و ')} من ملف التصدير!`
+                    : `Success: ${parts.join(' & ')} from CSV file!`;
                 window.showToast(msg, 'success');
             } else {
-                window.showToast(isAr ? 'لم يتم استيراد مرضى جدد (ربما كافة المرضى مسجلين مسبقاً)' : 'No new patients imported (all may be duplicates)', 'info');
+                window.showToast(isAr ? 'تمت قراءة الملف بنجاح بدون تعديلات جديدة' : 'CSV processed successfully with no new changes', 'info');
             }
         }
 
@@ -2968,3 +3053,4 @@ if (document.readyState === 'loading') {
 } else {
     attachPatientExportListeners();
 }
+

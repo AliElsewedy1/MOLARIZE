@@ -33,6 +33,189 @@ window.alert = function(message) {
     }, 4000);
 };
 
+// Dynamic Clinic Time & Greeting Engine (Default: Africa/Cairo / Egypt)
+window.getClinicTimeAndDateInfo = function() {
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+    const cfg = window.settingsStore?.config?.timeSettings || {};
+    const tz = (cfg.timeZone && cfg.timeZone !== 'auto') ? cfg.timeZone : 'Africa/Cairo';
+    const is24h = cfg.timeFormat === '24h';
+    const showSeconds = !!cfg.showSeconds;
+
+    let baseDate = new Date();
+    if (cfg.manualOffsetMinutes !== undefined && !isNaN(cfg.manualOffsetMinutes)) {
+        const offsetNum = parseInt(cfg.manualOffsetMinutes, 10) || 0;
+        if (offsetNum !== 0) {
+            baseDate = new Date(baseDate.getTime() + offsetNum * 60 * 1000);
+        }
+    }
+
+    let hour, minute, second;
+    try {
+        const parts = new Intl.DateTimeFormat('en-US', {
+            timeZone: tz,
+            hour: 'numeric',
+            minute: 'numeric',
+            second: 'numeric',
+            hour12: false
+        }).formatToParts(baseDate);
+
+        hour = parseInt(parts.find(p => p.type === 'hour')?.value || baseDate.getHours(), 10);
+        minute = parseInt(parts.find(p => p.type === 'minute')?.value || baseDate.getMinutes(), 10);
+        second = parseInt(parts.find(p => p.type === 'second')?.value || baseDate.getSeconds(), 10);
+        if (hour === 24) hour = 0;
+    } catch(e) {
+        hour = baseDate.getHours();
+        minute = baseDate.getMinutes();
+        second = baseDate.getSeconds();
+    }
+
+    // Dynamic Greeting according to time of day:
+    // الصبح بدري / الصباح (4:00 - 11:59): Good morning / صباح الخير
+    // الظهر والعصر (12:00 - 16:59): Good afternoon / طاب يومك (أو بعد الظهر)
+    // بليل والمساء (17:00 - 3:59): Good evening / مساء الخير
+    let timeIcon = '☀️';
+    let enGreet = 'Good morning';
+    let arGreet = 'صباح الخير';
+    let periodNameAr = 'الصباح';
+    let periodNameEn = 'Morning';
+
+    if (hour >= 4 && hour < 7) {
+        timeIcon = '🌅';
+        enGreet = 'Good morning';
+        arGreet = 'صباح الخير والبركة';
+        periodNameAr = 'الصباح الباكر';
+        periodNameEn = 'Early Morning';
+    } else if (hour >= 7 && hour < 12) {
+        timeIcon = '☀️';
+        enGreet = 'Good morning';
+        arGreet = 'صباح الخير';
+        periodNameAr = 'الصباح';
+        periodNameEn = 'Morning';
+    } else if (hour >= 12 && hour < 17) {
+        timeIcon = '🌤️';
+        enGreet = 'Good afternoon';
+        arGreet = 'طاب يومك';
+        periodNameAr = 'الظهيرة';
+        periodNameEn = 'Afternoon';
+    } else if (hour >= 17 && hour < 21) {
+        timeIcon = '🌇';
+        enGreet = 'Good evening';
+        arGreet = 'مساء الخير';
+        periodNameAr = 'المساء والغروب';
+        periodNameEn = 'Evening';
+    } else {
+        timeIcon = '🌙';
+        enGreet = 'Good evening';
+        arGreet = 'مساء الخير';
+        periodNameAr = 'الليل';
+        periodNameEn = 'Night';
+    }
+
+    const pad = (n) => String(n).padStart(2, '0');
+    let formattedTime = '';
+    const isPM = hour >= 12;
+
+    if (is24h) {
+        formattedTime = showSeconds 
+            ? `${pad(hour)}:${pad(minute)}:${pad(second)}`
+            : `${pad(hour)}:${pad(minute)}`;
+    } else {
+        let h12 = hour % 12;
+        if (h12 === 0) h12 = 12;
+        const periodMarker = isAr ? (isPM ? 'م' : 'ص') : (isPM ? 'PM' : 'AM');
+        const timeCore = showSeconds 
+            ? `${pad(h12)}:${pad(minute)}:${pad(second)}` 
+            : `${pad(h12)}:${pad(minute)}`;
+        formattedTime = `${timeCore} ${periodMarker}`;
+    }
+
+    const dateOptions = {
+        timeZone: tz,
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    };
+    let formattedDate = '';
+    try {
+        formattedDate = new Intl.DateTimeFormat(isAr ? 'ar-EG-u-nu-latn' : 'en-US', dateOptions).format(baseDate);
+    } catch(e) {
+        try {
+            formattedDate = new Intl.DateTimeFormat(isAr ? 'ar-EG' : 'en-US', dateOptions).format(baseDate);
+        } catch(e2) {
+            formattedDate = baseDate.toLocaleDateString(isAr ? 'ar-EG' : 'en-US', dateOptions);
+        }
+    }
+
+    return {
+        hour, minute, second, isPM,
+        timeIcon, enGreet, arGreet,
+        periodNameAr, periodNameEn,
+        formattedTime, formattedDate,
+        timeZone: tz
+    };
+};
+
+window.updateGreetingAndDate = function() {
+    const greetingEl = document.getElementById('greetingMessage');
+    const greetingTextEl = document.getElementById('greetingMessageText');
+    const timeIconEl = document.getElementById('timeOfDayIcon');
+    const dateTextEl = document.getElementById('currentDateText') || document.getElementById('currentDateDisplay');
+    const timeTextEl = document.getElementById('currentTimeText');
+
+    if (!greetingEl && !dateTextEl && !timeTextEl) return;
+
+    const info = window.getClinicTimeAndDateInfo ? window.getClinicTimeAndDateInfo() : null;
+    if (!info) return;
+
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+    const docName = window.settingsStore?.config?.doctorName || '';
+    const nameSuffix = isAr ? (docName ? `د. ${docName}` : 'المشرف') : (docName ? `Dr. ${docName}` : 'Admin');
+
+    const arFull = `${info.arGreet}، ${nameSuffix}`;
+    const enFull = `${info.enGreet}, ${nameSuffix}`;
+
+    if (greetingTextEl) {
+        greetingTextEl.setAttribute('data-en', enFull);
+        greetingTextEl.setAttribute('data-ar', arFull);
+        greetingTextEl.textContent = isAr ? arFull : enFull;
+    } else if (greetingEl) {
+        greetingEl.setAttribute('data-en', enFull);
+        greetingEl.setAttribute('data-ar', arFull);
+        greetingEl.textContent = isAr ? arFull : enFull;
+    }
+
+    if (timeIconEl) {
+        timeIconEl.innerText = info.timeIcon;
+        timeIconEl.title = isAr ? info.periodNameAr : info.periodNameEn;
+    }
+
+    if (dateTextEl) {
+        dateTextEl.innerText = info.formattedDate;
+    }
+
+    if (timeTextEl) {
+        timeTextEl.innerText = info.formattedTime;
+        timeTextEl.title = isAr ? (info.isPM ? 'توقيت مصر: مساءً (PM)' : 'توقيت مصر: صباحاً (AM)') : (info.isPM ? 'Egypt Time: PM' : 'Egypt Time: AM');
+    }
+};
+
+// Immediate update and ticking clock
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', window.updateGreetingAndDate);
+    } else {
+        window.updateGreetingAndDate();
+    }
+}
+if (!window._clinicLiveClockTimer) {
+    window._clinicLiveClockTimer = setInterval(() => {
+        if (typeof window.updateGreetingAndDate === 'function') {
+            window.updateGreetingAndDate();
+        }
+    }, 1000);
+}
+
 const themeToggle = document.getElementById('themeToggle');
 const htmlElement = document.documentElement;
 
@@ -158,6 +341,16 @@ window.applyLanguage = function(lang) {
         const ph = isEn ? (el.getAttribute('data-en-placeholder') || el.getAttribute('data-ar-placeholder')) : (el.getAttribute('data-ar-placeholder') || el.getAttribute('data-en-placeholder'));
         if (ph) el.placeholder = ph;
     });
+
+    // Remove Ctrl+K from search placeholder on mobile screens
+    if (window.innerWidth <= 768) {
+        const searchInput = document.getElementById('globalPatientSearch');
+        if (searchInput) {
+            searchInput.placeholder = isEn 
+                ? 'Search patient by name, phone or ID...' 
+                : 'ابحث عن مريض بالاسم، الهاتف، أو الرقم...';
+        }
+    }
 
     // 3. Title attributes
     document.querySelectorAll('[data-ar-title], [data-en-title]').forEach(el => {
@@ -328,6 +521,21 @@ window.closeModalAndPopState = function(modalElement) {
     }
 };
 
+window.openManualDataMigrationHelpModal = function() {
+    const modal = document.getElementById('manualDataMigrationHelpModal');
+    if (modal) {
+        modal.classList.add('show');
+        history.pushState({ modal: 'manualDataMigrationHelp' }, '', '#settings-section');
+    }
+};
+
+window.closeManualDataMigrationHelpModal = function() {
+    const modal = document.getElementById('manualDataMigrationHelpModal');
+    if (modal) {
+        window.closeModalAndPopState(modal);
+    }
+};
+
 // Handle Mobile Back Button and Modals
 window.addEventListener('popstate', (e) => {
     const openModals = document.querySelectorAll('.modal.show');
@@ -437,4 +645,23 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById(targetId).style.display = 'block';
         });
     });
+
+    // Device-responsive search placeholder
+    const syncMobileSearchPlaceholder = () => {
+        const searchInput = document.getElementById('globalPatientSearch');
+        if (!searchInput) return;
+        const isEn = (document.documentElement.lang || 'en') === 'en';
+        if (window.innerWidth <= 768) {
+            searchInput.placeholder = isEn 
+                ? 'Search patient by name, phone or ID...' 
+                : 'ابحث عن مريض بالاسم، الهاتف، أو الرقم...';
+        } else {
+            searchInput.placeholder = isEn 
+                ? 'Search patient by name, phone or ID... (Ctrl+K)' 
+                : 'ابحث عن مريض بالاسم، الهاتف، أو الرقم... (Ctrl+K)';
+        }
+    };
+    syncMobileSearchPlaceholder();
+    window.addEventListener('resize', syncMobileSearchPlaceholder);
 });
+

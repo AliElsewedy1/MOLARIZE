@@ -67,6 +67,214 @@ window.openNewAppointmentModal = function(prefillDate, prefillPatient) {
     }
 };
 
+// Helper to get clinic time, icon, and greeting accurately (Default: Egypt time / Africa/Cairo)
+export function getClinicTimeAndDateInfo() {
+    const cfg = window.settingsStore?.config?.timeSettings || {};
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+
+    let baseDate = new Date();
+    // Apply manual offset minutes if configured
+    if (cfg.manualOffsetMinutes !== undefined && !isNaN(cfg.manualOffsetMinutes)) {
+        const offsetNum = parseInt(cfg.manualOffsetMinutes, 10) || 0;
+        if (offsetNum !== 0) {
+            baseDate = new Date(baseDate.getTime() + offsetNum * 60 * 1000);
+        }
+    }
+
+    // Default to Egypt timezone (Africa/Cairo)
+    const tz = (cfg.timeZone && cfg.timeZone !== 'auto') ? cfg.timeZone : 'Africa/Cairo';
+    const is24h = cfg.timeFormat === '24h';
+    const showSeconds = !!cfg.showSeconds;
+
+    // Get exact hour, minute, second in target timezone (Egypt by default)
+    let hour, minute, second;
+    try {
+        const parts = new Intl.DateTimeFormat('en-US', {
+            timeZone: tz,
+            hour: 'numeric',
+            minute: 'numeric',
+            second: 'numeric',
+            hour12: false
+        }).formatToParts(baseDate);
+
+        hour = parseInt(parts.find(p => p.type === 'hour')?.value || baseDate.getHours(), 10);
+        minute = parseInt(parts.find(p => p.type === 'minute')?.value || baseDate.getMinutes(), 10);
+        second = parseInt(parts.find(p => p.type === 'second')?.value || baseDate.getSeconds(), 10);
+        if (hour === 24) hour = 0;
+    } catch(e) {
+        hour = baseDate.getHours();
+        minute = baseDate.getMinutes();
+        second = baseDate.getSeconds();
+    }
+
+    // Dynamic Icon & Greeting based on exact hour of day
+    let timeIcon = '☀️';
+    let enGreet = 'Good morning';
+    let arGreet = 'صباح الخير';
+    let periodNameAr = 'الصباح';
+    let periodNameEn = 'Morning';
+
+    if (hour >= 4 && hour < 7) {
+        timeIcon = '🌅';
+        enGreet = 'Good morning';
+        arGreet = 'صباح الخير والبركة';
+        periodNameAr = 'الصباح الباكر';
+        periodNameEn = 'Early Morning';
+    } else if (hour >= 7 && hour < 12) {
+        timeIcon = '☀️';
+        enGreet = 'Good morning';
+        arGreet = 'صباح الخير';
+        periodNameAr = 'الصباح';
+        periodNameEn = 'Morning';
+    } else if (hour >= 12 && hour < 17) {
+        timeIcon = '🌤️';
+        enGreet = 'Good afternoon';
+        arGreet = 'طاب يومك';
+        periodNameAr = 'الظهيرة';
+        periodNameEn = 'Afternoon';
+    } else if (hour >= 17 && hour < 21) {
+        timeIcon = '🌇';
+        enGreet = 'Good evening';
+        arGreet = 'مساء الخير';
+        periodNameAr = 'المساء والغروب';
+        periodNameEn = 'Evening';
+    } else {
+        timeIcon = '🌙';
+        enGreet = 'Good evening';
+        arGreet = 'مساء الخير';
+        periodNameAr = 'الليل';
+        periodNameEn = 'Night';
+    }
+
+    // Format Time String (keeping numbers in English digits, precise AM/PM)
+    const pad = (n) => String(n).padStart(2, '0');
+    let formattedTime = '';
+
+    if (is24h) {
+        formattedTime = showSeconds 
+            ? `${pad(hour)}:${pad(minute)}:${pad(second)}`
+            : `${pad(hour)}:${pad(minute)}`;
+    } else {
+        const isPM = hour >= 12;
+        let h12 = hour % 12;
+        if (h12 === 0) h12 = 12;
+        const periodMarker = isAr ? (isPM ? 'م' : 'ص') : (isPM ? 'PM' : 'AM');
+        const timeCore = showSeconds 
+            ? `${pad(h12)}:${pad(minute)}:${pad(second)}` 
+            : `${pad(h12)}:${pad(minute)}`;
+        formattedTime = `${timeCore} ${periodMarker}`;
+    }
+
+    // Format Date String with Arabic text but English digits
+    const dateOptions = {
+        timeZone: tz,
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    };
+    let formattedDate = '';
+    try {
+        formattedDate = new Intl.DateTimeFormat(isAr ? 'ar-EG-u-nu-latn' : 'en-US', dateOptions).format(baseDate);
+    } catch(e) {
+        try {
+            formattedDate = new Intl.DateTimeFormat(isAr ? 'ar-EG' : 'en-US', dateOptions).format(baseDate);
+        } catch(e2) {
+            formattedDate = baseDate.toLocaleDateString(isAr ? 'ar-EG' : 'en-US', dateOptions);
+        }
+    }
+
+    const isPM = hour >= 12;
+    return {
+        hour,
+        minute,
+        second,
+        isPM,
+        timeIcon,
+        enGreet,
+        arGreet,
+        periodNameAr,
+        periodNameEn,
+        formattedTime,
+        formattedDate,
+        timeZone: tz || 'Africa/Cairo'
+    };
+}
+
+export function updateGreetingAndDate() {
+    const greetingEl = document.getElementById('greetingMessage');
+    const greetingTextEl = document.getElementById('greetingMessageText');
+    const timeIconEl = document.getElementById('timeOfDayIcon');
+    const dateTextEl = document.getElementById('currentDateText') || document.getElementById('currentDateDisplay');
+    const timeTextEl = document.getElementById('currentTimeText');
+    const clockPeriodIcon = document.getElementById('clockPeriodIcon');
+    const previewClockIcon = document.getElementById('previewClockIcon');
+    const previewClockTime = document.getElementById('previewClockTime');
+
+    if (!greetingEl && !dateTextEl && !timeTextEl) return;
+
+    const info = getClinicTimeAndDateInfo();
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+
+    // 1. Update Greeting Message
+    const docName = window.settingsStore?.config?.doctorName || '';
+    const nameSuffix = isAr ? (docName ? `د. ${docName}` : 'المشرف') : (docName ? `Dr. ${docName}` : 'Admin');
+    const arFull = `${info.arGreet}، ${nameSuffix}`;
+    const enFull = `${info.enGreet}, ${nameSuffix}`;
+
+    if (greetingTextEl) {
+        greetingTextEl.setAttribute('data-en', enFull);
+        greetingTextEl.setAttribute('data-ar', arFull);
+        greetingTextEl.textContent = isAr ? arFull : enFull;
+    } else if (greetingEl) {
+        greetingEl.setAttribute('data-en', enFull);
+        greetingEl.setAttribute('data-ar', arFull);
+        greetingEl.textContent = isAr ? arFull : enFull;
+    }
+
+    // 2. Update Dynamic Time of Day Icon in Welcome Header
+    if (timeIconEl) {
+        timeIconEl.innerText = info.timeIcon;
+        timeIconEl.title = isAr ? info.periodNameAr : info.periodNameEn;
+    }
+
+    // 3. Update Date Display
+    if (dateTextEl) {
+        dateTextEl.innerText = info.formattedDate;
+    }
+
+    // 4. Update Time Display (Simple, static, accurate)
+    if (timeTextEl) {
+        timeTextEl.innerText = info.formattedTime;
+        timeTextEl.title = isAr ? (info.isPM ? 'توقيت مصر: مساءً (PM)' : 'توقيت مصر: صباحاً (AM)') : (info.isPM ? 'Egypt Time: PM' : 'Egypt Time: AM');
+    }
+    if (clockPeriodIcon) {
+        clockPeriodIcon.innerText = info.timeIcon;
+        clockPeriodIcon.title = isAr ? info.periodNameAr : info.periodNameEn;
+    }
+
+    // 5. Update Live Preview in Settings Card if present
+    if (previewClockIcon) {
+        previewClockIcon.innerText = info.timeIcon;
+    }
+    if (previewClockTime) {
+        previewClockTime.innerText = info.formattedTime;
+    }
+}
+
+// Immediately bind functions to window to prevent any reference errors
+window.getClinicTimeAndDateInfo = getClinicTimeAndDateInfo;
+window.updateGreetingAndDate = updateGreetingAndDate;
+
+// Setup live ticking interval (1 second)
+if (!window._clinicLiveClockTimer) {
+    window._clinicLiveClockTimer = setInterval(() => {
+        if (typeof window.updateGreetingAndDate === 'function') {
+            window.updateGreetingAndDate();
+        }
+    }, 1000);
+}
+
 // Make updateDashboardStats globally available immediately
 window.updateDashboardStats = updateDashboardStats;
 
@@ -1227,28 +1435,6 @@ if (confirmDeleteApptBtn) {
             activeAppointmentToDelete = null;
         }
     });
-}
-
-// ---------------------------------------------------------
-// Dashboard Integrations
-// ---------------------------------------------------------
-
-function updateGreetingAndDate() {
-    if(!greetingMessage || !currentDateDisplay) return;
-    const hour = new Date().getHours();
-    const isAr = document.documentElement.lang === 'ar';
-
-    let enGreet = 'Good evening';
-    let arGreet = 'مساء الخير';
-    if (hour < 12) { enGreet = 'Good morning'; arGreet = 'صباح الخير'; }
-    else if (hour < 18) { enGreet = 'Good afternoon'; arGreet = 'طاب مساؤك'; }
-
-    greetingMessage.setAttribute('data-en', `${enGreet}, Admin`);
-    greetingMessage.setAttribute('data-ar', `${arGreet}، المشرف`);
-    greetingMessage.innerText = isAr ? `${arGreet}، المشرف` : `${enGreet}, Admin`;
-
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    currentDateDisplay.innerText = new Date().toLocaleDateString(isAr ? 'ar-EG' : 'en-US', options);
 }
 
 async function updateDashboardStats() {

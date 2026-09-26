@@ -46,6 +46,12 @@ export const DEFAULT_CLINIC_CONFIG = {
         autoSignatureOnPrescription: true,
         allowDentistPriceEdit: true
     },
+    timeSettings: {
+        timeZone: "Africa/Cairo",
+        timeFormat: "12h",
+        showSeconds: false,
+        manualOffsetMinutes: 0
+    },
     currentRole: "Owner" // Default role for active session (Owner, Admin, Dentist, Assistant)
 };
 
@@ -1428,6 +1434,18 @@ function renderClinicBrandingForm() {
     if (overrideToggle) overrideToggle.checked = cr.requireOverrideReason !== false;
     if (sigToggle) sigToggle.checked = cr.autoSignatureOnPrescription !== false;
     if (dentistPriceToggle) dentistPriceToggle.checked = cr.allowDentistPriceEdit !== false;
+
+    // Time & Clock Settings
+    const timeCfg = cfg.timeSettings || DEFAULT_CLINIC_CONFIG.timeSettings;
+    setVal('settingTimeFormat', timeCfg.timeFormat || '12h');
+    setVal('settingTimeZone', timeCfg.timeZone || 'Africa/Cairo');
+    setVal('settingTimeOffsetMinutes', timeCfg.manualOffsetMinutes !== undefined ? timeCfg.manualOffsetMinutes : 0);
+    const showSecondsToggle = document.getElementById('settingShowSeconds');
+    if (showSecondsToggle) showSecondsToggle.checked = !!timeCfg.showSeconds;
+
+    if (typeof window.updateGreetingAndDate === 'function') {
+        window.updateGreetingAndDate();
+    }
 }
 
 function renderAuditLogsTable() {
@@ -1823,16 +1841,101 @@ export function setupSettingsUIEventListeners() {
                 invoiceHeader: document.getElementById('settingInvoiceHeader').value.trim(),
                 invoiceFooter: document.getElementById('settingInvoiceFooter').value.trim(),
                 clinicalRules: {
-                    enableAllergyWarning: document.getElementById('settingEnableAllergyWarning').checked,
-                    requireOverrideReason: document.getElementById('settingRequireOverrideReason').checked,
-                    autoSignatureOnPrescription: document.getElementById('settingAutoSignature').checked,
-                    allowDentistPriceEdit: document.getElementById('settingAllowDentistPriceEdit').checked
+                    enableAllergyWarning: document.getElementById('settingEnableAllergyWarning')?.checked !== false,
+                    requireOverrideReason: document.getElementById('settingRequireOverrideReason')?.checked !== false,
+                    autoSignatureOnPrescription: document.getElementById('settingAutoSignature')?.checked !== false,
+                    allowDentistPriceEdit: document.getElementById('settingAllowDentistPriceEdit')?.checked !== false
+                },
+                timeSettings: {
+                    timeFormat: document.getElementById('settingTimeFormat')?.value || '12h',
+                    timeZone: document.getElementById('settingTimeZone')?.value || 'auto',
+                    manualOffsetMinutes: parseInt(document.getElementById('settingTimeOffsetMinutes')?.value, 10) || 0,
+                    showSeconds: !!document.getElementById('settingShowSeconds')?.checked
                 }
             };
 
             await saveGlobalConfig(payload);
         };
     }
+
+    // Live preview and instant sync for Time & Clock settings
+    const triggerTimeSettingsSync = () => {
+        if (!settingsStore.config) settingsStore.config = { ...DEFAULT_CLINIC_CONFIG };
+        settingsStore.config.timeSettings = {
+            timeFormat: document.getElementById('settingTimeFormat')?.value || '12h',
+            timeZone: document.getElementById('settingTimeZone')?.value || 'auto',
+            manualOffsetMinutes: parseInt(document.getElementById('settingTimeOffsetMinutes')?.value, 10) || 0,
+            showSeconds: !!document.getElementById('settingShowSeconds')?.checked
+        };
+        if (typeof window.updateGreetingAndDate === 'function') {
+            window.updateGreetingAndDate();
+        }
+    };
+
+    window.onTimeSettingInputChanged = triggerTimeSettingsSync;
+
+    ['settingTimeFormat', 'settingTimeZone', 'settingTimeOffsetMinutes', 'settingShowSeconds'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('change', triggerTimeSettingsSync);
+            el.addEventListener('input', triggerTimeSettingsSync);
+        }
+    });
+
+    // Save Time Settings Button Handler
+    const saveTimeBtn = document.getElementById('btnSaveTimeSettings');
+    if (saveTimeBtn) {
+        saveTimeBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const prevHtml = saveTimeBtn.innerHTML;
+            saveTimeBtn.disabled = true;
+            saveTimeBtn.innerHTML = '⏳ ...';
+            try {
+                const timeSettings = {
+                    timeFormat: document.getElementById('settingTimeFormat')?.value || '12h',
+                    timeZone: document.getElementById('settingTimeZone')?.value || 'Africa/Cairo',
+                    manualOffsetMinutes: parseInt(document.getElementById('settingTimeOffsetMinutes')?.value, 10) || 0,
+                    showSeconds: !!document.getElementById('settingShowSeconds')?.checked
+                };
+                await saveGlobalConfig({ timeSettings });
+                if (typeof window.updateGreetingAndDate === 'function') {
+                    window.updateGreetingAndDate();
+                }
+                const isAr = (document.documentElement.lang || 'en') === 'ar';
+                if (typeof window.showToast === 'function') {
+                    window.showToast(isAr ? 'تم حفظ إعدادات الوقت وتوقيت مصر بنجاح' : 'Time and timezone settings saved successfully', 'success');
+                }
+            } catch (err) {
+                console.error('Error saving time settings:', err);
+                const isAr = (document.documentElement.lang || 'en') === 'ar';
+                if (typeof window.showToast === 'function') {
+                    window.showToast(isAr ? 'حدث خطأ أثناء حفظ إعدادات الوقت' : 'Error saving time settings', 'error');
+                }
+            } finally {
+                saveTimeBtn.disabled = false;
+                saveTimeBtn.innerHTML = prevHtml;
+            }
+        });
+    }
+
+    // Navigation helper to switch to Settings and focus Time Settings
+    window.navigateToTimeSettings = function() {
+        const settingsTabLink = document.querySelector('.sidebar-link[data-target="settings-section"]');
+        if (settingsTabLink) settingsTabLink.click();
+
+        const brandingSubTab = document.querySelector('.settings-nav-tab[data-tab="tab-settings-branding"]');
+        if (brandingSubTab) brandingSubTab.click();
+
+        setTimeout(() => {
+            const timeCard = document.getElementById('card-settings-time');
+            if (timeCard) {
+                timeCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                timeCard.style.outline = '2px solid var(--brand-primary)';
+                timeCard.style.borderRadius = '12px';
+                setTimeout(() => { timeCard.style.outline = 'none'; }, 2000);
+            }
+        }, 150);
+    };
 
     // 11. Export Full Clinic Configuration JSON
     window.exportClinicConfigToJson = function() {

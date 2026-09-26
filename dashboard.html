@@ -55,8 +55,43 @@
             <!-- Header (Welcome, Global Search & Quick Actions) -->
             <div class="home-header" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
                 <div class="welcome-text">
-                    <h1 id="greetingMessage" data-ar="مرحباً، المشرف" data-en="Good evening, Admin">Good evening, Admin</h1>
-                    <p id="currentDateDisplay" class="text-muted">Wednesday, September 23, 2026</p>
+                    <h1 id="greetingMessage" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.35rem;">
+                        <span id="timeOfDayIcon" style="font-size: 1.45rem; display: inline-flex; align-items: center; justify-content: center; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.08)); line-height: 1;">☀️</span>
+                        <span id="greetingMessageText" data-ar="صباح الخير، المشرف" data-en="Good morning, Admin">Good morning, Admin</span>
+                    </h1>
+                    <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; font-size: 0.88rem; color: var(--text-muted);">
+                        <span id="currentDateDisplay" style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                            <span>📅</span> <span id="currentDateText">Wednesday, September 23, 2026</span>
+                        </span>
+                        <span style="opacity: 0.4;">•</span>
+                        <span id="currentTimeDisplay" style="display: inline-flex; align-items: center; cursor: default; user-select: none;">
+                            <span id="currentTimeText"></span>
+                        </span>
+                    </div>
+                    <script>
+                    (function() {
+                        try {
+                            const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Africa/Cairo', hour: 'numeric', hourCycle: 'h23' }).formatToParts(new Date());
+                            let h = parseInt(parts.find(p => p.type === 'hour')?.value, 10);
+                            if (isNaN(h)) h = new Date().getHours();
+                            const iconEl = document.getElementById('timeOfDayIcon');
+                            const textEl = document.getElementById('greetingMessageText');
+                            const isAr = (document.documentElement.lang || 'en') === 'ar';
+                            let icon = '☀️', en = 'Good morning', ar = 'صباح الخير';
+                            if (h >= 4 && h < 7) { icon = '🌅'; en = 'Good morning'; ar = 'صباح الخير والبركة'; }
+                            else if (h >= 7 && h < 12) { icon = '☀️'; en = 'Good morning'; ar = 'صباح الخير'; }
+                            else if (h >= 12 && h < 17) { icon = '🌤️'; en = 'Good afternoon'; ar = 'طاب يومك'; }
+                            else if (h >= 17 && h < 21) { icon = '🌇'; en = 'Good evening'; ar = 'مساء الخير'; }
+                            else { icon = '🌙'; en = 'Good evening'; ar = 'مساء الخير'; }
+                            if (iconEl) iconEl.textContent = icon;
+                            if (textEl) {
+                                textEl.setAttribute('data-en', en + ', Admin');
+                                textEl.setAttribute('data-ar', ar + '، المشرف');
+                                textEl.textContent = isAr ? (ar + '، المشرف') : (en + ', Admin');
+                            }
+                        } catch(e) {}
+                    })();
+                    </script>
                 </div>
 
                 <!-- Global Quick Search Bar -->
@@ -70,14 +105,14 @@
                             data-ar-placeholder="ابحث عن مريض بالاسم، الهاتف، أو الرقم... (Ctrl+K)"
                             data-en-placeholder="Search patient by name, phone or ID... (Ctrl+K)"
                             style="padding-left: 36px; padding-right: 64px; border-radius: 8px; font-size: 0.88rem; width: 100%;">
-                        <kbd style="position: absolute; right: 10px; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-muted); font-family: monospace; pointer-events: none;">Ctrl K</kbd>
+                        <kbd class="search-kbd-shortcut" style="position: absolute; right: 10px; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-muted); font-family: monospace; pointer-events: none;">Ctrl K</kbd>
                     </div>
                     <div id="globalSearchResults" class="autocomplete-dropdown" style="display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 1000; max-height: 320px; overflow-y: auto; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);"></div>
                 </div>
 
                 <div class="quick-actions" style="display: flex; gap: 0.5rem;">
-                    <button class="btn-outline" id="quickNewPatientBtn" onclick="if(window.openNewPatientModal) window.openNewPatientModal(); else document.getElementById('openModalBtn')?.click();" data-ar="مريض جديد" data-en="New patient">
-                        👤 New patient
+                    <button class="btn-outline" id="quickNewPatientBtn" onclick="if(window.openNewPatientModal) window.openNewPatientModal(); else document.getElementById('openModalBtn')?.click();" data-ar="+ 👤 مريض جديد" data-en="+ 👤 New patient">
+                        + 👤 New patient
                     </button>
                     <button class="btn-primary" id="quickNewAppointmentBtn" onclick="if(window.openNewAppointmentModal) window.openNewAppointmentModal(); else document.getElementById('openAppointmentModalBtn')?.click();" data-ar="موعد جديد" data-en="New appointment">
                         📅 New appointment
@@ -1272,6 +1307,81 @@
                         </div>
                     </div>
                 </form>
+
+                <!-- Card: Clinic Time & Clock Settings (إعدادات التوقيت والساعة) -->
+                <div class="settings-card" id="card-settings-time" style="margin-top: 1.5rem;">
+                        <div class="settings-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                            <div>
+                                <h3 data-ar="⏰ إعدادات التوقيت والساعة والتاريخ" data-en="⏰ Time, Clock & Timezone Settings">⏰ Time, Clock & Timezone Settings</h3>
+                                <p class="text-muted" style="margin: 3px 0 0 0; font-size: 0.82rem;" data-ar="تخصيص ساعة العيادة، المنطقة الزمنية لمصر، ونظام 12/24 ساعة مع حفظ الإعدادات." data-en="Customize clinic clock, Egypt timezone, and 12/24h format with save capability.">Customize clinic clock, Egypt timezone, and 12/24h format with save capability.</p>
+                            </div>
+                            <!-- Save Time Settings Button -->
+                            <button type="button" id="btnSaveTimeSettings" class="btn-primary" style="font-size: 0.85rem; padding: 0.5rem 1.25rem; display: inline-flex; align-items: center; gap: 0.45rem;" data-ar="💾 حفظ إعدادات الوقت" data-en="💾 Save Time Settings">
+                                💾 Save Time Settings
+                            </button>
+                        </div>
+
+                        <div class="settings-grid-2">
+                            <!-- 1. Time Format -->
+                            <div class="input-group">
+                                <label for="settingTimeFormat" data-ar="نظام عرض الوقت:" data-en="Time Display Format:">Time Display Format:</label>
+                                <select id="settingTimeFormat" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--bg-primary); color: var(--text-primary);">
+                                    <option value="12h" data-ar="نظام 12 ساعة (ص / م - AM/PM)" data-en="12-Hour Format (AM / PM)">نظام 12 ساعة (ص / م - AM/PM)</option>
+                                    <option value="24h" data-ar="نظام 24 ساعة (14:30 - 23:59)" data-en="24-Hour Military Format (14:30 - 23:59)">نظام 24 ساعة (14:30 - 23:59)</option>
+                                </select>
+                            </div>
+
+                            <!-- 2. Timezone Selection (Default: Egypt / Africa/Cairo) -->
+                            <div class="input-group">
+                                <label for="settingTimeZone" data-ar="المنطقة الزمنية (Timezone):" data-en="Clinic Timezone:">Clinic Timezone:</label>
+                                <select id="settingTimeZone" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--bg-primary); color: var(--text-primary);">
+                                    <option value="Africa/Cairo" selected data-ar="القاهرة - مصر (توقيت مصر الرسمي GMT+2/GMT+3)" data-en="Cairo - Egypt (Africa/Cairo - GMT+2/GMT+3)">القاهرة - مصر (توقيت مصر الرسمي Africa/Cairo - GMT+2/GMT+3)</option>
+                                    <option value="auto" data-ar="تلقائي (توقيت جهازك الحالي)" data-en="Auto (Current Device Timezone)">تلقائي (توقيت جهازك الحالي)</option>
+                                    <option value="Asia/Riyadh">الرياض / مكة المكرمة - السعودية (Asia/Riyadh - GMT+3)</option>
+                                    <option value="Asia/Dubai">دبي / أبوظبي - الإمارات (Asia/Dubai - GMT+4)</option>
+                                    <option value="Asia/Kuwait">الكويت (Asia/Kuwait - GMT+3)</option>
+                                    <option value="Asia/Qatar">الدوحة - قطر (Asia/Qatar - GMT+3)</option>
+                                    <option value="Asia/Bahrain">المنامة - البحرين (Asia/Bahrain - GMT+3)</option>
+                                    <option value="Asia/Amman">عمان - الأردن (Asia/Amman - GMT+3)</option>
+                                    <option value="Asia/Beirut">بيروت - لبنان (Asia/Beirut - GMT+2/GMT+3)</option>
+                                    <option value="Asia/Jerusalem">القدس (Asia/Jerusalem - GMT+2/GMT+3)</option>
+                                    <option value="Africa/Tripoli">طرابلس - ليبيا (Africa/Tripoli - GMT+2)</option>
+                                    <option value="Africa/Tunis">تونس - تونس (Africa/Tunis - GMT+1)</option>
+                                    <option value="Africa/Algiers">الجزائر (Africa/Algiers - GMT+1)</option>
+                                    <option value="Africa/Casablanca">الدار البيضاء - المغرب (Africa/Casablanca - GMT+1)</option>
+                                    <option value="Africa/Khartoum">الخرطوم - السودان (Africa/Khartoum - GMT+2)</option>
+                                    <option value="Asia/Baghdad">بغداد - العراق (Asia/Baghdad - GMT+3)</option>
+                                    <option value="Asia/Muscat">مسقط - عمان (Asia/Muscat - GMT+4)</option>
+                                    <option value="Europe/London">لندن - بريطانيا (Europe/London - GMT+0/GMT+1)</option>
+                                    <option value="UTC">التوقيت العالمي الموحد (UTC / GMT)</option>
+                                </select>
+                            </div>
+
+                            <!-- 3. Manual Time Offset in Minutes (تقديم أو تأخير الوقت) -->
+                            <div class="input-group">
+                                <label for="settingTimeOffsetMinutes" data-ar="تقديم / تأخير الوقت يدوياً (بالدقائق):" data-en="Manual Time Adjustment (in Minutes):">Manual Time Adjustment (in Minutes):</label>
+                                <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+                                    <input type="number" id="settingTimeOffsetMinutes" placeholder="0" value="0" step="1" style="flex: 1; min-width: 120px; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--bg-primary); color: var(--text-primary); font-family: monospace;">
+                                    <button type="button" class="btn-outline" onclick="const el = document.getElementById('settingTimeOffsetMinutes'); el.value = (parseInt(el.value,10)||0)+60; if(window.onTimeSettingInputChanged) window.onTimeSettingInputChanged();" style="padding: 0.75rem 0.65rem; font-size: 0.8rem; white-space: nowrap;" data-ar="+1 ساعة" data-en="+1 hour">+1 ساعة</button>
+                                    <button type="button" class="btn-outline" onclick="const el = document.getElementById('settingTimeOffsetMinutes'); el.value = (parseInt(el.value,10)||0)-60; if(window.onTimeSettingInputChanged) window.onTimeSettingInputChanged();" style="padding: 0.75rem 0.65rem; font-size: 0.8rem; white-space: nowrap;" data-ar="-1 ساعة" data-en="-1 hour">-1 ساعة</button>
+                                    <button type="button" class="btn-outline" onclick="document.getElementById('settingTimeOffsetMinutes').value = '0'; if(window.onTimeSettingInputChanged) window.onTimeSettingInputChanged();" style="padding: 0.75rem 0.65rem; font-size: 0.8rem; white-space: nowrap;" data-ar="إعادة ضبط (0)" data-en="Reset (0)">إعادة ضبط (0)</button>
+                                </div>
+                                <small style="color: var(--text-muted); display: block; margin-top: 4px;" data-ar="مثال: يمكنك استخدام أزرار التقديم والتأخير لضبط الساعة بدقة أو كتابة الدقائق يدوياً، ثم الضغط على حفظ." data-en="Example: Use quick hour offset buttons or type minutes manually, then click Save.">Example: Use quick hour offset buttons or type minutes manually, then click Save.</small>
+                            </div>
+
+                            <!-- 4. Show Seconds Toggle -->
+                            <div class="toggle-switch-card" style="align-items: center;">
+                                <div class="toggle-switch-info">
+                                    <h4 data-ar="إظهار الثواني في الساعة (Live Seconds)" data-en="Show Live Seconds in Clock">Show Live Seconds in Clock</h4>
+                                    <p data-ar="عرض عداد الثواني المتحرك مباشرة داخل شارة الوقت (مثال: 10:45:22)." data-en="Display real-time ticking seconds in the clinic clock badge (e.g. 10:45:22).">Display real-time ticking seconds in the clinic clock badge (e.g. 10:45:22).</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="settingShowSeconds">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
             </div>
 
             <!-- TAB 5: Audit Trail & Compliance -->
@@ -1396,11 +1506,15 @@
 
                 <!-- Section 2: Data Imports & Restore Center -->
                 <div class="settings-card">
-                    <div class="settings-card-header">
+                    <div class="settings-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
                         <div>
                             <h3 data-ar="📤 رفع واستيراد البيانات واستعادة النسخ الاحتياطية" data-en="📤 Data Imports & Backup Restore Center">📤 Data Imports & Backup Restore Center</h3>
                             <p class="text-muted" style="margin: 3px 0 0 0; font-size: 0.82rem;" data-ar="رفع ملفات CSV واستيراد قوائم المرضى والمخزون الطبي أو استعادة النسخ الاحتياطية للإعدادات مباشرة إلى قاعدة البيانات." data-en="Upload CSV files to import patient lists and inventory, or restore clinic settings from JSON backups directly into the database.">Upload CSV files to import patient lists and inventory, or restore clinic settings from JSON backups directly into the database.</p>
                         </div>
+                        <button type="button" class="btn-outline" onclick="window.openManualDataMigrationHelpModal()" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; padding: 0.45rem 0.85rem; border-color: var(--brand-primary); color: var(--brand-primary); border-radius: 8px; font-weight: 600; cursor: pointer; background: rgba(37, 99, 235, 0.05);" title="دليل تفصيلي لتنسيق ونقل بيانات المرضى من السجلات القديمة">
+                            <span style="font-size: 1.05rem;">ℹ️</span>
+                            <span data-ar="دليل نقل وتنسيق البيانات القديمة (Manual Guide)" data-en="Old Data Migration Guide">دليل نقل وتنسيق البيانات القديمة (Manual Guide)</span>
+                        </button>
                     </div>
 
                     <!-- Hidden File Inputs -->
@@ -1412,14 +1526,22 @@
                         <!-- 1. Import Patients CSV -->
                         <div style="background: var(--bg-surface); border: 1.5px dashed var(--border-color); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem; transition: border-color 0.2s;">
                             <div>
-                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                                    <span style="font-size: 1.3rem;">👥</span>
-                                    <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary);" data-ar="استيراد قائمة المرضى (Upload Patients CSV)" data-en="Import Patients (CSV/Excel)">Import Patients (CSV/Excel)</h4>
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; gap: 0.5rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <span style="font-size: 1.3rem;">👥</span>
+                                        <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary);" data-ar="استيراد قائمة المرضى (Upload Patients CSV)" data-en="Import Patients (CSV/Excel)">Import Patients (CSV/Excel)</h4>
+                                    </div>
+                                    <button type="button" onclick="window.openManualDataMigrationHelpModal()" title="انقر لمعرفة كيفية تنسيق وتقسيم بيانات المرضى القدامى" style="background: rgba(37, 99, 235, 0.12); border: 1px solid rgba(37, 99, 235, 0.3); color: var(--brand-primary); border-radius: 50%; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: bold; cursor: pointer; transition: transform 0.2s, background-color 0.2s;" onmouseover="this.style.transform='scale(1.15)'; this.style.backgroundColor='rgba(37, 99, 235, 0.2)';" onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='rgba(37, 99, 235, 0.12)';">
+                                        ℹ️
+                                    </button>
                                 </div>
                                 <p style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.45; margin: 0 0 0.75rem 0;" data-ar="رفع ملف CSV أو Excel يحتوي على بيانات المرضى (الاسم، الهاتف، العمر، النوع، الملاحظات). يقوم النظام بالتحقق التلقائي ومنع تكرار المرضى المسجلين." data-en="Upload a CSV file containing patient records (Name, Phone, Age, Gender, Notes). The system automatically deduplicates existing patients.">Upload a CSV file containing patient records (Name, Phone, Age, Gender, Notes). The system automatically deduplicates existing patients.</p>
                                 <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                                     <button type="button" class="btn-outline" style="font-size: 0.78rem; padding: 0.3rem 0.65rem;" onclick="window.downloadPatientsTemplateCsv()" data-ar="📄 تحميل نموذج CSV للمرضى" data-en="📄 Download Sample CSV">
                                         📄 Download Sample CSV
+                                    </button>
+                                    <button type="button" class="btn-outline" style="font-size: 0.78rem; padding: 0.3rem 0.65rem; border-color: #3b82f6; color: #3b82f6; background: rgba(59, 130, 246, 0.06); display: inline-flex; align-items: center; gap: 4px;" onclick="window.openManualDataMigrationHelpModal()" data-ar="ℹ️ كيف أنسق بيانات المرضى القدامى؟" data-en="ℹ️ How to format old data?">
+                                        <span>ℹ️</span> <span data-ar="كيف أنسق بيانات المرضى القدامى؟" data-en="How to format old data?">كيف أنسق بيانات المرضى القدامى؟</span>
                                     </button>
                                 </div>
                             </div>
@@ -1469,93 +1591,109 @@
     </main>
 
     <!-- Modal لإضافة مريض جديد -->
-    <div id="patientModal" class="modal">
-        <div class="modal-content">
-            <h3 id="patientModalTitle" data-ar="إضافة مريض جديد" data-en="Add New Patient">Add New Patient</h3>
-            <form id="patientForm">
+    <!-- Modal / Drawer لإضافة وتعديل بيانات المريض (Side Drawer on Desktop / Bottom Sheet on Mobile) -->
+    <div id="patientModal" class="modal patient-drawer-modal">
+        <div class="modal-content patient-drawer-content">
+            <div class="drawer-header">
+                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(37, 99, 235, 0.12); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                        👤
+                    </div>
+                    <div>
+                        <h3 id="patientModalTitle" style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text-primary); text-align: start;" data-ar="إضافة مريض جديد" data-en="Add New Patient">Add New Patient</h3>
+                    </div>
+                </div>
+                <button type="button" class="drawer-close-btn" onclick="document.getElementById('cancelBtn')?.click();" title="إغلاق">&times;</button>
+            </div>
+
+            <form id="patientForm" style="display: flex; flex-direction: column; flex: 1; overflow: hidden; min-height: 0;">
                 <input type="hidden" id="patientId">
-                <div class="input-group">
-                    <label for="patientName" data-ar="اسم المريض:" data-en="Patient Name:">Patient Name:</label>
-                    <input type="text" id="patientName" required>
-                </div>
-                <div class="input-group">
-                    <label for="patientGender" data-ar="النوع:" data-en="Gender:">Gender:</label>
-                    <select id="patientGender" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);">
-                        <option value="Male" data-ar="ذكر" data-en="Male">Male</option>
-                        <option value="Female" data-ar="أنثى" data-en="Female">Female</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label for="patientAge" data-ar="العمر:" data-en="Age:">Age:</label>
-                    <input type="number" id="patientAge">
-                </div>
-                <div class="input-group">
-                    <label for="patientPhone" data-ar="رقم الهاتف:" data-en="Phone Number:">Phone Number:</label>
-                    <input type="tel" id="patientPhone" required>
-                </div>
-                <div class="input-group">
-                    <label for="patientPhone2" data-ar="رقم هاتف إضافي (اختياري):" data-en="Phone 2 (Optional):">Phone 2 (Optional):</label>
-                    <input type="tel" id="patientPhone2">
-                </div>
-                <div class="input-group" style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 120px;">
-                        <label for="callPref" data-ar="رقم المكالمات:" data-en="Call Number:">Call Number:</label>
-                        <select id="callPref" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);">
-                            <option value="phone1" data-ar="الرقم الأول" data-en="Phone 1">Phone 1</option>
-                            <option value="phone2" data-ar="الرقم الإضافي" data-en="Phone 2">Phone 2</option>
+
+                <div class="drawer-body">
+                    <div class="input-group">
+                        <label for="patientName" data-ar="اسم المريض:" data-en="Patient Name:">Patient Name:</label>
+                        <input type="text" id="patientName" required placeholder="اسم المريض بالكامل" data-ar-placeholder="اسم المريض بالكامل" data-en-placeholder="Patient full name">
+                    </div>
+                    <div class="input-group">
+                        <label for="patientGender" data-ar="النوع:" data-en="Gender:">Gender:</label>
+                        <select id="patientGender" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--bg-primary); color: var(--text-primary);">
+                            <option value="Male" data-ar="ذكر" data-en="Male">Male</option>
+                            <option value="Female" data-ar="أنثى" data-en="Female">Female</option>
                         </select>
                     </div>
-                    <div style="flex: 1; min-width: 120px;">
-                        <label for="waPref" data-ar="رقم الواتساب:" data-en="WhatsApp Number:">WhatsApp Number:</label>
-                        <select id="waPref" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);">
-                            <option value="phone1" data-ar="الرقم الأول" data-en="Phone 1">Phone 1</option>
-                            <option value="phone2" data-ar="الرقم الإضافي" data-en="Phone 2">Phone 2</option>
-                        </select>
+                    <div class="input-group">
+                        <label for="patientAge" data-ar="العمر:" data-en="Age:">Age:</label>
+                        <input type="number" id="patientAge" placeholder="30" data-ar-placeholder="العمر (مثال: 30)" data-en-placeholder="Age (e.g. 30)">
+                    </div>
+                    <div class="input-group">
+                        <label for="patientPhone" data-ar="رقم الهاتف الأساسي:" data-en="Primary Phone:">Primary Phone:</label>
+                        <input type="tel" id="patientPhone" required placeholder="01xxxxxxxxx" data-ar-placeholder="01xxxxxxxxx" data-en-placeholder="01xxxxxxxxx">
+                    </div>
+                    <div class="input-group">
+                        <label for="patientPhone2" data-ar="رقم هاتف إضافي (اختياري):" data-en="Phone 2 (Optional):">Phone 2 (Optional):</label>
+                        <input type="tel" id="patientPhone2" placeholder="01xxxxxxxxx (اختياري)" data-ar-placeholder="01xxxxxxxxx (اختياري)" data-en-placeholder="01xxxxxxxxx (Optional)">
+                    </div>
+                    <div class="input-group" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 120px;">
+                            <label for="callPref" data-ar="رقم المكالمات:" data-en="Call Number:">Call Number:</label>
+                            <select id="callPref" style="width: 100%; padding: 0.55rem; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--bg-primary); color: var(--text-primary);">
+                                <option value="phone1" data-ar="الرقم الأول" data-en="Phone 1">Phone 1</option>
+                                <option value="phone2" data-ar="الرقم الإضافي" data-en="Phone 2">Phone 2</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1; min-width: 120px;">
+                            <label for="waPref" data-ar="رقم الواتساب:" data-en="WhatsApp Number:">WhatsApp Number:</label>
+                            <select id="waPref" style="width: 100%; padding: 0.55rem; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--bg-primary); color: var(--text-primary);">
+                                <option value="phone1" data-ar="الرقم الأول" data-en="Phone 1">Phone 1</option>
+                                <option value="phone2" data-ar="الرقم الإضافي" data-en="Phone 2">Phone 2</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label data-ar="التحذيرات الطبية:" data-en="Medical Alerts:">Medical Alerts:</label>
+                        <div class="medical-alerts-container" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                            <label class="alert-toggle">
+                                <input type="checkbox" value="Diabetes" class="alert-checkbox">
+                                <span class="alert-chip" data-ar="سكر" data-en="Diabetes">Diabetes</span>
+                            </label>
+                            <label class="alert-toggle">
+                                <input type="checkbox" value="Hypertension" class="alert-checkbox">
+                                <span class="alert-chip" data-ar="ضغط دم" data-en="Hypertension">Hypertension</span>
+                            </label>
+                            <label class="alert-toggle">
+                                <input type="checkbox" value="Bleeding" class="alert-checkbox">
+                                <span class="alert-chip" data-ar="سيولة" data-en="Bleeding">Bleeding</span>
+                            </label>
+                            <label class="alert-toggle">
+                                <input type="checkbox" value="Heart Disease" class="alert-checkbox">
+                                <span class="alert-chip" data-ar="أمراض قلب" data-en="Heart Disease">Heart Disease</span>
+                            </label>
+                            <label class="alert-toggle">
+                                <input type="checkbox" value="Allergies" class="alert-checkbox">
+                                <span class="alert-chip" data-ar="حساسية" data-en="Allergies">Allergies</span>
+                            </label>
+                            <label class="alert-toggle">
+                                <input type="checkbox" value="Pregnancy" class="alert-checkbox">
+                                <span class="alert-chip" data-ar="حمل" data-en="Pregnancy">Pregnancy</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="lastVisit" data-ar="آخر زيارة:" data-en="Last Visit:">Last Visit:</label>
+                        <input type="date" id="lastVisit">
+                    </div>
+                    <div class="input-group">
+                        <label for="patientNotes" data-ar="ملاحظات وسجل سريري (اختياري):" data-en="Notes (Optional):">Notes (Optional):</label>
+                        <textarea id="patientNotes" rows="3" placeholder="ملاحظات سريرية أو تشخيص..." data-ar-placeholder="ملاحظات سريرية أو تشخيص..." data-en-placeholder="Clinical notes or diagnosis..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--bg-primary); color: var(--text-primary);"></textarea>
                     </div>
                 </div>
 
-                <div class="input-group">
-                    <label data-ar="التحذيرات الطبية:" data-en="Medical Alerts:">Medical Alerts:</label>
-                    <div class="medical-alerts-container" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
-                        <label class="alert-toggle">
-                            <input type="checkbox" value="Diabetes" class="alert-checkbox">
-                            <span class="alert-chip" data-ar="سكر" data-en="Diabetes">Diabetes</span>
-                        </label>
-                        <label class="alert-toggle">
-                            <input type="checkbox" value="Hypertension" class="alert-checkbox">
-                            <span class="alert-chip" data-ar="ضغط دم" data-en="Hypertension">Hypertension</span>
-                        </label>
-                        <label class="alert-toggle">
-                            <input type="checkbox" value="Bleeding" class="alert-checkbox">
-                            <span class="alert-chip" data-ar="سيولة" data-en="Bleeding">Bleeding</span>
-                        </label>
-                        <label class="alert-toggle">
-                            <input type="checkbox" value="Heart Disease" class="alert-checkbox">
-                            <span class="alert-chip" data-ar="أمراض قلب" data-en="Heart Disease">Heart Disease</span>
-                        </label>
-                        <label class="alert-toggle">
-                            <input type="checkbox" value="Allergies" class="alert-checkbox">
-                            <span class="alert-chip" data-ar="حساسية" data-en="Allergies">Allergies</span>
-                        </label>
-                        <label class="alert-toggle">
-                            <input type="checkbox" value="Pregnancy" class="alert-checkbox">
-                            <span class="alert-chip" data-ar="حمل" data-en="Pregnancy">Pregnancy</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="input-group">
-                    <label for="lastVisit" data-ar="آخر زيارة:" data-en="Last Visit:">Last Visit:</label>
-                    <input type="date" id="lastVisit">
-                </div>
-                <div class="input-group">
-                    <label for="patientNotes" data-ar="ملاحظات (اختياري):" data-en="Notes (Optional):">Notes (Optional):</label>
-                    <textarea id="patientNotes" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);"></textarea>
-                </div>
-                <div class="modal-actions" style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
-                    <button type="button" id="deletePatientFromModalBtn" class="btn-danger" style="display: none; background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid #ef4444; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 500; cursor: pointer; margin-inline-end: auto;" onclick="if(window.deletePatient) window.deletePatient(document.getElementById('patientId').value, event);" data-ar="🗑️ مسح المريض" data-en="🗑️ Delete Patient">🗑️ مسح المريض</button>
+                <div class="drawer-footer">
+                    <button type="button" id="deletePatientFromModalBtn" class="btn-danger" style="display: none; background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid #ef4444; padding: 0.55rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; margin-inline-end: auto;" onclick="if(window.deletePatient) window.deletePatient(document.getElementById('patientId').value, event);" data-ar="🗑️ مسح المريض" data-en="🗑️ Delete Patient">🗑️ مسح المريض</button>
                     <button type="button" class="btn-secondary" id="cancelBtn" data-ar="إلغاء" data-en="Cancel">Cancel</button>
-                    <button type="submit" class="btn-primary" data-ar="حفظ" data-en="Save">Save</button>
+                    <button type="submit" class="btn-primary" data-ar="حفظ المريض" data-en="Save Patient">Save Patient</button>
                 </div>
             </form>
         </div>
@@ -1697,7 +1835,7 @@
                 </div>
                 <div class="input-group">
                     <label for="inventoryCategory" data-ar="الفئة:" data-en="Category:">Category:</label>
-                    <input type="text" id="inventoryCategory" placeholder="e.g. Consumables, Instruments..." required>
+                    <input type="text" id="inventoryCategory" placeholder="مثال: مستهلكات، أدوات..." data-ar-placeholder="مثال: مستهلكات، أدوات..." data-en-placeholder="e.g. Consumables, Instruments..." required>
                 </div>
                 <div class="input-group">
                     <label for="inventoryStock" data-ar="الكمية الحالية:" data-en="Current Stock:">Current Stock:</label>
@@ -2348,7 +2486,7 @@
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
                             <div>
                                 <label for="visitCustomPctInput" style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px; display: block;" data-ar="نسبة مخصصة (± %):" data-en="Custom Pct (± %):">Custom Pct (± %):</label>
-                                <input type="number" id="visitCustomPctInput" placeholder="مثال: -15 أو 10" step="0.5" style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.85rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary); font-family: monospace;">
+                                <input type="number" id="visitCustomPctInput" placeholder="مثال: -15 أو 10" data-ar-placeholder="مثال: -15 أو 10" data-en-placeholder="e.g. -15 or 10" step="0.5" style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.85rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary); font-family: monospace;">
                             </div>
                             <div>
                                 <label for="visitProcedureFinalCost" style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px; display: block;" data-ar="السعر النهائي المطلوب:" data-en="Final Cost:">Final Cost:</label>
@@ -2401,7 +2539,7 @@
 
                                 <div>
                                     <label for="visitPaymentRef" style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px; display: block;" data-ar="رقم العملية / المرجع / رقم المحفظة (اختياري):" data-en="Transaction Ref / Slip # (Optional):">Transaction Ref / Slip # (Optional):</label>
-                                    <input type="text" id="visitPaymentRef" placeholder="مثال: رقم إيصال الفيزا أو تحويل إنستاباي..." style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.82rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary);">
+                                    <input type="text" id="visitPaymentRef" placeholder="رقم الإيصال أو مرجع التحويل..." data-ar-placeholder="رقم الإيصال أو مرجع التحويل..." data-en-placeholder="Transaction / Slip ref..." style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.82rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary);">
                                 </div>
                             </div>
                         </div>
@@ -2460,15 +2598,15 @@
                 <input type="hidden" id="serviceId">
                 <div class="input-group">
                     <label for="serviceCode" data-ar="كود الإجراء الطبي (CDT/Code):" data-en="Procedure Code:">Procedure Code:</label>
-                    <input type="text" id="serviceCode" placeholder="e.g. D2391, D3330">
+                    <input type="text" id="serviceCode" placeholder="كود الإجراء (مثال: D2391)" data-ar-placeholder="كود الإجراء (مثال: D2391)" data-en-placeholder="Procedure code (e.g. D2391)">
                 </div>
                 <div class="input-group">
                     <label for="serviceNameAr" data-ar="اسم الخدمة (بالعربية):" data-en="Procedure Name (Arabic):">Procedure Name (Arabic):</label>
-                    <input type="text" id="serviceNameAr" placeholder="مثال: حشو تجميلي كومبوزيت" required>
+                    <input type="text" id="serviceNameAr" placeholder="اسم الخدمة بالعربية..." data-ar-placeholder="اسم الخدمة بالعربية..." data-en-placeholder="Service name in Arabic..." required>
                 </div>
                 <div class="input-group">
                     <label for="serviceNameEn" data-ar="اسم الخدمة (بالإنجليزية):" data-en="Procedure Name (English):">Procedure Name (English):</label>
-                    <input type="text" id="serviceNameEn" placeholder="e.g. Composite Filling" required>
+                    <input type="text" id="serviceNameEn" placeholder="اسم الخدمة بالإنجليزية..." data-ar-placeholder="اسم الخدمة بالإنجليزية..." data-en-placeholder="Service name in English..." required>
                 </div>
                 <div class="input-group">
                     <label for="serviceCategory" data-ar="التصنيف الطبي:" data-en="Category:">Category:</label>
@@ -2520,12 +2658,12 @@
                 <input type="hidden" id="medicationId">
                 <div class="input-group">
                     <label for="medName" data-ar="اسم الدواء التجاري والعلمي:" data-en="Drug Brand & Generic Name:">Drug Brand & Generic Name:</label>
-                    <input type="text" id="medName" placeholder="e.g. Augmentin 1g (Amoxicillin/Clavulanate)" required>
+                    <input type="text" id="medName" placeholder="اسم الدواء العلمي أو التجاري..." data-ar-placeholder="اسم الدواء العلمي أو التجاري..." data-en-placeholder="Drug brand or generic name..." required>
                 </div>
                 <div class="input-group" style="display: flex; gap: 1rem;">
                     <div style="flex: 1;">
                         <label for="medDosage" data-ar="التركيز والشكل:" data-en="Strength & Form:">Strength & Form:</label>
-                        <input type="text" id="medDosage" placeholder="e.g. 1g Tab, 500mg Cap" required>
+                        <input type="text" id="medDosage" placeholder="التركيز والشكل (مثال: 500mg)" data-ar-placeholder="التركيز والشكل (مثال: 500mg)" data-en-placeholder="Strength & Form (e.g. 500mg)" required>
                     </div>
                     <div style="flex: 1;">
                         <label for="medRoute" data-ar="طريقة الاستعمال:" data-en="Route:">Route:</label>
@@ -2550,24 +2688,24 @@
                     </div>
                     <div style="flex: 1;">
                         <label for="medFrequency" data-ar="التكرار الافتراضي:" data-en="Frequency:">Frequency:</label>
-                        <input type="text" id="medFrequency" placeholder="e.g. Every 12 hours / TID">
+                        <input type="text" id="medFrequency" placeholder="التكرار (مثال: كل 12 ساعة)" data-ar-placeholder="التكرار (مثال: كل 12 ساعة)" data-en-placeholder="Frequency (e.g. Every 12 hrs)">
                     </div>
                 </div>
                 <div class="input-group">
                     <label for="medDuration" data-ar="مدة العلاج الافتراضية:" data-en="Duration:">Duration:</label>
-                    <input type="text" id="medDuration" placeholder="e.g. 5-7 days">
+                    <input type="text" id="medDuration" placeholder="المدة (مثال: 5-7 أيام)" data-ar-placeholder="المدة (مثال: 5-7 أيام)" data-en-placeholder="Duration (e.g. 5-7 days)">
                 </div>
                 <div class="input-group">
                     <label for="medInstructionsAr" data-ar="التعليمات بالعربية (تطبع بالروشتة):" data-en="Instructions (Arabic):">Instructions (Arabic):</label>
-                    <input type="text" id="medInstructionsAr" placeholder="مثال: قرص بعد الأكل كل 12 ساعة لمدة أسبوع">
+                    <input type="text" id="medInstructionsAr" placeholder="التعليمات بالعربية..." data-ar-placeholder="التعليمات بالعربية..." data-en-placeholder="Instructions in Arabic...">
                 </div>
                 <div class="input-group">
                     <label for="medInstructionsEn" data-ar="التعليمات بالإنجليزية:" data-en="Instructions (English):">Instructions (English):</label>
-                    <input type="text" id="medInstructionsEn" placeholder="e.g. 1 tablet every 12 hours after meals">
+                    <input type="text" id="medInstructionsEn" placeholder="التعليمات بالإنجليزية..." data-ar-placeholder="التعليمات بالإنجليزية..." data-en-placeholder="Instructions in English...">
                 </div>
                 <div class="input-group">
                     <label for="medContraindications" data-ar="موانع الاستخدام والحساسية المرتبطة (افصل بفاصلة):" data-en="Contraindications & Allergies (Comma separated):">Contraindications & Allergies (Comma separated):</label>
-                    <input type="text" id="medContraindications" placeholder="e.g. Penicillin, Amoxicillin, Bleeding, Pregnancy">
+                    <input type="text" id="medContraindications" placeholder="موانع الاستخدام والحساسيات..." data-ar-placeholder="موانع الاستخدام والحساسيات..." data-en-placeholder="Contraindications & allergies...">
                 </div>
                 <div class="modal-actions" style="margin-top: 1.25rem;">
                     <button type="button" class="btn-secondary" id="cancelMedicationModalBtn" data-ar="إلغاء" data-en="Cancel">Cancel</button>
@@ -2594,7 +2732,7 @@
 
             <div class="input-group">
                 <label for="allergyOverrideReason" style="font-weight: 700; color: var(--text-primary);" data-ar="سبب التجاوز الطبي الإلزامي (Clinical Justification):" data-en="Clinical Justification Reason (Required):">Clinical Justification Reason (Required):</label>
-                <textarea id="allergyOverrideReason" rows="3" placeholder="اكتب التبرير الإكلينيكي لتجاوز التحذير وكتابة الدواء..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);" required></textarea>
+                <textarea id="allergyOverrideReason" rows="3" placeholder="اكتب التبرير الإكلينيكي لتجاوز التحذير..." data-ar-placeholder="اكتب التبرير الإكلينيكي لتجاوز التحذير..." data-en-placeholder="Clinical justification for override..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-primary); color: var(--text-primary);" required></textarea>
                 <small style="color: var(--text-muted); display: block; margin-top: 4px;" data-ar="سيتم حفظ هذا السبب مع اسم الطبيب وتاريخ اللحظة في سجل التدقيق Audit Trail." data-en="This reason will be permanently recorded with timestamp in the compliance Audit Trail.">This reason will be permanently recorded with timestamp in the compliance Audit Trail.</small>
             </div>
 
@@ -2654,6 +2792,233 @@
                     <span id="executeDeletePatientConfirmBtnText" data-ar="مسح النهائي" data-en="Delete Permanently">مسح النهائي</span>
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal: دليل تنسيق واستيراد بيانات المرضى القديمة (Manual Patient Data Migration Guide) -->
+    <div id="manualDataMigrationHelpModal" class="modal" style="z-index: 100095;" onclick="if(event.target === this) window.closeManualDataMigrationHelpModal()">
+        <div class="modal-content" style="max-width: 780px; max-height: 90vh; overflow-y: auto; border-radius: 16px; padding: 1.75rem; border: 1px solid var(--border-color); box-shadow: var(--shadow-xl); background: var(--bg-surface); text-align: start;">
+            
+            <!-- Modal Header -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; gap: 0.75rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(37, 99, 235, 0.12); border: 1px solid rgba(37, 99, 235, 0.25); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: var(--brand-primary); flex-shrink: 0;">
+                        📋
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.22rem; font-weight: 700; color: var(--text-primary);" data-ar="دليل نقل وتنسيق بيانات المرضى القدامى (Manual Data Migration)" data-en="Old Patient Records Migration Guide">دليل نقل وتنسيق بيانات المرضى القدامى (Manual Data Migration)</h3>
+                        <p style="margin: 3px 0 0 0; font-size: 0.82rem; color: var(--text-muted); line-height: 1.4;" data-ar="طريقة تحويل دفاتر العيادة الورقية وملفات الإكسل القديمة إلى ملف جاهز للاستيراد دفعة واحدة." data-en="How to convert paper clinic logs or old Excel sheets into an import-ready format in minutes.">طريقة تحويل دفاتر العيادة الورقية وملفات الإكسل القديمة إلى ملف جاهز للاستيراد دفعة واحدة.</p>
+                    </div>
+                </div>
+                <button type="button" onclick="window.closeManualDataMigrationHelpModal()" style="background: none; border: none; font-size: 1.35rem; color: var(--text-muted); cursor: pointer; padding: 0.2rem 0.5rem; border-radius: 6px; line-height: 1;" title="إغلاق">✕</button>
+            </div>
+
+            <!-- Content Body -->
+            <div style="display: flex; flex-direction: column; gap: 1.25rem; font-size: 0.88rem; color: var(--text-primary); line-height: 1.6;">
+
+                <!-- Intro Highlight Banner -->
+                <div style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%); border: 1px solid rgba(37, 99, 235, 0.2); border-radius: 12px; padding: 1rem 1.15rem; display: flex; align-items: flex-start; gap: 0.75rem;">
+                    <span style="font-size: 1.3rem; flex-shrink: 0; line-height: 1.2;">💡</span>
+                    <div>
+                        <strong style="color: var(--brand-primary); font-size: 0.92rem;" data-ar="كيف تضيف جميع مرضاك القدامى بدون كتابتهم مريضاً تلو الآخر؟" data-en="How to bulk import all your existing patients without manual entry?">كيف تضيف جميع مرضاك القدامى بدون كتابتهم مريضاً تلو الآخر؟</strong>
+                        <p style="margin: 0.25rem 0 0 0; font-size: 0.84rem; color: var(--text-muted);" data-ar="إذا كانت لديك بيانات مرضى مسجلة في دفاتر ورقية، أو مفكرة، أو ملفات Excel قديمة، يمكنك تجميعها في جدول إكسل بسيط وحفظه بصيغة CSV لرفعه في ثوانٍ، وسيقوم النظام بإنشاء ملفات كاملة لجميع المرضى تلقائياً مع ترقيم ملفاتهم وحفظ بيانات الاتصال." data-en="If you have patient data in paper registers, notebooks, or legacy spreadsheets, assemble them into a simple Excel table, save as CSV, and upload to create full clinical profiles in seconds.">إذا كانت لديك بيانات مرضى مسجلة في دفاتر ورقية، أو مفكرة، أو ملفات Excel قديمة، يمكنك تجميعها في جدول إكسل بسيط وحفظه بصيغة CSV لرفعه في ثوانٍ، وسيقوم النظام بإنشاء ملفات كاملة لجميع المرضى تلقائياً مع ترقيم ملفاتهم وحفظ بيانات الاتصال.</p>
+                    </div>
+                </div>
+
+                <!-- Step 1 -->
+                <div style="border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem 1.15rem; background: var(--bg-primary);">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <span style="background: var(--brand-primary); color: #fff; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold;">1</span>
+                        <h4 style="margin: 0; font-size: 0.95rem; color: var(--text-primary);" data-ar="الخطوة الأولى: فتح ملف Excel أو Google Sheets جديد" data-en="Step 1: Open a new Excel sheet or Google Sheets">الخطوة الأولى: فتح ملف Excel أو Google Sheets جديد</h4>
+                    </div>
+                    <p style="margin: 0; font-size: 0.84rem; color: var(--text-muted);" data-ar="افتح برنامج Excel أو جداول بيانات Google. اجعل الصف الأول (الصف رقم 1) خاصاً بأسماء الأعمدة (العناوين Headers)، ومن الصف الثاني ابدأ في كتابة أو نسخ بيانات المرضى." data-en="Open Microsoft Excel or Google Sheets. Dedicate row 1 for column headers, and begin entering patient records starting from row 2.">افتح برنامج Excel أو جداول بيانات Google. اجعل الصف الأول (الصف رقم 1) خاصاً بأسماء الأعمدة (العناوين Headers)، ومن الصف الثاني ابدأ في كتابة أو نسخ بيانات المرضى.</p>
+                </div>
+
+                <!-- Step 2: Columns Division Table -->
+                <div style="border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem 1.15rem; background: var(--bg-primary);">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="background: var(--brand-primary); color: #fff; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold;">2</span>
+                        <h4 style="margin: 0; font-size: 0.95rem; color: var(--text-primary);" data-ar="الخطوة الثانية: تقسيم وترتيب أعمدة الملف (Columns Guide)" data-en="Step 2: Table Columns & Recommended Division">الخطوة الثانية: تقسيم وترتيب أعمدة الملف (Columns Guide)</h4>
+                    </div>
+                    
+                    <p style="margin: 0 0 0.75rem 0; font-size: 0.84rem; color: var(--text-muted);" data-ar="يتعرف النظام تلقائياً على الأعمدة المكتوبة باللغة العربية أو الإنجليزية. إليك التقسيم النموذجي لكل عمود:" data-en="The system dynamically recognizes Arabic and English column headers. Recommended structure:">يتعرف النظام تلقائياً على الأعمدة المكتوبة باللغة العربية أو الإنجليزية. إليك التقسيم النموذجي لكل عمود:</p>
+
+                    <div style="overflow-x: auto; border: 1px solid var(--border-color); border-radius: 8px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem; text-align: start;">
+                            <thead>
+                                <tr style="background: var(--bg-surface); border-bottom: 1px solid var(--border-color);">
+                                    <th style="padding: 0.55rem 0.75rem;" data-ar="اسم العمود (بالعربي أو بالإنجليزي)" data-en="Column Header">اسم العمود (بالعربي أو بالإنجليزي)</th>
+                                    <th style="padding: 0.55rem 0.75rem; width: 85px;" data-ar="الحالة" data-en="Status">الحالة</th>
+                                    <th style="padding: 0.55rem 0.75rem;" data-ar="طريقة الكتابة والشرح" data-en="Description & Format">طريقة الكتابة والشرح</th>
+                                    <th style="padding: 0.55rem 0.75rem;" data-ar="مثال" data-en="Example">مثال</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="border-bottom: 1px solid var(--border-color);">
+                                    <td style="padding: 0.55rem 0.75rem; font-weight: 600; color: var(--brand-primary);">
+                                        <code>Display ID</code> أو <code>رقم الملف</code>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem;">
+                                        <span style="background: rgba(100, 116, 139, 0.15); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; font-size: 0.74rem;" data-ar="اختياري" data-en="Optional">اختياري</span>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem; color: var(--text-muted);" data-ar="رقم ملف المريض في الدفاتر القديمة (لو تركته فارغاً سيرقمهم النظام تلقائياً)" data-en="Patient file ID (auto-assigned if left blank)">رقم ملف المريض في الدفاتر القديمة (لو تركته فارغاً سيرقمهم النظام تلقائياً)</td>
+                                    <td style="padding: 0.55rem 0.75rem; font-family: monospace;">101</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.015);">
+                                    <td style="padding: 0.55rem 0.75rem; font-weight: 600; color: var(--brand-primary);">
+                                        <code>Name</code> أو <code>اسم المريض</code>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem;">
+                                        <span style="background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 2px 6px; border-radius: 4px; font-size: 0.74rem; font-weight: bold;" data-ar="إلزامي" data-en="Required">إلزامي</span>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem; color: var(--text-muted);" data-ar="اسم المريض ثلاثي أو ثنائي كامل" data-en="Patient full name">اسم المريض ثلاثي أو ثنائي كامل</td>
+                                    <td style="padding: 0.55rem 0.75rem;">أحمد محمد مصطفى</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border-color);">
+                                    <td style="padding: 0.55rem 0.75rem; font-weight: 600;">
+                                        <code>Gender</code> أو <code>النوع</code>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem;">
+                                        <span style="background: rgba(100, 116, 139, 0.15); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; font-size: 0.74rem;" data-ar="اختياري" data-en="Optional">اختياري</span>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem; color: var(--text-muted);" data-ar="اكتب: ذكر أو أنثى (أو Male / Female)" data-en="Male or Female">اكتب: ذكر أو أنثى (أو Male / Female)</td>
+                                    <td style="padding: 0.55rem 0.75rem;">ذكر</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.015);">
+                                    <td style="padding: 0.55rem 0.75rem; font-weight: 600;">
+                                        <code>Age</code> أو <code>العمر</code>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem;">
+                                        <span style="background: rgba(100, 116, 139, 0.15); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; font-size: 0.74rem;" data-ar="اختياري" data-en="Optional">اختياري</span>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem; color: var(--text-muted);" data-ar="عمر المريض بالأرقام" data-en="Patient age in numbers">عمر المريض بالأرقام</td>
+                                    <td style="padding: 0.55rem 0.75rem;">32</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border-color);">
+                                    <td style="padding: 0.55rem 0.75rem; font-weight: 600; color: var(--brand-primary);">
+                                        <code>Phone</code> أو <code>رقم الهاتف</code>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem;">
+                                        <span style="background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 2px 6px; border-radius: 4px; font-size: 0.74rem; font-weight: bold;" data-ar="إلزامي" data-en="Required">إلزامي</span>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem; color: var(--text-muted);" data-ar="رقم الموبايل الأساسي بدون مسافات (يمنع النظام تكرار نفس الرقم)" data-en="Primary mobile number (used for deduplication)">رقم الموبايل الأساسي بدون مسافات (يمنع النظام تكرار نفس الرقم)</td>
+                                    <td style="padding: 0.55rem 0.75rem; font-family: monospace;">01012345678</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.015);">
+                                    <td style="padding: 0.55rem 0.75rem; font-weight: 600;">
+                                        <code>Phone 2</code> أو <code>هاتف إضافي</code>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem;">
+                                        <span style="background: rgba(100, 116, 139, 0.15); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; font-size: 0.74rem;" data-ar="اختياري" data-en="Optional">اختياري</span>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem; color: var(--text-muted);" data-ar="رقم هاتف بديل، أو هاتف ولي الأمر/المنزل" data-en="Secondary or emergency phone">رقم هاتف بديل، أو هاتف ولي الأمر/المنزل</td>
+                                    <td style="padding: 0.55rem 0.75rem; font-family: monospace;">01198765432</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border-color);">
+                                    <td style="padding: 0.55rem 0.75rem; font-weight: 600;">
+                                        <code>Call Preference</code> أو <code>تفضيل الاتصال</code>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem;">
+                                        <span style="background: rgba(100, 116, 139, 0.15); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; font-size: 0.74rem;" data-ar="اختياري" data-en="Optional">اختياري</span>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem; color: var(--text-muted);" data-ar="اكتب phone1 (للرقم الأول) أو phone2 (للرقم الثاني)" data-en="phone1 or phone2">اكتب phone1 (للرقم الأول) أو phone2 (للرقم الثاني)</td>
+                                    <td style="padding: 0.55rem 0.75rem; font-family: monospace;">phone1</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.015);">
+                                    <td style="padding: 0.55rem 0.75rem; font-weight: 600;">
+                                        <code>WhatsApp Preference</code> أو <code>تفضيل الواتساب</code>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem;">
+                                        <span style="background: rgba(100, 116, 139, 0.15); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; font-size: 0.74rem;" data-ar="اختياري" data-en="Optional">اختياري</span>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem; color: var(--text-muted);" data-ar="اكتب phone1 (للرقم الأول) أو phone2 (للرقم الثاني)" data-en="phone1 or phone2">اكتب phone1 (للرقم الأول) أو phone2 (للرقم الثاني)</td>
+                                    <td style="padding: 0.55rem 0.75rem; font-family: monospace;">phone1</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border-color);">
+                                    <td style="padding: 0.55rem 0.75rem; font-weight: 600;">
+                                        <code>Medical Alerts</code> أو <code>التحذيرات الطبية</code>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem;">
+                                        <span style="background: rgba(100, 116, 139, 0.15); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; font-size: 0.74rem;" data-ar="اختياري" data-en="Optional">اختياري</span>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem; color: var(--text-muted);" data-ar="أي حساسية دوائية أو أمراض مزمنة مفصولة بفواصل" data-en="Chronic diseases or drug allergies (comma-separated)">أي حساسية دوائية أو أمراض مزمنة مفصولة بفواصل</td>
+                                    <td style="padding: 0.55rem 0.75rem;">سكر، ضغط، حساسية بنسلين</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.015);">
+                                    <td style="padding: 0.55rem 0.75rem; font-weight: 600;">
+                                        <code>Last Visit</code> أو <code>آخر زيارة</code>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem;">
+                                        <span style="background: rgba(100, 116, 139, 0.15); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; font-size: 0.74rem;" data-ar="اختياري" data-en="Optional">اختياري</span>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem; color: var(--text-muted);" data-ar="تاريخ آخر زيارة للعيادة بصيغة YYYY-MM-DD" data-en="Date of last clinical visit (YYYY-MM-DD)">تاريخ آخر زيارة للعيادة بصيغة YYYY-MM-DD</td>
+                                    <td style="padding: 0.55rem 0.75rem; font-family: monospace;">2024-06-15</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border-color);">
+                                    <td style="padding: 0.55rem 0.75rem; font-weight: 600;">
+                                        <code>Notes</code> أو <code>الملاحظات</code>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem;">
+                                        <span style="background: rgba(100, 116, 139, 0.15); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; font-size: 0.74rem;" data-ar="اختياري" data-en="Optional">اختياري</span>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem; color: var(--text-muted);" data-ar="أي تشخيص، شكوى، خطة علاج سابقة، أو ملاحظات خاصة" data-en="Diagnosis, prior treatment, or special clinic notes">أي تشخيص، شكوى، خطة علاج سابقة، أو ملاحظات خاصة</td>
+                                    <td style="padding: 0.55rem 0.75rem;">مريض قديم - جلسة علاج جذور سابقة</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 0.55rem 0.75rem; font-weight: 600;">
+                                        <code>Created At</code> أو <code>تاريخ التسجيل</code>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem;">
+                                        <span style="background: rgba(100, 116, 139, 0.15); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; font-size: 0.74rem;" data-ar="اختياري" data-en="Optional">اختياري</span>
+                                    </td>
+                                    <td style="padding: 0.55rem 0.75rem; color: var(--text-muted);" data-ar="تاريخ فتح الملف لأول مرة (YYYY-MM-DD)" data-en="Profile creation date">تاريخ فتح الملف لأول مرة (YYYY-MM-DD)</td>
+                                    <td style="padding: 0.55rem 0.75rem; font-family: monospace;">2023-01-10</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Step 3: Saving as CSV UTF-8 -->
+                <div style="border: 1px solid rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.06); border-radius: 12px; padding: 1rem 1.15rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <span style="background: #f59e0b; color: #fff; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold;">3</span>
+                        <h4 style="margin: 0; font-size: 0.95rem; color: #b45309;" data-ar="الخطوة الثالثة: خطوة الحفظ بصيغة CSV UTF-8 (حاسمة لظهور اللغة العربية بشكل سليم)" data-en="Step 3: Save as CSV UTF-8 (Crucial for Arabic text support)">الخطوة الثالثة: خطوة الحفظ بصيغة CSV UTF-8 (حاسمة لظهور اللغة العربية بشكل سليم)</h4>
+                    </div>
+                    <ul style="margin: 0; padding-inline-start: 1.25rem; font-size: 0.84rem; color: var(--text-primary); line-height: 1.6;">
+                        <li style="margin-bottom: 0.4rem;">
+                            <strong>في برنامج Microsoft Excel:</strong> اضغط <code>File</code> (ملف) ➔ <code>Save As</code> (حفظ باسم) ➔ ثم اختر من قائمة نوع الملف (Save as type): <mark style="background: #fef3c7; padding: 2px 5px; border-radius: 4px; font-weight: bold;">CSV UTF-8 (Comma delimited) (*.csv)</mark>. (مهم جداً اختيار UTF-8 حتى لا تتحول الحروف العربية إلى رموز غير مفهومة).
+                        </li>
+                        <li>
+                            <strong>في جداول Google Sheets:</strong> اضغط <code>ملف (File)</code> ➔ <code>تنزيل (Download)</code> ➔ اختر <mark style="background: #fef3c7; padding: 2px 5px; border-radius: 4px; font-weight: bold;">قيم مفصولة بفواصل (.csv)</mark>.
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Step 4: Import Execution & Smart Deduplication -->
+                <div style="border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem 1.15rem; background: var(--bg-primary);">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <span style="background: var(--brand-primary); color: #fff; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold;">4</span>
+                        <h4 style="margin: 0; font-size: 0.95rem; color: var(--text-primary);" data-ar="الخطوة الرابعة: رفع الملف وتفادي التكرار التلقائي" data-en="Step 4: Upload File & Smart Deduplication">الخطوة الرابعة: رفع الملف وتفادي التكرار التلقائي</h4>
+                    </div>
+                    <p style="margin: 0; font-size: 0.84rem; color: var(--text-muted); line-height: 1.5;" data-ar="اضغط على زر 'رفع واستيراد ملف المرضى (CSV)'، سيقوم النظام بقراءة كافة المرضى دفعة واحدة وإضافتهم في قاعدة البيانات. وإذا كان هناك مريض مسجل مسبقاً بنفس رقم الهاتف، سيتخطاه النظام تلقائياً حتى لا يحدث أي تكرار لملفات المرضى القدامى." data-en="Click 'Upload & Import Patients (CSV)', and the system will instantly process all records. If any phone number is already registered, it is automatically skipped to prevent duplicate profiles.">اضغط على زر "رفع واستيراد ملف المرضى (CSV)"، سيقوم النظام بقراءة كافة المرضى دفعة واحدة وإضافتهم في قاعدة البيانات. وإذا كان هناك مريض مسجل مسبقاً بنفس رقم الهاتف، سيتخطاه النظام تلقائياً حتى لا يحدث أي تكرار لملفات المرضى القدامى.</p>
+                </div>
+
+            </div>
+
+            <!-- Modal Footer Actions -->
+            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color); display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end; align-items: center;">
+                <button type="button" class="btn-outline" onclick="window.downloadPatientsTemplateCsv()" style="display: inline-flex; align-items: center; gap: 6px; padding: 0.6rem 1rem; border-radius: 8px; font-weight: 600;" data-ar="📄 تحميل نموذج جاهز (Sample CSV)" data-en="📄 Download Sample CSV">
+                    <span>📄</span> <span data-ar="تحميل نموذج جاهز (Sample CSV)" data-en="Download Sample CSV">تحميل نموذج جاهز (Sample CSV)</span>
+                </button>
+                <button type="button" class="btn-primary" onclick="window.closeManualDataMigrationHelpModal(); document.getElementById('importPatientsFileInput').click();" style="display: inline-flex; align-items: center; gap: 6px; padding: 0.6rem 1.15rem; border-radius: 8px; font-weight: 600;" data-ar="📤 رفع ملف المرضى الآن" data-en="📤 Upload File Now">
+                    <span>📤</span> <span data-ar="رفع ملف المرضى الآن" data-en="Upload File Now">رفع ملف المرضى الآن</span>
+                </button>
+                <button type="button" class="btn-secondary" onclick="window.closeManualDataMigrationHelpModal()" style="padding: 0.6rem 1rem; border-radius: 8px;" data-ar="إغلاق" data-en="Close">
+                    إغلاق
+                </button>
+            </div>
+
         </div>
     </div>
 

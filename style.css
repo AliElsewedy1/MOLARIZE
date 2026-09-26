@@ -98,15 +98,58 @@ body {
 .sidebar a {
     color: var(--text-primary);
     text-decoration: none;
-    padding: 1rem;
-    border-radius: 8px;
-    display: block;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
     cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
 }
 
-.sidebar a:hover, .sidebar a.active {
+.sidebar a::before {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    width: 24px;
+    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08));
+}
+
+.sidebar a[data-target="dashboard-section"]::before { content: "📊"; }
+.sidebar a[data-target="patients-section"]::before { content: "👥"; }
+.sidebar a[data-target="schedule-section"]::before { content: "📅"; }
+.sidebar a[data-target="payments-section"]::before { content: "💳"; }
+.sidebar a[data-target="inventory-section"]::before { content: "📦"; }
+.sidebar a[data-target="settings-section"]::before { content: "⚙️"; }
+
+.sidebar a:hover {
+    background-color: rgba(56, 189, 248, 0.12);
+    color: var(--brand-primary);
+    transform: translateX(4px);
+}
+
+[dir="rtl"] .sidebar a:hover {
+    transform: translateX(-4px);
+}
+
+.sidebar a:hover::before {
+    transform: scale(1.3) rotate(8deg);
+}
+
+.sidebar a.active {
     background-color: var(--brand-primary);
-    color: #FFFFFF;
+    color: #FFFFFF !important;
+    box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);
+}
+
+.sidebar a.active::before {
+    transform: scale(1.15);
+    animation: iconPulseGleam 2.4s infinite ease-in-out;
 }
 
 .controls {
@@ -451,6 +494,46 @@ body {
     .home-header {
         flex-direction: column;
         align-items: flex-start;
+        gap: 0.75rem;
+    }
+    /* Mobile-only compact greeting */
+    .welcome-text h1#greetingMessage {
+        font-size: 1.15rem !important;
+        margin-bottom: 0.2rem !important;
+        gap: 0.35rem !important;
+        line-height: 1.25 !important;
+    }
+    #timeOfDayIcon {
+        font-size: 1.15rem !important;
+    }
+    #greetingMessageText {
+        font-size: 1.15rem !important;
+        font-weight: 700 !important;
+    }
+    .welcome-text div {
+        font-size: 0.8rem !important;
+        gap: 0.4rem !important;
+    }
+    #currentDateDisplay,
+    #currentTimeDisplay {
+        font-size: 0.8rem !important;
+    }
+
+    /* Hide Ctrl+K shortcut on mobile */
+    .search-kbd-shortcut,
+    .global-search-wrapper kbd {
+        display: none !important;
+    }
+    .global-search-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    .global-search-wrapper input.search-input {
+        padding-right: 14px !important;
+    }
+    [dir="rtl"] .global-search-wrapper input.search-input {
+        padding-left: 14px !important;
+        padding-right: 36px !important;
     }
     .quick-actions {
         width: 100%;
@@ -2767,6 +2850,498 @@ html[dir="rtl"] input:checked + .slider:before {
 }
 .quick-add-btn.special-reset:hover {
     background: rgba(239, 68, 68, 0.1);
+}
+
+/* ========================================================
+   ANIMATED ICONS & MICRO-INTERACTIONS ENGINE
+   ======================================================== */
+
+/* 1. Keyframe Definitions */
+@keyframes iconPulseGleam {
+    0%, 100% {
+        transform: scale(1.15);
+        filter: drop-shadow(0 0 0 rgba(56, 189, 248, 0));
+    }
+    50% {
+        transform: scale(1.28);
+        filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.6));
+    }
+}
+
+@keyframes animBounceDown {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(4px);
+    }
+    60% {
+        transform: translateY(-2px);
+    }
+}
+
+@keyframes animFloatUp {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-4px);
+    }
+    60% {
+        transform: translateY(2px);
+    }
+}
+
+@keyframes animRotateFull {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes animDangerWiggle {
+    0%, 100% {
+        transform: rotate(0deg) scale(1);
+    }
+    20% {
+        transform: rotate(-14deg) scale(1.15);
+    }
+    40% {
+        transform: rotate(12deg) scale(1.2);
+    }
+    60% {
+        transform: rotate(-10deg) scale(1.15);
+    }
+    80% {
+        transform: rotate(6deg) scale(1.1);
+    }
+}
+
+@keyframes animHeartbeat {
+    0%, 100% {
+        transform: scale(1);
+    }
+    14% {
+        transform: scale(1.22);
+    }
+    28% {
+        transform: scale(1);
+    }
+    42% {
+        transform: scale(1.16);
+    }
+    70% {
+        transform: scale(1);
+    }
+}
+
+@keyframes animToothSparkle {
+    0%, 100% {
+        transform: rotate(0deg) scale(1);
+        filter: drop-shadow(0 2px 4px rgba(56, 189, 248, 0.15));
+    }
+    30% {
+        transform: rotate(-8deg) scale(1.14);
+        filter: drop-shadow(0 4px 10px rgba(56, 189, 248, 0.45));
+    }
+    70% {
+        transform: rotate(6deg) scale(1.12);
+        filter: drop-shadow(0 4px 8px rgba(139, 92, 246, 0.4));
+    }
+}
+
+@keyframes animPillBob {
+    0%, 100% {
+        transform: rotate(0deg) translateY(0);
+    }
+    50% {
+        transform: rotate(15deg) translateY(-3px);
+    }
+}
+
+@keyframes animInfoPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 0 6px rgba(37, 99, 235, 0);
+    }
+}
+
+@keyframes animPhoneRing {
+    0%, 100% {
+        transform: rotate(0deg) scale(1);
+    }
+    15% {
+        transform: rotate(-16deg) scale(1.15);
+    }
+    30% {
+        transform: rotate(14deg) scale(1.15);
+    }
+    45% {
+        transform: rotate(-12deg) scale(1.1);
+    }
+    60% {
+        transform: rotate(10deg) scale(1.1);
+    }
+    75% {
+        transform: rotate(0deg) scale(1);
+    }
+}
+
+/* 2. Interactive Base for all icon containers and spans */
+button span,
+.btn-primary span,
+.btn-outline span,
+.btn-secondary span,
+.btn-action span,
+.home-card span,
+.settings-card span {
+    display: inline-block;
+    transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.24s ease;
+}
+
+/* 3. Automatic contextual icon micro-interactions on button hover */
+
+/* Download / Export Button: icon bounces down */
+#exportPatientsCsvBtn:hover span:first-child,
+#exportFullConfigJsonBtn:hover span:first-child,
+.btn-export-patients:hover span:first-child {
+    animation: animBounceDown 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+}
+
+/* Upload / Import Button: icon floats up */
+#triggerImportPatientsBtn:hover span:first-child,
+#triggerImportInventoryBtn:hover span:first-child {
+    animation: animFloatUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+}
+
+/* Refresh / Restore Button: icon spins */
+#triggerRestoreSettingsBtn:hover span:first-child,
+button[onclick*="reload"]:hover span:first-child {
+    animation: animRotateFull 0.85s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Delete / Trash Button: icon shakes with danger warning */
+.btn-danger:hover span,
+.btn-delete:hover,
+#deletePatientProfileBtn:hover span,
+#executeDeletePatientConfirmBtn:hover span:first-child {
+    animation: animDangerWiggle 0.5s ease-in-out infinite;
+}
+
+/* 4. KPI Stat Cards interactive icon elevation */
+.home-card {
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.home-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.12);
+    border-color: rgba(56, 189, 248, 0.35);
+}
+
+.home-card [style*="border-radius: 10px"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+
+.home-card:hover [style*="border-radius: 10px"] {
+    transform: scale(1.18) translateY(-3px) rotate(-6deg);
+    box-shadow: 0 8px 18px rgba(56, 189, 248, 0.28);
+}
+
+/* 5. Info Guide Badge & Buttons Breathing Glow */
+.info-guide-btn,
+button[onclick*="openManualDataMigrationHelpModal"] {
+    position: relative;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.info-guide-btn {
+    animation: animInfoPulse 3s infinite ease-in-out;
+}
+
+.info-guide-btn:hover {
+    transform: scale(1.22) rotate(10deg) !important;
+    animation: none;
+}
+
+/* 6. Tooth & Odontogram Icons */
+.tooth-unit,
+.tooth-card,
+button[onclick*="odontogram"] {
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.tooth-unit:hover {
+    transform: translateY(-2px) scale(1.05);
+}
+
+/* 7. Action Icons on Patient Table Rows (Call, WhatsApp, Edit, Delete) */
+td a[href^="tel:"] svg,
+td a[href*="wa.me"] svg {
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+td a[href^="tel:"]:hover svg {
+    animation: animPhoneRing 0.6s ease-in-out infinite;
+}
+
+td a[href*="wa.me"]:hover svg {
+    transform: scale(1.3) rotate(8deg);
+    filter: drop-shadow(0 2px 8px rgba(37, 211, 102, 0.5));
+}
+
+.btn-action.btn-edit:hover span,
+.btn-action.btn-edit:hover svg {
+    transform: rotate(35deg) scale(1.15);
+}
+
+/* 8. Reusable Animation Utility Classes */
+.anim-icon {
+    display: inline-block;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.anim-spin {
+    animation: animRotateFull 1.2s linear infinite;
+}
+.anim-spin-hover:hover {
+    animation: animRotateFull 0.8s linear infinite;
+}
+.anim-bounce {
+    animation: animBounceDown 1.5s ease-in-out infinite;
+}
+.anim-bounce-hover:hover {
+    animation: animBounceDown 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+}
+.anim-float-hover:hover {
+    animation: animFloatUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+}
+.anim-pulse {
+    animation: animInfoPulse 2.5s ease-in-out infinite;
+}
+.anim-wiggle-hover:hover {
+    animation: animDangerWiggle 0.5s ease-in-out infinite;
+}
+.anim-heartbeat {
+    animation: animHeartbeat 2.2s ease-in-out infinite;
+}
+.anim-tooth {
+    animation: animToothSparkle 3s ease-in-out infinite;
+}
+
+/* 9. Accessibility: Respect User's Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ==========================================================================
+   Patient Profile Drawer: Side Drawer (Desktop) & Bottom Sheet (Mobile)
+   ========================================================================== */
+#patientModal.patient-drawer-modal {
+    padding: 0;
+    transition: opacity 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), visibility 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* --- Desktop Side Drawer (sliding in from the side) --- */
+@media (min-width: 769px) {
+    #patientModal.patient-drawer-modal {
+        justify-content: flex-end;
+        align-items: stretch;
+    }
+
+    [dir="rtl"] #patientModal.patient-drawer-modal,
+    html[dir="rtl"] #patientModal.patient-drawer-modal {
+        justify-content: flex-start;
+    }
+
+    #patientModal.patient-drawer-modal .patient-drawer-content {
+        width: 490px;
+        max-width: 100%;
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 0;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        background-color: var(--bg-surface);
+        box-shadow: -10px 0 35px rgba(0, 0, 0, 0.25);
+        border: none;
+        border-left: 1px solid var(--border-color);
+        transform: translateX(100%);
+        transition: transform 0.38s cubic-bezier(0.25, 0.8, 0.25, 1);
+        overflow: hidden;
+    }
+
+    [dir="rtl"] #patientModal.patient-drawer-modal .patient-drawer-content,
+    html[dir="rtl"] #patientModal.patient-drawer-modal .patient-drawer-content {
+        border-left: none;
+        border-right: 1px solid var(--border-color);
+        box-shadow: 10px 0 35px rgba(0, 0, 0, 0.25);
+        transform: translateX(-100%);
+    }
+
+    #patientModal.patient-drawer-modal.show .patient-drawer-content {
+        transform: translateX(0) !important;
+    }
+}
+
+/* --- Mobile Bottom Sheet (sliding up from the bottom) --- */
+@media (max-width: 768px) {
+    #patientModal.patient-drawer-modal {
+        justify-content: center;
+        align-items: flex-end;
+    }
+
+    #patientModal.patient-drawer-modal .patient-drawer-content {
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        max-height: 90vh;
+        border-radius: 24px 24px 0 0;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        background-color: var(--bg-surface);
+        box-shadow: 0 -10px 35px rgba(0, 0, 0, 0.35);
+        border: none;
+        border-top: 1px solid var(--border-color);
+        transform: translateY(100%);
+        transition: transform 0.38s cubic-bezier(0.25, 0.8, 0.25, 1);
+        overflow: hidden;
+        position: relative;
+    }
+
+    #patientModal.patient-drawer-modal.show .patient-drawer-content {
+        transform: translateY(0) !important;
+    }
+
+    #patientModal.patient-drawer-modal .drawer-header {
+        padding-top: 1.85rem !important;
+        position: relative;
+    }
+
+    #patientModal.patient-drawer-modal .patient-drawer-content::before {
+        content: '';
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 44px;
+        height: 5px;
+        background-color: var(--border-color);
+        border-radius: 10px;
+        z-index: 20;
+    }
+}
+
+/* --- Drawer Layout & Inner Components --- */
+#patientModal .drawer-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-surface);
+    flex-shrink: 0;
+    z-index: 10;
+}
+
+#patientModal .drawer-close-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    line-height: 1;
+    padding: 0.25rem 0.5rem;
+    border-radius: 8px;
+    transition: color 0.2s, background-color 0.2s;
+}
+
+#patientModal .drawer-close-btn:hover {
+    color: var(--status-error);
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+#patientModal .drawer-body {
+    padding: 1.5rem;
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+#patientModal .drawer-body .input-group {
+    margin-bottom: 1.15rem;
+}
+
+#patientModal .drawer-body .input-group label {
+    display: block;
+    margin-bottom: 0.45rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+#patientModal .drawer-body .input-group input,
+#patientModal .drawer-body .input-group select,
+#patientModal .drawer-body .input-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#patientModal .drawer-body .input-group input:focus,
+#patientModal .drawer-body .input-group select:focus,
+#patientModal .drawer-body .input-group textarea:focus {
+    border-color: var(--brand-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+#patientModal .drawer-footer {
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    align-items: center;
+    flex-shrink: 0;
+    z-index: 10;
+}
+
+/* =========================================
+   Live Clock & Time Widget Styles
+========================================= */
+#currentTimeDisplay {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    cursor: default;
+    user-select: none;
 }
 
 
