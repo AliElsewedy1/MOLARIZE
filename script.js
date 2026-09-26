@@ -403,28 +403,7 @@ document.querySelector('[data-target="payments-section"]')?.addEventListener('cl
 
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Generate teeth
-    const upperTeethContainer = document.getElementById('upper-teeth');
-    const lowerTeethContainer = document.getElementById('lower-teeth');
-
-    if (upperTeethContainer && lowerTeethContainer) {
-        let upperTeethHTML = '';
-        let lowerTeethHTML = '';
-
-        // FDI Notation
-        // Upper Right: 18 to 11
-        for(let i=18; i>=11; i--) upperTeethHTML += `<div class="tooth-box" data-tooth="${i}">${i}</div>`;
-        // Upper Left: 21 to 28
-        for(let i=21; i<=28; i++) upperTeethHTML += `<div class="tooth-box" data-tooth="${i}">${i}</div>`;
-
-        // Lower Right: 48 to 41
-        for(let i=48; i>=41; i--) lowerTeethHTML += `<div class="tooth-box" data-tooth="${i}">${i}</div>`;
-        // Lower Left: 31 to 38
-        for(let i=31; i<=38; i++) lowerTeethHTML += `<div class="tooth-box" data-tooth="${i}">${i}</div>`;
-
-        upperTeethContainer.innerHTML = upperTeethHTML;
-        lowerTeethContainer.innerHTML = lowerTeethHTML;
-    }
+    // Odontogram Collapse Logic
 
 
     // Odontogram Collapse Logic

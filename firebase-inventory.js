@@ -200,3 +200,135 @@ if (exportInventoryCsvBtn) {
         URL.revokeObjectURL(url);
     });
 }
+
+// --- Download Inventory CSV Template ---
+window.downloadInventoryTemplateCsv = function() {
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+    const sampleHeaders = ['Item Name', 'Category', 'Current Stock', 'Low Stock Alert Limit'];
+    const sampleRows = [
+        [isAr ? 'حشوة كمبوزيت A2' : 'Composite Resin A2', isAr ? 'مواد الحشو' : 'Restorative Materials', '15', '5'],
+        [isAr ? 'بنج موضعي ليدوكايين' : 'Lidocaine Anesthetic 2%', isAr ? 'التخدير' : 'Anesthesia', '40', '10'],
+        [isAr ? 'قفازات لاتكس طبية' : 'Latex Examination Gloves', isAr ? 'مستهلكات عامة' : 'General Consumables', '8', '15']
+    ];
+
+    const csvContent = '\uFEFF' + [
+        sampleHeaders.join(','),
+        ...sampleRows.map(r => r.map(f => `"${(f || '').replace(/"/g, '""')}"`).join(','))
+    ].join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Molarize_Inventory_Template.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    if (window.showToast) {
+        window.showToast(isAr ? 'تم تحميل نموذج ملف المخزون CSV بنجاح' : 'Inventory CSV template downloaded successfully', 'info');
+    }
+};
+
+// --- Import Inventory CSV File Handler ---
+window.handleInventoryCsvFileSelected = async function(event) {
+    const file = event?.target?.files?.[0];
+    if (!file) return;
+
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+    const triggerBtnText = document.getElementById('triggerImportInventoryBtnText');
+    const originalBtnText = triggerBtnText ? triggerBtnText.innerText : '';
+
+    if (triggerBtnText) {
+        triggerBtnText.innerText = isAr ? 'جاري استيراد المخزون...' : 'Importing inventory...';
+    }
+
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            if (window.showToast) window.showToast(isAr ? 'يجب تسجيل الدخول أولاً' : 'Please sign in first', 'error');
+            return;
+        }
+
+        const text = await file.text();
+        // Parse rows taking quotes into account
+        const rows = [];
+        const rawLines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+        for (const line of rawLines) {
+            if (!line.trim()) continue;
+            const cells = line.split(',').map(c => c.trim().replace(/^"(.*)"$/, '$1').replace(/""/g, '"'));
+            rows.push(cells);
+        }
+
+        if (rows.length < 2) {
+            if (window.showToast) window.showToast(isAr ? 'الملف فارغ أو لا يحتوي على عناصر' : 'The CSV file is empty', 'warning');
+            return;
+        }
+
+        const headerRow = rows[0].map(h => h.toLowerCase().trim());
+        const findColIndex = (keywords) => headerRow.findIndex(h => keywords.some(k => h.includes(k.toLowerCase())));
+
+        const nameIdx = findColIndex(['item name', 'اسم الصنف', 'اسم المادة', 'المادة', 'name', 'item']);
+        const catIdx = findColIndex(['category', 'تصنيف', 'النوع', 'القسم', 'cat']);
+        const stockIdx = findColIndex(['stock', 'كمية', 'الكمية', 'current', 'count', 'qty']);
+        const limitIdx = findColIndex(['alert', 'حد', 'تنبيه', 'limit', 'min']);
+
+        if (nameIdx === -1) {
+            if (window.showToast) window.showToast(isAr ? 'خطأ: لم يتم العثور على عمود اسم الصنف في الملف' : 'Error: "Item Name" column not found', 'error');
+            return;
+        }
+
+        const inventoryRef = collection(db, 'users', user.uid, 'inventory');
+        let importedCount = 0;
+
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            const rawName = nameIdx !== -1 && row[nameIdx] ? row[nameIdx].trim() : '';
+            if (!rawName) continue;
+
+            const rawCat = catIdx !== -1 && row[catIdx] ? row[catIdx].trim() : 'عام';
+            const rawStock = stockIdx !== -1 && row[stockIdx] ? (parseInt(row[stockIdx]) || 0) : 0;
+            const rawLimit = limitIdx !== -1 && row[limitIdx] ? (parseInt(row[limitIdx]) || 5) : 5;
+
+            // Check if item already exists in local array
+            const existing = currentInventory.find(it => it.itemName.toLowerCase() === rawName.toLowerCase());
+            if (existing) {
+                const itemDocRef = doc(db, 'users', user.uid, 'inventory', existing.id);
+                await updateDoc(itemDocRef, {
+                    category: rawCat,
+                    stock: rawStock,
+                    alertLimit: rawLimit,
+                    updatedAt: new Date().toISOString()
+                });
+            } else {
+                await addDoc(inventoryRef, {
+                    itemName: rawName,
+                    category: rawCat,
+                    stock: rawStock,
+                    alertLimit: rawLimit,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                });
+            }
+            importedCount++;
+        }
+
+        if (window.showToast) {
+            window.showToast(isAr ? `تم استيراد وتحديث ${importedCount} صنف في المخزون بنجاح!` : `Imported ${importedCount} inventory items successfully!`, 'success');
+        }
+    } catch (err) {
+        console.error("Error importing inventory CSV:", err);
+        if (window.showToast) {
+            window.showToast(isAr ? `حدث خطأ أثناء استيراد المخزون: ${err.message}` : `Error importing inventory: ${err.message}`, 'error');
+        }
+    } finally {
+        if (triggerBtnText && originalBtnText) {
+            triggerBtnText.innerText = originalBtnText;
+        }
+        if (event?.target) {
+            event.target.value = '';
+        }
+    }
+};
+

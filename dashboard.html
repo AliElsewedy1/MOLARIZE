@@ -291,7 +291,6 @@
             <div class="table-header" style="margin-top:0;">
                 <h1 data-ar="إدارة المرضى" data-en="Patient Management">Patient Management</h1>
                 <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                    <button class="btn-outline" id="exportPatientsCsvBtn" style="display: inline-flex; align-items: center; gap: 5px;" data-ar="📥 تصدير Excel/CSV" data-en="📥 Export CSV">📥 Export CSV</button>
                     <button class="btn-primary" id="openModalBtn" data-ar="+ إضافة مريض جديد" data-en="+ Add New Patient">+ Add New Patient</button>
                 </div>
             </div>
@@ -650,44 +649,167 @@
                 </div>
             </div>
 
-            <!-- Collapsible Odontogram -->
+            <!-- Collapsible Interactive Dental Odontogram -->
             <div class="collapsible-section" style="margin-bottom: 1.5rem;">
                 <button class="collapsible-btn" id="toggleOdontogramBtn" style="width: 100%; text-align: left; background: var(--bg-surface); border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px; font-weight: bold; color: var(--text-primary); cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
-                    <span data-ar="🦷 مخطط الأسنان (Odontogram)" data-en="🦷 Odontogram">🦷 Odontogram</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 1.25rem;">🦷</span>
+                        <span data-ar="مخطط الأسنان السريري التفاعلي (Interactive Dental Odontogram)" data-en="Interactive Dental Odontogram">مخطط الأسنان السريري التفاعلي (Interactive Dental Odontogram)</span>
+                    </div>
                     <span id="odontogramIcon">▼</span>
                 </button>
-                <div class="collapsible-content" id="odontogramContent" style="display: none; padding: 1rem; background: var(--bg-surface); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 8px 8px;">
-                    <div id="odontogramSelectedToothInfo" style="text-align: center; font-size: 0.9rem; color: var(--brand-primary); font-weight: 600; min-height: 24px; margin-bottom: 0.75rem;">
-                        <span data-ar="اضغط على أي سن لتحديد حالته" data-en="Click on any tooth to select and mark condition">Click on any tooth to select and mark condition</span>
-                    </div>
-                    <div class="odontogram-container" style="display: flex; justify-content: center; margin-top: 0.5rem;">
-                        <div style="display: flex; gap: 0.2rem; flex-wrap: wrap; justify-content: center;" id="upper-teeth"></div>
-                    </div>
-                    <div class="odontogram-container" style="display: flex; justify-content: center; margin-top: 1rem; margin-bottom: 2rem;">
-                        <div style="display: flex; gap: 0.2rem; flex-wrap: wrap; justify-content: center;" id="lower-teeth"></div>
+                <div class="collapsible-content" id="odontogramContent" style="display: none; padding: 1.25rem; background: var(--bg-surface); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 8px 8px;">
+                    
+                    <!-- Odontogram Top Toolbar -->
+                    <div class="odontogram-toolbar">
+                        <!-- Dentition Mode (Adult / Pediatric) -->
+                        <div class="odontogram-btn-group">
+                            <button type="button" class="odontogram-toggle-btn active" id="dentitionAdultBtn" onclick="window.setOdontogramDentition('adult')" data-ar="👨‍🦱 دائم (32)" data-en="👨‍🦱 Adult (32)">👨‍🦱 دائم (32)</button>
+                            <button type="button" class="odontogram-toggle-btn" id="dentitionPediatricBtn" onclick="window.setOdontogramDentition('pediatric')" data-ar="🧒 لبني (20)" data-en="🧒 Pediatric (20)">🧒 لبني (20)</button>
+                        </div>
+
+                        <!-- Arch View Mode (All / Upper / Lower) -->
+                        <div class="odontogram-btn-group" id="odontogramArchViewGroup">
+                            <button type="button" class="odontogram-toggle-btn active" id="archViewAllBtn" onclick="window.setOdontogramArchView('all')" data-ar="🦷 الفكين" data-en="🦷 Both">🦷 الفكين</button>
+                            <button type="button" class="odontogram-toggle-btn" id="archViewUpperBtn" onclick="window.setOdontogramArchView('upper')" data-ar="⬆️ علوي" data-en="⬆️ Upper">⬆️ علوي</button>
+                            <button type="button" class="odontogram-toggle-btn" id="archViewLowerBtn" onclick="window.setOdontogramArchView('lower')" data-ar="⬇️ سفلي" data-en="⬇️ Lower">⬇️ سفلي</button>
+                        </div>
+
+                        <!-- Notation Mode (FDI / Universal) -->
+                        <div class="odontogram-btn-group">
+                            <button type="button" class="odontogram-toggle-btn active" id="notationFdiBtn" onclick="window.setOdontogramNotation('fdi')" data-ar="FDI (11-48)" data-en="FDI (11-48)">FDI (11-48)</button>
+                            <button type="button" class="odontogram-toggle-btn" id="notationUniversalBtn" onclick="window.setOdontogramNotation('universal')" data-ar="Universal (1-32)" data-en="Universal (1-32)">Universal (1-32)</button>
+                        </div>
+
+                        <!-- Zoom Controls -->
+                        <div class="odontogram-btn-group odontogram-zoom-group">
+                            <button type="button" class="odontogram-toggle-btn" onclick="window.zoomOdontogram(0.15)" title="تكبير / Zoom In" style="padding: 0.35rem 0.55rem;">🔍+</button>
+                            <button type="button" class="odontogram-toggle-btn" onclick="window.zoomOdontogram(-0.15)" title="تصغير / Zoom Out" style="padding: 0.35rem 0.55rem;">🔍-</button>
+                            <button type="button" class="odontogram-toggle-btn" onclick="window.resetOdontogramZoom()" title="إعادة الضبط / Reset Zoom" style="padding: 0.35rem 0.55rem;">⟲</button>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+                            <button type="button" class="btn-outline" onclick="window.resetOdontogramChart()" style="padding: 0.35rem 0.7rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px;" data-ar="🔄 تفريغ" data-en="🔄 Reset">
+                                <span>🔄</span> <span data-ar="تفريغ" data-en="Reset">Reset</span>
+                            </button>
+                            <button type="button" class="btn-primary" id="saveOdontogramBtn" style="padding: 0.35rem 0.8rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px;" data-ar="💾 حفظ" data-en="💾 Save">
+                                <span>💾</span> <span data-ar="حفظ" data-en="Save">Save</span>
+                            </button>
+                        </div>
                     </div>
 
-                    <div style="display: flex; gap: 1rem; justify-content: center; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <input type="radio" name="toothCondition" id="cond-normal" value="normal" checked>
-                            <label for="cond-normal" data-ar="سليم" data-en="Normal">Normal</label>
+                    <!-- Clinical Conditions Palette -->
+                    <div style="margin-bottom: 0.75rem;">
+                        <div style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.4rem; text-align: start;" data-ar="اختر الإجراء أو الحالة لتلوين أسطح الأسنان:" data-en="Select procedure / condition to apply on tooth surfaces:">
+                            اختر الإجراء أو الحالة لتلوين أسطح الأسنان:
                         </div>
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <input type="radio" name="toothCondition" id="cond-decay" value="decay">
-                            <label for="cond-decay" data-ar="تسوس" data-en="Decay" style="color: #ef4444;">Decay</label>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <input type="radio" name="toothCondition" id="cond-filled" value="filled">
-                            <label for="cond-filled" data-ar="حشو" data-en="Filled" style="color: #3b82f6;">Filled</label>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <input type="radio" name="toothCondition" id="cond-missing" value="missing">
-                            <label for="cond-missing" data-ar="مخلوع" data-en="Missing" style="color: #6b7280;">Missing</label>
+                        <div class="odontogram-palette" id="odontogramPalette">
+                            <button type="button" class="palette-tool-btn active" data-condition="normal">
+                                <span class="palette-color-dot" style="background: #ffffff; border: 1px solid #cbd5e1;"></span>
+                                <span data-ar="سليم (Normal)" data-en="Normal">Normal</span>
+                            </button>
+                            <button type="button" class="palette-tool-btn" data-condition="decay">
+                                <span class="palette-color-dot" style="background: #ef4444;"></span>
+                                <span data-ar="تسوس (Decay)" data-en="Decay">Decay</span>
+                            </button>
+                            <button type="button" class="palette-tool-btn" data-condition="composite">
+                                <span class="palette-color-dot" style="background: #3b82f6;"></span>
+                                <span data-ar="حشو تجميلي (Composite)" data-en="Composite">Composite</span>
+                            </button>
+                            <button type="button" class="palette-tool-btn" data-condition="amalgam">
+                                <span class="palette-color-dot" style="background: #64748b;"></span>
+                                <span data-ar="حشو أملجم (Amalgam)" data-en="Amalgam">Amalgam</span>
+                            </button>
+                            <button type="button" class="palette-tool-btn" data-condition="rct">
+                                <span class="palette-color-dot" style="background: #8b5cf6;"></span>
+                                <span data-ar="علاج جذور (RCT)" data-en="Root Canal (RCT)">Root Canal (RCT)</span>
+                            </button>
+                            <button type="button" class="palette-tool-btn" data-condition="crown">
+                                <span class="palette-color-dot" style="background: #f59e0b;"></span>
+                                <span data-ar="طربوش / تاج (Crown)" data-en="Crown / Cap">Crown / Cap</span>
+                            </button>
+                            <button type="button" class="palette-tool-btn" data-condition="missing">
+                                <span class="palette-color-dot" style="background: #334155;"></span>
+                                <span data-ar="مخلوع / مفقود (Missing)" data-en="Missing">Missing</span>
+                            </button>
+                            <button type="button" class="palette-tool-btn" data-condition="implant">
+                                <span class="palette-color-dot" style="background: #10b981;"></span>
+                                <span data-ar="زراعة سنية (Implant)" data-en="Implant">Implant</span>
+                            </button>
+                            <button type="button" class="palette-tool-btn" data-condition="veneer">
+                                <span class="palette-color-dot" style="background: #06b6d4;"></span>
+                                <span data-ar="فينير (Veneer)" data-en="Veneer">Veneer</span>
+                            </button>
+                            <button type="button" class="palette-tool-btn" data-condition="bridge">
+                                <span class="palette-color-dot" style="background: #ea580c;"></span>
+                                <span data-ar="كوبري (Bridge)" data-en="Bridge">Bridge</span>
+                            </button>
                         </div>
                     </div>
 
-                    <div style="text-align: center;">
-                        <button class="btn-primary" id="saveOdontogramBtn" data-ar="حفظ المخطط" data-en="Save Odontogram">Save Odontogram</button>
+                    <!-- Interactive Odontogram Arch Canvas -->
+                    <div class="odontogram-arch-container" id="odontogramArchContainer">
+                        <!-- Upper Maxillary Arch Section -->
+                        <div class="odontogram-arch-section" id="upperArchSection">
+                            <div class="odontogram-arch-label" data-ar="الفك العلوي (Maxillary Arch)" data-en="Maxillary Arch (Upper)">
+                                Maxillary Arch (Upper)
+                            </div>
+                            <div class="odontogram-arch-row" id="upperArchRow">
+                                <div class="odontogram-quadrant" id="upperRightQuadrant"></div>
+                                <div class="odontogram-quadrant-divider"></div>
+                                <div class="odontogram-quadrant" id="upperLeftQuadrant"></div>
+                            </div>
+                        </div>
+
+                        <!-- Midline / Arch Horizon Divider -->
+                        <div class="odontogram-arch-divider" id="archMidlineDivider">
+                            <div class="odontogram-arch-divider-badge" data-ar="يمين المريض (R) — الوسط (Midline) — يسار المريض (L)" data-en="Right (R) — Midline — Left (L)">
+                                Right (R) — Midline — Left (L)
+                            </div>
+                        </div>
+
+                        <!-- Lower Mandibular Arch Section -->
+                        <div class="odontogram-arch-section" id="lowerArchSection">
+                            <div class="odontogram-arch-row" id="lowerArchRow">
+                                <div class="odontogram-quadrant" id="lowerRightQuadrant"></div>
+                                <div class="odontogram-quadrant-divider"></div>
+                                <div class="odontogram-quadrant" id="lowerLeftQuadrant"></div>
+                            </div>
+                            <div class="odontogram-arch-label" data-ar="الفك السفلي (Mandibular Arch)" data-en="Mandibular Arch (Lower)">
+                                Mandibular Arch (Lower)
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selected Tooth Live Inspector & Quick Clinical Actions Drawer -->
+                    <div class="odontogram-inspector-card" id="odontogramInspector">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 260px;">
+                            <div id="inspectorToothIcon" style="width: 42px; height: 42px; border-radius: 8px; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--brand-primary); display: flex; align-items: center; justify-content: center; font-weight: 800; font-family: monospace; color: var(--brand-primary); font-size: 1.1rem;">
+                                --
+                            </div>
+                            <div>
+                                <h4 id="inspectorToothTitle" style="margin: 0; font-size: 0.95rem; color: var(--text-primary);" data-ar="اضغط على أي سن لعرض وتعديل تفاصيله" data-en="Click on any tooth to inspect & manage">اضغط على أي سن لعرض وتعديل تفاصيله</h4>
+                                <div id="inspectorToothSurfaces" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
+                                    Surfaces: Mesial, Occlusal, Distal, Buccal, Lingual
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Whole Tooth Quick Actions -->
+                        <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center;">
+                            <button type="button" class="btn-outline" style="font-size: 0.78rem; padding: 0.3rem 0.6rem;" onclick="window.applyWholeToothCondition('crown')" title="وضع طربوش / تاج كامل" data-ar="👑 طربوش كامل" data-en="👑 Crown">👑 Crown</button>
+                            <button type="button" class="btn-outline" style="font-size: 0.78rem; padding: 0.3rem 0.6rem;" onclick="window.applyWholeToothCondition('rct')" title="تسجيل علاج جذور" data-ar="⚡ علاج جذور" data-en="⚡ RCT">⚡ RCT</button>
+                            <button type="button" class="btn-outline" style="font-size: 0.78rem; padding: 0.3rem 0.6rem;" onclick="window.applyWholeToothCondition('missing')" title="تحديد السن كمخلوع / مفقود" data-ar="❌ مخلوع" data-en="❌ Missing">❌ Missing</button>
+                            <button type="button" class="btn-outline" style="font-size: 0.78rem; padding: 0.3rem 0.6rem;" onclick="window.applyWholeToothCondition('implant')" title="تسجيل زراعة سنية" data-ar="🔩 زراعة" data-en="🔩 Implant">🔩 Implant</button>
+                            <button type="button" class="btn-outline" style="font-size: 0.78rem; padding: 0.3rem 0.6rem; color: var(--status-error);" onclick="window.resetCurrentTooth()" title="تصفير أسطح السن" data-ar="🧹 تصفير السن" data-en="🧹 Clear">🧹 Clear</button>
+                            <button type="button" class="btn-primary" style="font-size: 0.78rem; padding: 0.3rem 0.65rem;" onclick="window.createTreatmentFromSelectedTooth()" title="تحويل لخطة العلاج" data-ar="+ خطة علاج" data-en="+ Treatment Plan">+ Treatment</button>
+                        </div>
+                    </div>
+
+                    <!-- Clinical Statistical Summary Badges -->
+                    <div class="odontogram-summary-grid" id="odontogramSummary">
+                        <!-- Rendered by JS -->
                     </div>
                 </div>
             </div>
@@ -745,13 +867,7 @@
             <div class="settings-header-banner">
                 <div>
                     <h1 data-ar="مركز إعدادات وإدارة العيادة" data-en="Clinic Settings & Operations Hub" style="margin: 0; font-size: 1.6rem; font-weight: 700;">Clinic Settings & Operations Hub</h1>
-                    <p class="text-muted" data-ar="التحكم الشامل في أسعار الخدمات، قوالب الروشتات، الضرائب والعملة، وهوية العيادة." data-en="Enterprise control over service pricing, medication templates, currency, tax, and clinic branding." style="margin: 0.35rem 0 0 0; font-size: 0.88rem;">Enterprise control over service pricing, medication templates, currency, tax, and clinic branding.</p>
-                </div>
-                <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
-                    <!-- Export Full Settings JSON -->
-                    <button type="button" class="btn-outline" id="exportFullConfigJsonBtn" style="font-size: 0.82rem; padding: 0.4rem 0.8rem; display: inline-flex; align-items: center; gap: 5px;" data-ar="📥 نسخ احتياطي للإعدادات" data-en="📥 Export Settings JSON">
-                        📥 Export Settings JSON
-                    </button>
+                    <p class="text-muted" data-ar="التحكم الشامل في أسعار الخدمات، قوالب الروشتات، الضرائب والعملة، وهوية العيادة، والنسخ الاحتياطي." data-en="Enterprise control over service pricing, medication templates, currency, tax, clinic branding, and backups." style="margin: 0.35rem 0 0 0; font-size: 0.88rem;">Enterprise control over service pricing, medication templates, currency, tax, clinic branding, and backups.</p>
                 </div>
             </div>
 
@@ -771,6 +887,9 @@
                 </button>
                 <button type="button" class="settings-nav-tab" data-tab="tab-settings-audit" data-ar="📜 سجل التتبع والعمليات" data-en="📜 Audit Trail">
                     📜 Audit Trail
+                </button>
+                <button type="button" class="settings-nav-tab" data-tab="tab-settings-exports" data-ar="📥 تصدير البيانات والنسخ الاحتياطي" data-en="📥 Data Exports & Backups">
+                    📥 Data Exports & Backups
                 </button>
             </div>
 
@@ -1204,6 +1323,147 @@
                     </div>
                 </div>
             </div>
+
+            <!-- TAB 6: Data Exports & Backups (مركز تصدير واستيراد البيانات والنسخ الاحتياطي) -->
+            <div id="tab-settings-exports" class="settings-tab-pane" style="display: none;">
+                <!-- Section 1: Data Exports -->
+                <div class="settings-card" style="margin-bottom: 1.5rem;">
+                    <div class="settings-card-header">
+                        <div>
+                            <h3 data-ar="📥 تصدير وتنزيل البيانات والنسخ الاحتياطي" data-en="📥 Clinic Data Exports & Backups">📥 Clinic Data Exports & Backups</h3>
+                            <p class="text-muted" style="margin: 3px 0 0 0; font-size: 0.82rem;" data-ar="تصدير سجلات المرضى، المعاملات المالية، والمخزون الطبي إلى ملفات Excel/CSV وحفظ نسخ احتياطية شاملة." data-en="Export patient records, financial transactions, medical inventory lists, and full backup files to CSV/JSON.">Export patient records, financial transactions, medical inventory lists, and full backup files to CSV/JSON.</p>
+                        </div>
+                    </div>
+
+                    <div class="settings-grid-2" style="margin-top: 1rem; gap: 1rem;">
+                        <!-- 1. Patient Directory Export -->
+                        <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <span style="font-size: 1.3rem;">👥</span>
+                                    <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary);" data-ar="تصدير سجل المرضى (Patients CSV/Excel)" data-en="Export Patients Directory (CSV)">Export Patients Directory (CSV)</h4>
+                                </div>
+                                <p style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.45; margin: 0;" data-ar="تصدير قائمة كافة المرضى المسجلين بالعيادة مع أرقام الملفات، الهواتف، والتحذيرات الطبية وتواريخ الزيارات إلى ملف Excel/CSV متوافق مع كافة البرامج." data-en="Export complete patient registry with display IDs, contact numbers, medical alerts, and visit dates to CSV/Excel format.">Export complete patient registry with display IDs, contact numbers, medical alerts, and visit dates to CSV/Excel format.</p>
+                            </div>
+                            <button type="button" class="btn-primary btn-export-patients" id="exportPatientsCsvBtn" style="width: 100%; justify-content: center; padding: 0.6rem 1rem; display: inline-flex; align-items: center; gap: 6px;" onclick="window.exportPatientsToCsv()" data-ar="📥 تصدير قائمة المرضى (CSV/Excel)" data-en="📥 Export Patients (CSV)">
+                                <span>📥</span> <span data-ar="تصدير قائمة المرضى (CSV/Excel)" data-en="Export Patients (CSV)">Export Patients (CSV)</span>
+                            </button>
+                        </div>
+
+                        <!-- 2. Financial Ledger Export -->
+                        <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <span style="font-size: 1.3rem;">💳</span>
+                                    <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary);" data-ar="تصدير السجل المالي والدفعات (Ledger CSV)" data-en="Export Financial Ledger (CSV)">Export Financial Ledger (CSV)</h4>
+                                </div>
+                                <p style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.45; margin: 0;" data-ar="تصدير كشف حساب كافة سندات القبض والدفعات المسجلة وطرق التحصيل (نقدي، فيزا، إنستاباي) إلى جدول بيانات مفصل." data-en="Export all payment receipts, revenue ledger entries, and payment channels (Cash, POS, InstaPay) to CSV.">Export all payment receipts, revenue ledger entries, and payment channels (Cash, POS, InstaPay) to CSV.</p>
+                            </div>
+                            <button type="button" class="btn-outline" style="width: 100%; justify-content: center; padding: 0.6rem 1rem; display: inline-flex; align-items: center; gap: 6px;" onclick="const btn = document.getElementById('exportLedgerCsvBtn'); if(btn) btn.click();" data-ar="📥 تصدير المعاملات المالية (CSV)" data-en="📥 Export Financial Ledger">
+                                <span>📥</span> <span data-ar="تصدير المعاملات المالية (CSV)" data-en="Export Financial Ledger">Export Financial Ledger</span>
+                            </button>
+                        </div>
+
+                        <!-- 3. Medical Inventory Export -->
+                        <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <span style="font-size: 1.3rem;">📦</span>
+                                    <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary);" data-ar="تصدير جرد المخزون الطبي (Inventory CSV)" data-en="Export Inventory List (CSV)">Export Inventory List (CSV)</h4>
+                                </div>
+                                <p style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.45; margin: 0;" data-ar="تصدير قائمة الأدوات والمواد الطبية المسجلة مع الكميات الحالية، وحدات القياس، والحد الأدنى للنواقص." data-en="Export dental materials, consumables, current stock levels, and replenishment thresholds to CSV.">Export dental materials, consumables, current stock levels, and replenishment thresholds to CSV.</p>
+                            </div>
+                            <button type="button" class="btn-outline" style="width: 100%; justify-content: center; padding: 0.6rem 1rem; display: inline-flex; align-items: center; gap: 6px;" onclick="const btn = document.getElementById('exportInventoryCsvBtn'); if(btn) btn.click();" data-ar="📥 تصدير جرد المخزون (CSV)" data-en="📥 Export Inventory">
+                                <span>📥</span> <span data-ar="تصدير جرد المخزون (CSV)" data-en="Export Inventory">Export Inventory</span>
+                            </button>
+                        </div>
+
+                        <!-- 4. Full Configuration JSON Backup -->
+                        <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <span style="font-size: 1.3rem;">⚙️</span>
+                                    <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary);" data-ar="نسخ احتياطي شامل لقاعدة الإعدادات (JSON)" data-en="Export Settings & Templates Backup">Export Settings & Templates Backup</h4>
+                                </div>
+                                <p style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.45; margin: 0;" data-ar="حفظ نسخة احتياطية من كافة أسعار الخدمات وقوالب الأدوية والروشتات وإعدادات الضرائب وهوية العيادة وسجل التدقيق." data-en="Download a full structured JSON backup containing all service prices, medication templates, tax rules, and clinic profile.">Download a full structured JSON backup containing all service prices, medication templates, tax rules, and clinic profile.</p>
+                            </div>
+                            <button type="button" class="btn-outline" id="exportFullConfigJsonBtn" style="width: 100%; justify-content: center; padding: 0.6rem 1rem; display: inline-flex; align-items: center; gap: 6px;" onclick="if(window.exportClinicConfigToJson) window.exportClinicConfigToJson();" data-ar="📥 تنزيل ملف النسخ الاحتياطي (JSON)" data-en="📥 Download JSON Backup">
+                                <span>📥</span> <span data-ar="تنزيل ملف النسخ الاحتياطي (JSON)" data-en="Download JSON Backup">Download JSON Backup</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Data Imports & Restore Center -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <div>
+                            <h3 data-ar="📤 رفع واستيراد البيانات واستعادة النسخ الاحتياطية" data-en="📤 Data Imports & Backup Restore Center">📤 Data Imports & Backup Restore Center</h3>
+                            <p class="text-muted" style="margin: 3px 0 0 0; font-size: 0.82rem;" data-ar="رفع ملفات CSV واستيراد قوائم المرضى والمخزون الطبي أو استعادة النسخ الاحتياطية للإعدادات مباشرة إلى قاعدة البيانات." data-en="Upload CSV files to import patient lists and inventory, or restore clinic settings from JSON backups directly into the database.">Upload CSV files to import patient lists and inventory, or restore clinic settings from JSON backups directly into the database.</p>
+                        </div>
+                    </div>
+
+                    <!-- Hidden File Inputs -->
+                    <input type="file" id="importPatientsFileInput" accept=".csv, .txt" style="display: none;" onchange="window.handlePatientsCsvFileSelected(event)">
+                    <input type="file" id="importInventoryFileInput" accept=".csv, .txt" style="display: none;" onchange="window.handleInventoryCsvFileSelected(event)">
+                    <input type="file" id="restoreSettingsFileInput" accept=".json" style="display: none;" onchange="window.handleSettingsJsonFileSelected(event)">
+
+                    <div class="settings-grid-2" style="margin-top: 1rem; gap: 1rem;">
+                        <!-- 1. Import Patients CSV -->
+                        <div style="background: var(--bg-surface); border: 1.5px dashed var(--border-color); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem; transition: border-color 0.2s;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <span style="font-size: 1.3rem;">👥</span>
+                                    <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary);" data-ar="استيراد قائمة المرضى (Upload Patients CSV)" data-en="Import Patients (CSV/Excel)">Import Patients (CSV/Excel)</h4>
+                                </div>
+                                <p style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.45; margin: 0 0 0.75rem 0;" data-ar="رفع ملف CSV أو Excel يحتوي على بيانات المرضى (الاسم، الهاتف، العمر، النوع، الملاحظات). يقوم النظام بالتحقق التلقائي ومنع تكرار المرضى المسجلين." data-en="Upload a CSV file containing patient records (Name, Phone, Age, Gender, Notes). The system automatically deduplicates existing patients.">Upload a CSV file containing patient records (Name, Phone, Age, Gender, Notes). The system automatically deduplicates existing patients.</p>
+                                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                                    <button type="button" class="btn-outline" style="font-size: 0.78rem; padding: 0.3rem 0.65rem;" onclick="window.downloadPatientsTemplateCsv()" data-ar="📄 تحميل نموذج CSV للمرضى" data-en="📄 Download Sample CSV">
+                                        📄 Download Sample CSV
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-primary" id="triggerImportPatientsBtn" style="width: 100%; justify-content: center; padding: 0.65rem 1rem; display: inline-flex; align-items: center; gap: 6px;" onclick="document.getElementById('importPatientsFileInput').click();" data-ar="📤 رفع واستيراد ملف المرضى (CSV)" data-en="📤 Upload & Import Patients (CSV)">
+                                <span>📤</span> <span id="triggerImportPatientsBtnText" data-ar="رفع واستيراد ملف المرضى (CSV)" data-en="Upload & Import Patients (CSV)">Upload & Import Patients (CSV)</span>
+                            </button>
+                        </div>
+
+                        <!-- 2. Import Inventory CSV -->
+                        <div style="background: var(--bg-surface); border: 1.5px dashed var(--border-color); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem; transition: border-color 0.2s;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <span style="font-size: 1.3rem;">📦</span>
+                                    <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary);" data-ar="استيراد جرد المخزون الطبي (Upload Inventory CSV)" data-en="Import Inventory (CSV)">Import Inventory (CSV)</h4>
+                                </div>
+                                <p style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.45; margin: 0 0 0.75rem 0;" data-ar="رفع ملف CSV ببيانات الأصناف الطبية والمواد الاستهلاكية مع الكميات وتنبيهات الحد الأدنى وإضافتها للمخزون فوراً." data-en="Upload a CSV file with dental materials, stock quantities, categories, and low-stock replenishment limits.">Upload a CSV file with dental materials, stock quantities, categories, and low-stock replenishment limits.</p>
+                                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                                    <button type="button" class="btn-outline" style="font-size: 0.78rem; padding: 0.3rem 0.65rem;" onclick="window.downloadInventoryTemplateCsv()" data-ar="📄 تحميل نموذج CSV للمخزون" data-en="📄 Download Sample CSV">
+                                        📄 Download Sample CSV
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-outline" id="triggerImportInventoryBtn" style="width: 100%; justify-content: center; padding: 0.65rem 1rem; display: inline-flex; align-items: center; gap: 6px; border-color: var(--brand-primary); color: var(--brand-primary);" onclick="document.getElementById('importInventoryFileInput').click();" data-ar="📤 رفع واستيراد ملف المخزون (CSV)" data-en="📤 Upload & Import Inventory (CSV)">
+                                <span>📤</span> <span id="triggerImportInventoryBtnText" data-ar="رفع واستيراد ملف المخزون (CSV)" data-en="Upload & Import Inventory (CSV)">Upload & Import Inventory (CSV)</span>
+                            </button>
+                        </div>
+
+                        <!-- 3. Restore Settings JSON Backup -->
+                        <div style="background: var(--bg-surface); border: 1.5px dashed var(--border-color); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem; grid-column: 1 / -1;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <span style="font-size: 1.3rem;">🔄</span>
+                                    <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary);" data-ar="استعادة النسخة الاحتياطية للإعدادات (Restore Settings JSON)" data-en="Restore Settings Backup (JSON)">Restore Settings Backup (JSON)</h4>
+                                </div>
+                                <p style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.45; margin: 0;" data-ar="استرجاع كافة أسعار الخدمات الطبية وقوالب الروشتات وإعدادات هوية العيادة والضرائب من ملف النسخ الاحتياطي JSON الذي تم تنزيله مسبقاً وتطبيقه على النظام." data-en="Restore complete service pricing tables, prescription medication templates, clinic branding, and tax configurations from a previously exported JSON backup file.">Restore complete service pricing tables, prescription medication templates, clinic branding, and tax configurations from a previously exported JSON backup file.</p>
+                            </div>
+                            <button type="button" class="btn-outline" id="triggerRestoreSettingsBtn" style="width: 100%; justify-content: center; padding: 0.65rem 1rem; display: inline-flex; align-items: center; gap: 6px; border-color: #8b5cf6; color: #8b5cf6;" onclick="document.getElementById('restoreSettingsFileInput').click();" data-ar="🔄 رفع واستعادة ملف الإعدادات (JSON)" data-en="🔄 Upload & Restore Settings (JSON)">
+                                <span>🔄</span> <span id="triggerRestoreSettingsBtnText" data-ar="رفع واستعادة ملف الإعدادات (JSON)" data-en="Upload & Restore Settings (JSON)">Upload & Restore Settings (JSON)</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
         </section>
 
     </main>

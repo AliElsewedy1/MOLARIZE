@@ -768,7 +768,40 @@ document.getElementById('backToPatientsBtn').addEventListener('click', () => {
     document.querySelector('.sidebar-link[data-target="patients-section"]').click();
 });
 
-// FDI Tooth Names Mapping
+// ==========================================
+// --- INTERACTIVE DENTAL ODONTOGRAM ENGINE ---
+// ==========================================
+
+// FDI to Universal Notation Mapping
+const fdiToUniversalMap = {
+    // Adult Maxillary
+    18: '1', 17: '2', 16: '3', 15: '4', 14: '5', 13: '6', 12: '7', 11: '8',
+    21: '9', 22: '10', 23: '11', 24: '12', 25: '13', 26: '14', 27: '15', 28: '16',
+    // Adult Mandibular
+    48: '32', 47: '31', 46: '30', 45: '29', 44: '28', 43: '27', 42: '26', 41: '25',
+    31: '24', 32: '23', 33: '22', 34: '21', 35: '20', 36: '19', 37: '18', 38: '17',
+    // Pediatric Maxillary
+    55: 'A', 54: 'B', 53: 'C', 52: 'D', 51: 'E',
+    61: 'F', 62: 'G', 63: 'H', 64: 'I', 65: 'J',
+    // Pediatric Mandibular
+    85: 'T', 84: 'S', 83: 'R', 82: 'Q', 81: 'P',
+    71: 'K', 72: 'L', 73: 'M', 74: 'N', 75: 'O'
+};
+
+const adultQuadrantTeeth = {
+    upperRight: [18, 17, 16, 15, 14, 13, 12, 11],
+    upperLeft: [21, 22, 23, 24, 25, 26, 27, 28],
+    lowerRight: [48, 47, 46, 45, 44, 43, 42, 41],
+    lowerLeft: [31, 32, 33, 34, 35, 36, 37, 38]
+};
+
+const pediatricQuadrantTeeth = {
+    upperRight: [55, 54, 53, 52, 51],
+    upperLeft: [61, 62, 63, 64, 65],
+    lowerRight: [85, 84, 83, 82, 81],
+    lowerLeft: [71, 72, 73, 74, 75]
+};
+
 const toothNames = {
     1: { en: 'Central Incisor', ar: 'قاطع مركزي' },
     2: { en: 'Lateral Incisor', ar: 'قاطع جانبي' },
@@ -779,120 +812,539 @@ const toothNames = {
     7: { en: 'Second Molar', ar: 'ضرس ثانٍ' },
     8: { en: 'Third Molar (Wisdom)', ar: 'ضرس العقل' }
 };
+
+const primaryToothNames = {
+    1: { en: 'Primary Central Incisor', ar: 'قاطع مركزي لبني' },
+    2: { en: 'Primary Lateral Incisor', ar: 'قاطع جانبي لبني' },
+    3: { en: 'Primary Canine', ar: 'ناب لبني' },
+    4: { en: 'First Primary Molar', ar: 'ضرس لبني أول' },
+    5: { en: 'Second Primary Molar', ar: 'ضرس لبني ثانٍ' }
+};
+
 const quadNames = {
     1: { en: 'Upper Right', ar: 'العلوي الأيمن' },
     2: { en: 'Upper Left', ar: 'العلوي الأيسر' },
     3: { en: 'Lower Left', ar: 'السفلي الأيسر' },
-    4: { en: 'Lower Right', ar: 'السفلي الأيمن' }
+    4: { en: 'Lower Right', ar: 'السفلي الأيمن' },
+    5: { en: 'Upper Right (Pediatric)', ar: 'العلوي الأيمن (لبني)' },
+    6: { en: 'Upper Left (Pediatric)', ar: 'العلوي الأيسر (لبني)' },
+    7: { en: 'Lower Left (Pediatric)', ar: 'السفلي الأيسر (لبني)' },
+    8: { en: 'Lower Right (Pediatric)', ar: 'السفلي الأيمن (لبني)' }
+};
+
+const conditionMeta = {
+    'normal': { en: 'Normal', ar: 'سليم', color: '#ffffff', isWhole: false },
+    'decay': { en: 'Decay', ar: 'تسوس', color: '#ef4444', isWhole: false },
+    'composite': { en: 'Composite', ar: 'حشو تجميلي', color: '#3b82f6', isWhole: false },
+    'amalgam': { en: 'Amalgam', ar: 'حشو أملجم', color: '#64748b', isWhole: false },
+    'rct': { en: 'Root Canal (RCT)', ar: 'علاج جذور', color: '#8b5cf6', isWhole: true },
+    'crown': { en: 'Crown / Cap', ar: 'طربوش / تاج', color: '#f59e0b', isWhole: true },
+    'missing': { en: 'Missing', ar: 'مخلوع / مفقود', color: '#334155', isWhole: true },
+    'implant': { en: 'Implant', ar: 'زراعة سنية', color: '#10b981', isWhole: true },
+    'veneer': { en: 'Veneer', ar: 'فينير', color: '#06b6d4', isWhole: false },
+    'bridge': { en: 'Bridge', ar: 'كوبري', color: '#ea580c', isWhole: true }
 };
 
 function getToothDescription(num) {
     const quad = Math.floor(num / 10);
     const pos = num % 10;
-    const isAr = document.documentElement.lang === 'ar';
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
     const q = quadNames[quad] ? (isAr ? quadNames[quad].ar : quadNames[quad].en) : '';
-    const t = toothNames[pos] ? (isAr ? toothNames[pos].ar : toothNames[pos].en) : '';
-    return isAr ? `${t} (${q}) - رقم ${num}` : `Tooth #${num}: ${q} ${t}`;
+    const isPrimary = quad >= 5;
+    const dict = isPrimary ? primaryToothNames : toothNames;
+    const t = dict[pos] ? (isAr ? dict[pos].ar : dict[pos].en) : `Tooth #${num}`;
+    const uniNum = fdiToUniversalMap[num] ? ` (Universal: #${fdiToUniversalMap[num]})` : '';
+    return isAr ? `${t} (${q}) - رقم ${num}` : `Tooth #${num}${uniNum}: ${q} ${t}`;
 }
 
-// --- Odontogram Logic ---
-const toothBoxes = document.querySelectorAll('.tooth-box');
-const saveOdontogramBtn = document.getElementById('saveOdontogramBtn');
+// Odontogram State
+let odontogramDentition = 'adult'; // 'adult' | 'pediatric'
+let odontogramNotation = 'fdi';   // 'fdi' | 'universal'
+let odontogramArchView = 'all';   // 'all' | 'upper' | 'lower'
+let odontogramZoom = 1.0;
+let odontogramActiveCondition = 'normal';
+let odontogramSelectedTooth = null;
+let currentPatientOdontogram = {}; // { [toothNum]: { surfaces: { b, l, m, d, o }, wholeCondition: 'normal', notes: '' } }
 
-// Handle tooth click
-document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('tooth-box')) {
-        const condition = document.querySelector('input[name="toothCondition"]:checked').value;
-        const toothNum = parseInt(e.target.getAttribute('data-tooth'));
+window.setOdontogramDentition = function(mode) {
+    odontogramDentition = mode;
+    const adultBtn = document.getElementById('dentitionAdultBtn');
+    const pedBtn = document.getElementById('dentitionPediatricBtn');
+    if (adultBtn) adultBtn.classList.toggle('active', mode === 'adult');
+    if (pedBtn) pedBtn.classList.toggle('active', mode === 'pediatric');
+    renderOdontogramArches();
+    updateOdontogramSummary();
+};
 
-        // Trigger tactile micro-bounce animation
-        e.target.classList.remove('tooth-bounce');
-        void e.target.offsetWidth;
-        e.target.classList.add('tooth-bounce');
+window.setOdontogramNotation = function(mode) {
+    odontogramNotation = mode;
+    const fdiBtn = document.getElementById('notationFdiBtn');
+    const uniBtn = document.getElementById('notationUniversalBtn');
+    if (fdiBtn) fdiBtn.classList.toggle('active', mode === 'fdi');
+    if (uniBtn) uniBtn.classList.toggle('active', mode === 'universal');
+    renderOdontogramArches();
+};
 
-        // Remove existing condition classes
-        e.target.classList.remove('cond-decay', 'cond-filled', 'cond-missing');
-        e.target.removeAttribute('data-condition');
+window.setOdontogramArchView = function(view) {
+    odontogramArchView = view;
+    const allBtn = document.getElementById('archViewAllBtn');
+    const upperBtn = document.getElementById('archViewUpperBtn');
+    const lowerBtn = document.getElementById('archViewLowerBtn');
 
-        if (condition !== 'normal') {
-            e.target.classList.add('cond-' + condition);
-            e.target.setAttribute('data-condition', condition);
+    if (allBtn) allBtn.classList.toggle('active', view === 'all');
+    if (upperBtn) upperBtn.classList.toggle('active', view === 'upper');
+    if (lowerBtn) lowerBtn.classList.toggle('active', view === 'lower');
+
+    const upperSec = document.getElementById('upperArchSection');
+    const lowerSec = document.getElementById('lowerArchSection');
+    const midline = document.getElementById('archMidlineDivider');
+
+    if (view === 'all') {
+        if (upperSec) {
+            upperSec.style.display = 'flex';
+            upperSec.classList.remove('single-arch-focus');
         }
-
-        const infoEl = document.getElementById('odontogramSelectedToothInfo');
-        if (infoEl && toothNum) {
-            const isAr = document.documentElement.lang === 'ar';
-            const condMap = {
-                'normal': isAr ? 'سليم' : 'Normal',
-                'decay': isAr ? 'تسوس' : 'Decay',
-                'filled': isAr ? 'حشو' : 'Filled',
-                'missing': isAr ? 'مخلوع' : 'Missing'
-            };
-            infoEl.innerHTML = `<span>${getToothDescription(toothNum)} &bull; <strong>${condMap[condition] || condition}</strong></span>`;
+        if (lowerSec) {
+            lowerSec.style.display = 'flex';
+            lowerSec.classList.remove('single-arch-focus');
         }
+        if (midline) midline.style.display = 'flex';
+    } else if (view === 'upper') {
+        if (upperSec) {
+            upperSec.style.display = 'flex';
+            upperSec.classList.add('single-arch-focus');
+        }
+        if (lowerSec) {
+            lowerSec.style.display = 'none';
+            lowerSec.classList.remove('single-arch-focus');
+        }
+        if (midline) midline.style.display = 'none';
+    } else if (view === 'lower') {
+        if (upperSec) {
+            upperSec.style.display = 'none';
+            upperSec.classList.remove('single-arch-focus');
+        }
+        if (lowerSec) {
+            lowerSec.style.display = 'flex';
+            lowerSec.classList.add('single-arch-focus');
+        }
+        if (midline) midline.style.display = 'none';
     }
-});
+};
 
-async function loadOdontogram(patientId) {
-    // Reset visual state
-    document.querySelectorAll('.tooth-box').forEach(box => {
-        box.classList.remove('cond-decay', 'cond-filled', 'cond-missing');
-        box.removeAttribute('data-condition');
+window.zoomOdontogram = function(delta) {
+    odontogramZoom = Math.min(Math.max(odontogramZoom + delta, 0.7), 1.8);
+    document.documentElement.style.setProperty('--odontogram-zoom', odontogramZoom.toFixed(2));
+};
+
+window.resetOdontogramZoom = function() {
+    odontogramZoom = 1.0;
+    document.documentElement.style.setProperty('--odontogram-zoom', '1');
+};
+
+function getDisplayToothNumber(fdiNum) {
+    if (odontogramNotation === 'universal') {
+        return fdiToUniversalMap[fdiNum] || fdiNum;
+    }
+    return fdiNum;
+}
+
+function renderToothSvg(toothNum, toothData) {
+    const data = toothData || { surfaces: { b: 'normal', l: 'normal', m: 'normal', d: 'normal', o: 'normal' }, wholeCondition: 'normal' };
+    const s = data.surfaces || {};
+    const whole = data.wholeCondition || 'normal';
+
+    const bClass = `tooth-surface surface-b cond-${s.b || 'normal'}`;
+    const lClass = `tooth-surface surface-l cond-${s.l || 'normal'}`;
+    const mClass = `tooth-surface surface-m cond-${s.m || 'normal'}`;
+    const dClass = `tooth-surface surface-d cond-${s.d || 'normal'}`;
+    const oClass = `tooth-surface surface-o cond-${s.o || 'normal'}`;
+
+    const hasCrown = whole === 'crown' || whole === 'bridge';
+    const hasRct = whole === 'rct';
+    const hasMissing = whole === 'missing';
+    const hasImplant = whole === 'implant';
+    const hasVeneer = whole === 'veneer' || s.b === 'veneer';
+
+    return `
+    <svg viewBox="0 0 40 48" class="tooth-svg" data-tooth="${toothNum}">
+        <!-- Buccal Surface (Top) -->
+        <polygon class="${bClass}" data-surface="b" data-tooth="${toothNum}" points="4,4 36,4 28,14 12,14" />
+        <!-- Lingual Surface (Bottom) -->
+        <polygon class="${lClass}" data-surface="l" data-tooth="${toothNum}" points="12,30 28,30 36,40 4,40" />
+        <!-- Mesial Surface (Left) -->
+        <polygon class="${mClass}" data-surface="m" data-tooth="${toothNum}" points="4,4 12,14 12,30 4,40" />
+        <!-- Distal Surface (Right) -->
+        <polygon class="${dClass}" data-surface="d" data-tooth="${toothNum}" points="36,4 28,14 28,30 36,40" />
+        <!-- Occlusal Surface (Center) -->
+        <polygon class="${oClass}" data-surface="o" data-tooth="${toothNum}" points="12,14 28,14 28,30 12,30" />
+        
+        <!-- Whole Tooth Overlays -->
+        ${hasCrown ? `<rect x="2" y="2" width="36" height="40" rx="4" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-dasharray="3,2" pointer-events="none"/>` : ''}
+        ${hasRct ? `<path d="M 20,4 L 20,40 M 14,22 L 26,22" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" pointer-events="none"/>` : ''}
+        ${hasMissing ? `<line x1="4" y1="4" x2="36" y2="40" stroke="#ef4444" stroke-width="3.5" pointer-events="none"/><line x1="36" y1="4" x2="4" y2="40" stroke="#ef4444" stroke-width="3.5" pointer-events="none"/>` : ''}
+        ${hasImplant ? `<path d="M 15,6 L 25,6 M 20,6 L 20,38 M 16,16 L 24,16 M 16,24 L 24,24 M 17,32 L 23,32" stroke="#10b981" stroke-width="2.2" pointer-events="none"/>` : ''}
+        ${hasVeneer ? `<path d="M 4,4 C 12,1 28,1 36,4" fill="none" stroke="#06b6d4" stroke-width="3" pointer-events="none"/>` : ''}
+    </svg>`;
+}
+
+function renderToothUnit(toothNum, isUpper) {
+    const displayNum = getDisplayToothNumber(toothNum);
+    const data = currentPatientOdontogram[toothNum] || { surfaces: { b: 'normal', l: 'normal', m: 'normal', d: 'normal', o: 'normal' }, wholeCondition: 'normal' };
+    const isSelected = odontogramSelectedTooth === toothNum;
+
+    const numBadge = `<span class="tooth-num-badge" data-tooth="${toothNum}">${displayNum}</span>`;
+    const svgHtml = renderToothSvg(toothNum, data);
+
+    const innerHtml = isUpper ? `${numBadge}${svgHtml}` : `${svgHtml}${numBadge}`;
+
+    return `
+    <div class="tooth-unit ${isSelected ? 'selected' : ''}" data-tooth="${toothNum}">
+        ${innerHtml}
+    </div>`;
+}
+
+function renderOdontogramArches() {
+    const isAdult = odontogramDentition === 'adult';
+    const quads = isAdult ? adultQuadrantTeeth : pediatricQuadrantTeeth;
+
+    const ur = document.getElementById('upperRightQuadrant');
+    const ul = document.getElementById('upperLeftQuadrant');
+    const lr = document.getElementById('lowerRightQuadrant');
+    const ll = document.getElementById('lowerLeftQuadrant');
+
+    if (ur) ur.innerHTML = quads.upperRight.map(num => renderToothUnit(num, true)).join('');
+    if (ul) ul.innerHTML = quads.upperLeft.map(num => renderToothUnit(num, true)).join('');
+    if (lr) lr.innerHTML = quads.lowerRight.map(num => renderToothUnit(num, false)).join('');
+    if (ll) ll.innerHTML = quads.lowerLeft.map(num => renderToothUnit(num, false)).join('');
+
+    bindToothEvents();
+}
+
+function bindToothEvents() {
+    // Surface click handler
+    document.querySelectorAll('.tooth-surface').forEach(poly => {
+        poly.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const toothNum = parseInt(poly.getAttribute('data-tooth'));
+            const surface = poly.getAttribute('data-surface');
+            handleSurfaceClick(toothNum, surface);
+        });
     });
 
+    // Whole unit select handler
+    document.querySelectorAll('.tooth-unit').forEach(unit => {
+        unit.addEventListener('click', () => {
+            const toothNum = parseInt(unit.getAttribute('data-tooth'));
+            selectOdontogramTooth(toothNum);
+        });
+    });
+}
+
+function handleSurfaceClick(toothNum, surface) {
+    if (!toothNum) return;
+
+    if (!currentPatientOdontogram[toothNum]) {
+        currentPatientOdontogram[toothNum] = {
+            surfaces: { b: 'normal', l: 'normal', m: 'normal', d: 'normal', o: 'normal' },
+            wholeCondition: 'normal',
+            notes: ''
+        };
+    }
+
+    const tData = currentPatientOdontogram[toothNum];
+    const meta = conditionMeta[odontogramActiveCondition] || { isWhole: false };
+
+    if (meta.isWhole) {
+        // If whole tooth procedure selected, apply as whole condition
+        tData.wholeCondition = odontogramActiveCondition;
+    } else {
+        // Apply to specific surface
+        tData.surfaces[surface] = odontogramActiveCondition;
+        // If resetting to normal, check if all normal
+        if (odontogramActiveCondition === 'normal' && tData.wholeCondition !== 'normal') {
+            tData.wholeCondition = 'normal';
+        }
+    }
+
+    selectOdontogramTooth(toothNum);
+    renderOdontogramArches();
+    updateOdontogramSummary();
+}
+
+window.selectOdontogramTooth = function(toothNum) {
+    odontogramSelectedTooth = toothNum;
+    document.querySelectorAll('.tooth-unit').forEach(u => {
+        const uNum = parseInt(u.getAttribute('data-tooth'));
+        u.classList.toggle('selected', uNum === toothNum);
+    });
+
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+    const iconEl = document.getElementById('inspectorToothIcon');
+    const titleEl = document.getElementById('inspectorToothTitle');
+    const surfEl = document.getElementById('inspectorToothSurfaces');
+
+    if (iconEl) iconEl.innerText = toothNum ? getDisplayToothNumber(toothNum) : '--';
+    if (titleEl) titleEl.innerText = toothNum ? getToothDescription(toothNum) : (isAr ? 'اضغط على أي سن لعرض وتعديل تفاصيله' : 'Click on any tooth to inspect');
+
+    if (surfEl && toothNum) {
+        const data = currentPatientOdontogram[toothNum] || { surfaces: {}, wholeCondition: 'normal' };
+        const s = data.surfaces || {};
+        const getCondLabel = (c) => (conditionMeta[c] ? (isAr ? conditionMeta[c].ar : conditionMeta[c].en) : c || 'Normal');
+        
+        const bLabel = `B: ${getCondLabel(s.b)}`;
+        const lLabel = `L: ${getCondLabel(s.l)}`;
+        const mLabel = `M: ${getCondLabel(s.m)}`;
+        const dLabel = `D: ${getCondLabel(s.d)}`;
+        const oLabel = `O: ${getCondLabel(s.o)}`;
+        const wholeStr = data.wholeCondition && data.wholeCondition !== 'normal' ? ` | <strong>${getCondLabel(data.wholeCondition)}</strong>` : '';
+
+        surfEl.innerHTML = `<span style="display: flex; gap: 8px; flex-wrap: wrap;"><span>${mLabel}</span><span>${oLabel}</span><span>${dLabel}</span><span>${bLabel}</span><span>${lLabel}</span>${wholeStr}</span>`;
+    }
+};
+
+window.applyWholeToothCondition = function(cond) {
+    if (!odontogramSelectedTooth) {
+        const isAr = (document.documentElement.lang || 'en') === 'ar';
+        const msg = isAr ? 'يرجى اختيار سن أولاً من المخطط' : 'Please select a tooth from the chart first';
+        if (window.showToast) window.showToast(msg, 'error');
+        return;
+    }
+
+    if (!currentPatientOdontogram[odontogramSelectedTooth]) {
+        currentPatientOdontogram[odontogramSelectedTooth] = {
+            surfaces: { b: 'normal', l: 'normal', m: 'normal', d: 'normal', o: 'normal' },
+            wholeCondition: 'normal',
+            notes: ''
+        };
+    }
+
+    currentPatientOdontogram[odontogramSelectedTooth].wholeCondition = cond;
+    selectOdontogramTooth(odontogramSelectedTooth);
+    renderOdontogramArches();
+    updateOdontogramSummary();
+};
+
+window.resetCurrentTooth = function() {
+    if (!odontogramSelectedTooth) return;
+    currentPatientOdontogram[odontogramSelectedTooth] = {
+        surfaces: { b: 'normal', l: 'normal', m: 'normal', d: 'normal', o: 'normal' },
+        wholeCondition: 'normal',
+        notes: ''
+    };
+    selectOdontogramTooth(odontogramSelectedTooth);
+    renderOdontogramArches();
+    updateOdontogramSummary();
+};
+
+window.resetOdontogramChart = function() {
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+    const confirmMsg = isAr ? 'هل أنت متأكد من رغبتك في تفريغ وتصفير مخطط الأسنان بالكامل؟' : 'Are you sure you want to reset and clear the entire dental chart?';
+    if (confirm(confirmMsg)) {
+        currentPatientOdontogram = {};
+        odontogramSelectedTooth = null;
+        renderOdontogramArches();
+        selectOdontogramTooth(null);
+        updateOdontogramSummary();
+    }
+};
+
+window.createTreatmentFromSelectedTooth = function() {
+    if (!odontogramSelectedTooth) {
+        const isAr = (document.documentElement.lang || 'en') === 'ar';
+        if (window.showToast) window.showToast(isAr ? 'يرجى تحديد سن من المخطط أولاً' : 'Please select a tooth from the chart first', 'error');
+        return;
+    }
+
+    const tNum = odontogramSelectedTooth;
+    const tDesc = getToothDescription(tNum);
+    const data = currentPatientOdontogram[tNum];
+    const whole = data ? data.wholeCondition : 'normal';
+
+    const treatmentForm = document.getElementById('treatmentForm');
+    const treatmentModal = document.getElementById('treatmentModal');
+    const patientNameInput = document.getElementById('treatmentPatientName');
+    const treatmentNameInput = document.getElementById('treatmentName');
+    const notesInput = document.getElementById('treatmentNotes');
+
+    if (treatmentForm) treatmentForm.reset();
+    if (patientNameInput && window.currentProfilePatientId) {
+        const patient = currentPatients.find(p => p.id === window.currentProfilePatientId);
+        if (patient) patientNameInput.value = patient.name;
+    }
+
+    if (treatmentNameInput) {
+        const isAr = (document.documentElement.lang || 'en') === 'ar';
+        const condLabel = conditionMeta[whole] ? (isAr ? conditionMeta[whole].ar : conditionMeta[whole].en) : '';
+        treatmentNameInput.value = condLabel ? `${condLabel} - سن #${tNum}` : `إجراء علاجي - سن #${tNum}`;
+    }
+
+    if (notesInput) {
+        notesInput.value = tDesc;
+    }
+
+    if (treatmentModal) {
+        treatmentModal.classList.add('show');
+        history.pushState({ modal: 'treatment' }, '', window.location.hash);
+    }
+};
+
+function updateOdontogramSummary() {
+    const summaryContainer = document.getElementById('odontogramSummary');
+    if (!summaryContainer) return;
+
+    const counts = {
+        decay: 0,
+        composite: 0,
+        amalgam: 0,
+        rct: 0,
+        crown: 0,
+        missing: 0,
+        implant: 0,
+        veneer: 0,
+        bridge: 0
+    };
+
+    for (const [, data] of Object.entries(currentPatientOdontogram)) {
+        if (!data) continue;
+        const whole = data.wholeCondition;
+        if (whole && counts[whole] !== undefined) {
+            counts[whole]++;
+        }
+        const s = data.surfaces || {};
+        ['b', 'l', 'm', 'd', 'o'].forEach(surf => {
+            const cond = s[surf];
+            if (cond && counts[cond] !== undefined && cond !== whole) {
+                counts[cond]++;
+            }
+        });
+    }
+
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+    let html = '';
+
+    for (const [key, count] of Object.entries(counts)) {
+        if (count > 0) {
+            const meta = conditionMeta[key] || {};
+            const label = isAr ? meta.ar : meta.en;
+            html += `<div class="summary-badge-item"><span class="palette-color-dot" style="background:${meta.color}; width:8px; height:8px;"></span><strong>${count}</strong> ${label}</div>`;
+        }
+    }
+
+    if (!html) {
+        html = `<div style="font-size: 0.8rem; color: var(--text-muted);">${isAr ? '✨ كافة الأسنان سليمة وفق المخطط الحالي' : '✨ All teeth are in healthy/normal condition'}</div>`;
+    }
+
+    summaryContainer.innerHTML = html;
+}
+
+// Palette Tool Selection
+const setupOdontogramPalette = () => {
+    const palette = document.getElementById('odontogramPalette');
+    if (palette) {
+        palette.querySelectorAll('.palette-tool-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                palette.querySelectorAll('.palette-tool-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                odontogramActiveCondition = btn.getAttribute('data-condition') || 'normal';
+            });
+        });
+    }
+};
+
+// Firestore Load & Save
+async function loadOdontogram(patientId) {
+    currentPatientOdontogram = {};
+    odontogramSelectedTooth = null;
+
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user || !patientId) {
+        renderOdontogramArches();
+        updateOdontogramSummary();
+        return;
+    }
 
     try {
         const docRef = doc(db, 'users', user.uid, 'patients', patientId, 'records', 'odontogram');
-
         const oDoc = await getDoc(docRef);
 
         if (oDoc.exists()) {
-            const data = oDoc.data().teeth || {};
-            for (const [tooth, condition] of Object.entries(data)) {
-                const el = document.querySelector(`.tooth-box[data-tooth="${tooth}"]`);
-                if (el && condition !== 'normal') {
-                    el.classList.add('cond-' + condition);
-                    el.setAttribute('data-condition', condition);
+            const data = oDoc.data();
+            if (data.dentition) odontogramDentition = data.dentition;
+            if (data.notation) odontogramNotation = data.notation;
+
+            const teethData = data.teeth || {};
+            for (const [tooth, val] of Object.entries(teethData)) {
+                if (typeof val === 'string') {
+                    // Backward compatibility with older simple string condition records
+                    currentPatientOdontogram[tooth] = {
+                        surfaces: { b: 'normal', l: 'normal', m: 'normal', d: 'normal', o: val !== 'normal' ? val : 'normal' },
+                        wholeCondition: (conditionMeta[val] && conditionMeta[val].isWhole) ? val : 'normal',
+                        notes: ''
+                    };
+                } else if (val && typeof val === 'object') {
+                    currentPatientOdontogram[tooth] = val;
                 }
             }
         }
     } catch (e) {
         console.error("Error loading odontogram", e);
     }
+
+    renderOdontogramArches();
+    updateOdontogramSummary();
 }
 
-saveOdontogramBtn.addEventListener('click', async () => {
-    if (!currentProfilePatientId) return;
-    const user = auth.currentUser;
-    if (!user) return;
+// Save Odontogram Button
+const setupOdontogramSave = () => {
+    const saveBtn = document.getElementById('saveOdontogramBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', async () => {
+            const pId = window.currentProfilePatientId || currentProfilePatientId;
+            if (!pId) return;
+            const user = auth.currentUser;
+            if (!user) return;
 
-    const teethData = {};
-    document.querySelectorAll('.tooth-box').forEach(box => {
-        const cond = box.getAttribute('data-condition') || 'normal';
-        teethData[box.getAttribute('data-tooth')] = cond;
-    });
+            try {
+                const isAr = (document.documentElement.lang || 'en') === 'ar';
+                const docRef = doc(db, 'users', user.uid, 'patients', pId, 'records', 'odontogram');
+                await setDoc(docRef, {
+                    teeth: currentPatientOdontogram,
+                    dentition: odontogramDentition,
+                    notation: odontogramNotation,
+                    updatedAt: new Date().toISOString()
+                });
 
-    try {
-        const isAr = document.documentElement.lang === 'ar';
-        const docRef = doc(db, 'users', user.uid, 'patients', currentProfilePatientId, 'records', 'odontogram');
-        await setDoc(docRef, { teeth: teethData, updatedAt: new Date().toISOString() });
-        if (window.showToast) {
-            window.showToast(isAr ? 'تم حفظ مخطط الأسنان بنجاح' : 'Odontogram saved successfully!', 'success');
-        } else {
-            alert("Odontogram saved successfully!");
-        }
-    } catch (e) {
-        console.error("Error saving odontogram", e);
-        const isAr = document.documentElement.lang === 'ar';
-        if (window.showToast) {
-            window.showToast(isAr ? 'حدث خطأ أثناء حفظ مخطط الأسنان' : 'Error saving odontogram', 'error');
-        } else {
-            alert("Error saving.");
-        }
+                if (window.showToast) {
+                    window.showToast(isAr ? 'تم حفظ مخطط الأسنان بنجاح' : 'Odontogram saved successfully!', 'success');
+                } else {
+                    alert("Odontogram saved successfully!");
+                }
+            } catch (e) {
+                console.error("Error saving odontogram", e);
+                const isAr = (document.documentElement.lang || 'en') === 'ar';
+                if (window.showToast) {
+                    window.showToast(isAr ? 'حدث خطأ أثناء حفظ مخطط الأسنان' : 'Error saving odontogram', 'error');
+                } else {
+                    alert("Error saving.");
+                }
+            }
+        });
     }
-});
+};
+
+// Initial Setup
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        setupOdontogramPalette();
+        setupOdontogramSave();
+        renderOdontogramArches();
+    });
+} else {
+    setupOdontogramPalette();
+    setupOdontogramSave();
+    renderOdontogramArches();
+}
 
 const prescriptionModal = document.getElementById('prescriptionModal');
 const addProfileTreatmentBtn = document.getElementById('addProfileTreatmentBtn');
@@ -2230,37 +2682,289 @@ function setupGalleryControls() {
 }
 
 // --- Export Patients to CSV ---
-const exportPatientsCsvBtn = document.getElementById('exportPatientsCsvBtn');
-if (exportPatientsCsvBtn) {
-    exportPatientsCsvBtn.addEventListener('click', () => {
-        if (!currentPatients || currentPatients.length === 0) {
-            const isAr = document.documentElement.lang === 'ar';
-            if (window.showToast) window.showToast(isAr ? 'لا توجد بيانات مرضى للتصدير' : 'No patients to export', 'warning');
+window.exportPatientsToCsv = function() {
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+    const patients = currentPatients || window.currentPatients || [];
+
+    if (!patients || patients.length === 0) {
+        if (window.showToast) window.showToast(isAr ? 'لا توجد بيانات مرضى للتصدير' : 'No patients to export', 'warning');
+        else alert(isAr ? 'لا توجد بيانات مرضى للتصدير' : 'No patients to export');
+        return;
+    }
+
+    const headers = ['Display ID', 'Name', 'Gender', 'Age', 'Phone', 'Phone 2', 'Medical Alerts', 'Last Visit', 'Notes'];
+    const rows = patients.map(p => [
+        `"${(p.displayId || '').replace(/"/g, '""')}"`,
+        `"${(p.name || '').replace(/"/g, '""')}"`,
+        `"${(p.gender || '').replace(/"/g, '""')}"`,
+        `"${(p.age || '')}"`,
+        `"${(p.phone || '').replace(/"/g, '""')}"`,
+        `"${(p.phone2 || '').replace(/"/g, '""')}"`,
+        `"${(p.medicalAlerts || '').replace(/"/g, '""')}"`,
+        `"${(p.lastVisit || '')}"`,
+        `"${(p.notes || '').replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Molarize_Patients_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    if (window.showToast) {
+        window.showToast(isAr ? `تم تصدير بيانات ${patients.length} مريض بنجاح` : `Exported ${patients.length} patient records successfully`, 'success');
+    }
+};
+
+// --- Download Patients CSV Template ---
+window.downloadPatientsTemplateCsv = function() {
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+    const sampleHeaders = ['Display ID', 'Name', 'Gender', 'Age', 'Phone', 'Phone 2', 'Medical Alerts', 'Last Visit', 'Notes'];
+    const sampleRows = [
+        ['1', isAr ? 'أحمد محمد علي' : 'Ahmed Mohamed Ali', 'Male', '32', '01012345678', '01123456789', isAr ? 'حساسية بنسلين' : 'Penicillin Allergy', '2026-09-20', isAr ? 'مريض جديد - فحص عام' : 'New patient - General checkup'],
+        ['2', isAr ? 'سارة محمود حسن' : 'Sarah Mahmoud Hassan', 'Female', '27', '01298765432', '', isAr ? 'سكر وضغط' : 'Diabetes, Hypertension', '2026-09-22', isAr ? 'خطة علاج تقويم' : 'Ortho treatment plan']
+    ];
+
+    const csvContent = '\uFEFF' + [
+        sampleHeaders.join(','),
+        ...sampleRows.map(r => r.map(f => `"${(f || '').replace(/"/g, '""')}"`).join(','))
+    ].join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Molarize_Patients_Template.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    if (window.showToast) {
+        window.showToast(isAr ? 'تم تحميل نموذج ملف المرضى CSV بنجاح' : 'Patient CSV template downloaded successfully', 'info');
+    }
+};
+
+// Helper: Robust CSV line parser taking quotes into account
+function parseCsvToRows(csvText) {
+    const rows = [];
+    let currentRow = [];
+    let currentCell = '';
+    let insideQuotes = false;
+
+    // Normalize newlines
+    const text = csvText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const nextChar = text[i + 1];
+
+        if (char === '"') {
+            if (insideQuotes && nextChar === '"') {
+                currentCell += '"';
+                i++; // Skip escaped quote
+            } else {
+                insideQuotes = !insideQuotes;
+            }
+        } else if (char === ',' && !insideQuotes) {
+            currentRow.push(currentCell.trim());
+            currentCell = '';
+        } else if (char === '\n' && !insideQuotes) {
+            currentRow.push(currentCell.trim());
+            if (currentRow.some(c => c !== '')) {
+                rows.push(currentRow);
+            }
+            currentRow = [];
+            currentCell = '';
+        } else {
+            currentCell += char;
+        }
+    }
+
+    if (currentCell.length > 0 || currentRow.length > 0) {
+        currentRow.push(currentCell.trim());
+        if (currentRow.some(c => c !== '')) {
+            rows.push(currentRow);
+        }
+    }
+
+    return rows;
+}
+
+// --- Import Patients CSV File Handler ---
+window.handlePatientsCsvFileSelected = async function(event) {
+    const file = event?.target?.files?.[0];
+    if (!file) return;
+
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+    const triggerBtnText = document.getElementById('triggerImportPatientsBtnText');
+    const originalBtnText = triggerBtnText ? triggerBtnText.innerText : '';
+
+    if (triggerBtnText) {
+        triggerBtnText.innerText = isAr ? 'جاري قراءة واستيراد الملف...' : 'Importing patients...';
+    }
+
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            if (window.showToast) window.showToast(isAr ? 'يجب تسجيل الدخول أولاً' : 'Please sign in first', 'error');
             return;
         }
 
-        const headers = ['Display ID', 'Name', 'Gender', 'Age', 'Phone', 'Phone 2', 'Medical Alerts', 'Last Visit', 'Notes'];
-        const rows = currentPatients.map(p => [
-            `"${(p.displayId || '').replace(/"/g, '""')}"`,
-            `"${(p.name || '').replace(/"/g, '""')}"`,
-            `"${(p.gender || '').replace(/"/g, '""')}"`,
-            `"${(p.age || '')}"`,
-            `"${(p.phone || '').replace(/"/g, '""')}"`,
-            `"${(p.phone2 || '').replace(/"/g, '""')}"`,
-            `"${(p.medicalAlerts || '').replace(/"/g, '""')}"`,
-            `"${(p.lastVisit || '')}"`,
-            `"${(p.notes || '').replace(/"/g, '""')}"`
-        ]);
+        const text = await file.text();
+        const rows = parseCsvToRows(text);
 
-        const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `Molarize_Patients_${new Date().toISOString().split('T')[0]}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        if (rows.length < 2) {
+            if (window.showToast) window.showToast(isAr ? 'الملف فارغ أو لا يحتوي على صفوف بيانات' : 'The CSV file is empty or contains no data rows', 'warning');
+            return;
+        }
+
+        const headerRow = rows[0].map(h => h.toLowerCase().trim());
+        
+        // Map header indices
+        const findColIndex = (keywords) => {
+            return headerRow.findIndex(h => keywords.some(k => h.includes(k.toLowerCase())));
+        };
+
+        const nameIdx = findColIndex(['name', 'اسم', 'الاسم', 'patient']);
+        const phoneIdx = findColIndex(['phone 1', 'رقم الهاتف', 'موبايل', 'هاتف', 'phone']);
+        const phone2Idx = findColIndex(['phone 2', 'هاتف 2', 'رقم إضافي', 'رقم 2', 'phone2', 'secondary']);
+        const ageIdx = findColIndex(['age', 'عمر', 'العمر', 'سن']);
+        const genderIdx = findColIndex(['gender', 'نوع', 'النوع', 'جنس', 'الجنس', 'sex']);
+        const alertsIdx = findColIndex(['alert', 'تحذير', 'امراض', 'أمراض', 'medical', 'حساسية']);
+        const notesIdx = findColIndex(['note', 'ملاحظ', 'بيانات', 'تشخيص', 'comment']);
+        const displayIdIdx = findColIndex(['display id', 'رقم الملف', 'id', 'ملف', 'code']);
+        const lastVisitIdx = findColIndex(['last visit', 'اخر زيارة', 'تاريخ', 'visit', 'date']);
+
+        if (nameIdx === -1) {
+            if (window.showToast) window.showToast(isAr ? 'خطأ: لم يتم العثور على عمود اسم المريض (Name) في الملف' : 'Error: "Name" column not found in CSV', 'error');
+            return;
+        }
+
+        // Get current max display ID
+        const counterRef = doc(db, "users", user.uid, "counters", "patients");
+        const counterDoc = await getDoc(counterRef);
+        let maxDisplayId = counterDoc.exists() && counterDoc.data().patientCount ? parseInt(counterDoc.data().patientCount) : (currentPatients.length || 0);
+
+        // Normalize existing patients by phone and display ID for deduplication
+        const existingPhones = new Set(currentPatients.map(p => (p.phone || '').replace(/\D/g, '').slice(-9)).filter(Boolean));
+        const existingDisplayIds = new Set(currentPatients.map(p => String(p.displayId || '')));
+
+        let importedCount = 0;
+        let skippedCount = 0;
+        const patientsRef = collection(db, "users", user.uid, "patients");
+
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            const rawName = nameIdx !== -1 && row[nameIdx] ? row[nameIdx].trim() : '';
+            if (!rawName) continue;
+
+            const rawPhone = phoneIdx !== -1 && row[phoneIdx] ? row[phoneIdx].trim() : '';
+            const cleanPhoneDigits = rawPhone.replace(/\D/g, '').slice(-9);
+
+            // Deduplicate if phone already exists
+            if (cleanPhoneDigits && existingPhones.has(cleanPhoneDigits)) {
+                skippedCount++;
+                continue;
+            }
+
+            const rawPhone2 = phone2Idx !== -1 && row[phone2Idx] ? row[phone2Idx].trim() : '';
+            const rawAge = ageIdx !== -1 && row[ageIdx] ? row[ageIdx].trim() : '';
+            
+            let rawGender = genderIdx !== -1 && row[genderIdx] ? row[genderIdx].trim() : 'Male';
+            if (rawGender.includes('أنثى') || rawGender.includes('انثى') || rawGender.toLowerCase().startsWith('f')) {
+                rawGender = 'Female';
+            } else {
+                rawGender = 'Male';
+            }
+
+            const rawAlerts = alertsIdx !== -1 && row[alertsIdx] ? row[alertsIdx].trim() : '';
+            const rawNotes = notesIdx !== -1 && row[notesIdx] ? row[notesIdx].trim() : '';
+            const rawLastVisit = lastVisitIdx !== -1 && row[lastVisitIdx] ? row[lastVisitIdx].trim() : new Date().toISOString().split('T')[0];
+
+            let targetDisplayId = null;
+            if (displayIdIdx !== -1 && row[displayIdIdx]) {
+                const parsedId = parseInt(row[displayIdIdx]);
+                if (!isNaN(parsedId) && !existingDisplayIds.has(String(parsedId))) {
+                    targetDisplayId = parsedId;
+                    if (parsedId > maxDisplayId) maxDisplayId = parsedId;
+                }
+            }
+
+            if (!targetDisplayId) {
+                maxDisplayId += 1;
+                targetDisplayId = maxDisplayId;
+            }
+
+            const newPatientData = {
+                name: rawName,
+                phone: rawPhone,
+                phone2: rawPhone2,
+                callPref: 'phone1',
+                waPref: 'phone1',
+                age: rawAge,
+                gender: rawGender,
+                notes: rawNotes,
+                medicalAlerts: rawAlerts,
+                lastVisit: rawLastVisit,
+                displayId: targetDisplayId,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            await addDoc(patientsRef, newPatientData);
+
+            if (cleanPhoneDigits) existingPhones.add(cleanPhoneDigits);
+            existingDisplayIds.add(String(targetDisplayId));
+            importedCount++;
+        }
+
+        // Update counter in database
+        await setDoc(counterRef, { patientCount: maxDisplayId }, { merge: true });
+
+        // Success Notification
+        if (window.showToast) {
+            if (importedCount > 0) {
+                const msg = isAr 
+                    ? `تم استيراد ${importedCount} مريض بنجاح! ${skippedCount > 0 ? `(تم تخطي ${skippedCount} مكرر)` : ''}`
+                    : `Successfully imported ${importedCount} patients! ${skippedCount > 0 ? `(${skippedCount} skipped as duplicates)` : ''}`;
+                window.showToast(msg, 'success');
+            } else {
+                window.showToast(isAr ? 'لم يتم استيراد مرضى جدد (ربما كافة المرضى مسجلين مسبقاً)' : 'No new patients imported (all may be duplicates)', 'info');
+            }
+        }
+
+    } catch (err) {
+        console.error("Error importing patients CSV:", err);
+        if (window.showToast) {
+            window.showToast(isAr ? `حدث خطأ أثناء استيراد الملف: ${err.message}` : `Error importing CSV: ${err.message}`, 'error');
+        }
+    } finally {
+        if (triggerBtnText && originalBtnText) {
+            triggerBtnText.innerText = originalBtnText;
+        }
+        if (event?.target) {
+            event.target.value = '';
+        }
+    }
+};
+
+const attachPatientExportListeners = () => {
+    document.querySelectorAll('#exportPatientsCsvBtn, .btn-export-patients').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.exportPatientsToCsv();
+        });
     });
+};
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attachPatientExportListeners);
+} else {
+    attachPatientExportListeners();
 }

@@ -1835,24 +1835,32 @@ export function setupSettingsUIEventListeners() {
     }
 
     // 11. Export Full Clinic Configuration JSON
+    window.exportClinicConfigToJson = function() {
+        const isAr = (document.documentElement.lang || 'en') === 'ar';
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
+            clinicConfig: settingsStore.config,
+            services: settingsStore.services,
+            medicationTemplates: settingsStore.medications,
+            auditLogs: settingsStore.auditLogs,
+            exportedAt: new Date().toISOString()
+        }, null, 2));
+
+        const a = document.createElement('a');
+        a.setAttribute('href', dataStr);
+        a.setAttribute('download', `molarize_clinic_settings_${Date.now()}.json`);
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        if (window.showToast) {
+            window.showToast(isAr ? 'تم تحميل ملف النسخ الاحتياطي للإعدادات JSON بنجاح' : 'Clinic settings backup JSON downloaded successfully', 'success');
+        }
+    };
+
     const exportConfigBtn = document.getElementById('exportFullConfigJsonBtn');
     if (exportConfigBtn) {
-        exportConfigBtn.onclick = () => {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
-                clinicConfig: settingsStore.config,
-                services: settingsStore.services,
-                medicationTemplates: settingsStore.medications,
-                auditLogs: settingsStore.auditLogs,
-                exportedAt: new Date().toISOString()
-            }, null, 2));
-
-            const a = document.createElement('a');
-            a.setAttribute('href', dataStr);
-            a.setAttribute('download', `molarize_clinic_settings_${Date.now()}.json`);
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            if (window.showToast) window.showToast("تم تحميل ملف الإعدادات الكامل JSON", "success");
+        exportConfigBtn.onclick = (e) => {
+            e.preventDefault();
+            window.exportClinicConfigToJson();
         };
     }
 
@@ -1883,6 +1891,84 @@ export function setupSettingsUIEventListeners() {
     });
 }
 
+// --- Restore Settings JSON Backup Handler ---
+window.handleSettingsJsonFileSelected = async function(event) {
+    const file = event?.target?.files?.[0];
+    if (!file) return;
+
+    const isAr = (document.documentElement.lang || 'en') === 'ar';
+    const triggerBtnText = document.getElementById('triggerRestoreSettingsBtnText');
+    const originalBtnText = triggerBtnText ? triggerBtnText.innerText : '';
+
+    if (triggerBtnText) {
+        triggerBtnText.innerText = isAr ? 'جاري قراءة واستعادة الإعدادات...' : 'Restoring settings...';
+    }
+
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            if (window.showToast) window.showToast(isAr ? 'يجب تسجيل الدخول أولاً' : 'Please sign in first', 'error');
+            return;
+        }
+
+        const text = await file.text();
+        const data = JSON.parse(text);
+
+        if (!data || typeof data !== 'object') {
+            throw new Error(isAr ? 'تنسيق الملف غير صالح' : 'Invalid file format');
+        }
+
+        // 1. Restore Clinic Config
+        if (data.clinicConfig && typeof data.clinicConfig === 'object') {
+            await setDoc(getClinicDocRef(), data.clinicConfig, { merge: true });
+            settingsStore.config = { ...settingsStore.config, ...data.clinicConfig };
+        }
+
+        // 2. Restore Services
+        if (Array.isArray(data.services) && data.services.length > 0) {
+            for (const srv of data.services) {
+                if (srv.id) {
+                    await setDoc(doc(getServicesColRef(), srv.id), srv, { merge: true });
+                } else {
+                    await addDoc(getServicesColRef(), srv);
+                }
+            }
+            settingsStore.services = data.services;
+        }
+
+        // 3. Restore Medication Templates
+        if (Array.isArray(data.medicationTemplates) && data.medicationTemplates.length > 0) {
+            for (const med of data.medicationTemplates) {
+                if (med.id) {
+                    await setDoc(doc(getMedsColRef(), med.id), med, { merge: true });
+                } else {
+                    await addDoc(getMedsColRef(), med);
+                }
+            }
+            settingsStore.medications = data.medicationTemplates;
+        }
+
+        settingsStore.notify();
+        updateDynamicUI();
+
+        if (window.showToast) {
+            window.showToast(isAr ? 'تمت استعادة كافة إعدادات العيادة والأسعار وقوالب الروشتات بنجاح!' : 'Clinic settings, pricing, and medication templates restored successfully!', 'success');
+        }
+    } catch (err) {
+        console.error("Error restoring settings JSON:", err);
+        if (window.showToast) {
+            window.showToast(isAr ? `حدث خطأ أثناء استعادة الإعدادات: ${err.message}` : `Error restoring settings: ${err.message}`, 'error');
+        }
+    } finally {
+        if (triggerBtnText && originalBtnText) {
+            triggerBtnText.innerText = originalBtnText;
+        }
+        if (event?.target) {
+            event.target.value = '';
+        }
+    }
+};
+
 // Global window exposures
 window.openServiceModal = openServiceModal;
 window.editService = openServiceModal;
@@ -1895,6 +1981,8 @@ window.settingsStore = settingsStore;
 window.saveService = saveService;
 window.saveMedication = saveMedication;
 window.saveGlobalConfig = saveGlobalConfig;
+window.handleSettingsJsonFileSelected = window.handleSettingsJsonFileSelected;
+
 
 // Auto-run initialization on load when the user is authenticated
 let isUIEventListenersSetup = false;
